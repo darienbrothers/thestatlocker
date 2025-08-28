@@ -1,171 +1,228 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+
+import { useAuthStore } from '../stores/authStore';
 import { RootStackParamList } from '../types';
+import { colors, fonts, spacing, fontSizes, borderRadius } from '../constants/theme';
 
 type OnboardingStartNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingStart'>;
 
 export default function OnboardingStartScreen() {
   const navigation = useNavigation<OnboardingStartNavigationProp>();
+  const { user } = useAuthStore();
 
   const handleQuickStart = () => {
     navigation.navigate('OnboardingQuick');
   };
 
-  const handleExtended = () => {
+  const handleCompleteSetup = () => {
     navigation.navigate('OnboardingExtended');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Let's Get Started</Text>
-          <Text style={styles.subtitle}>
-            Choose how you'd like to set up your StatLocker profile
-          </Text>
-        </View>
+    <LinearGradient
+      colors={[colors.background, colors.backgroundSecondary]}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Image 
+                source={require('../../assets/logos/logoBlack.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              
+              <Text style={styles.title}>
+                Welcome to StatLocker, {user?.firstName || 'Athlete'}!
+              </Text>
+              
+              <Text style={styles.subtitle}>
+                Let's get you set up to start tracking your performance
+              </Text>
+            </View>
 
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity style={styles.quickOption} onPress={handleQuickStart}>
-            <View style={styles.optionHeader}>
-              <Text style={styles.optionTitle}>Quick Start</Text>
-              <Text style={styles.optionTime}>5 steps. Fast setup.</Text>
-            </View>
-            <Text style={styles.optionDescription}>
-              Get the essentials done quickly. You can always customize more later.
-            </Text>
-            <View style={styles.optionFeatures}>
-              <Text style={styles.featureItem}>• Basic profile info</Text>
-              <Text style={styles.featureItem}>• Team details</Text>
-              <Text style={styles.featureItem}>• Performance goals</Text>
-            </View>
-          </TouchableOpacity>
+            {/* Setup Options */}
+            <View style={styles.optionsContainer}>
+              {/* Quick Start Option */}
+              <TouchableOpacity style={styles.optionCard} onPress={handleQuickStart}>
+                <View style={styles.optionIcon}>
+                  <Ionicons name="flash" size={32} color={colors.primary} />
+                </View>
+                
+                <View style={styles.optionContent}>
+                  <Text style={styles.optionTitle}>Quick Start</Text>
+                  <Text style={styles.optionDescription}>
+                    Jump right in and set up your profile as you go
+                  </Text>
+                  <Text style={styles.optionTime}>2 minutes</Text>
+                </View>
+                
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.extendedOption} onPress={handleExtended}>
-            <View style={styles.optionHeader}>
-              <Text style={styles.optionTitle}>Make It Mine</Text>
-              <Text style={styles.optionTime}>About 2 minutes</Text>
+              {/* Full Setup Option */}
+              <TouchableOpacity style={styles.optionCard} onPress={handleCompleteSetup}>
+                <View style={styles.optionIcon}>
+                  <Ionicons name="settings" size={32} color={colors.success} />
+                </View>
+                
+                <View style={styles.optionContent}>
+                  <Text style={styles.optionTitle}>Complete Setup</Text>
+                  <Text style={styles.optionDescription}>
+                    Tell us about your sport, goals, and preferences for a personalized experience
+                  </Text>
+                  <Text style={styles.optionTime}>5-8 minutes</Text>
+                </View>
+                
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.optionDescription}>
-              Personalize your experience with detailed preferences and settings.
-            </Text>
-            <View style={styles.optionFeatures}>
-              <Text style={styles.featureItem}>• Everything in Quick Start</Text>
-              <Text style={styles.featureItem}>• Training preferences</Text>
-              <Text style={styles.featureItem}>• Notification settings</Text>
-              <Text style={styles.featureItem}>• Personal motto</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Don't worry - you can change these settings anytime in your profile.
-          </Text>
-        </View>
-      </View>
-    </SafeAreaView>
+            {/* Benefits */}
+            <View style={styles.benefitsContainer}>
+              <Text style={styles.benefitsTitle}>What you'll get:</Text>
+              
+              <View style={styles.benefitItem}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <Text style={styles.benefitText}>Personalized performance tracking</Text>
+              </View>
+              
+              <View style={styles.benefitItem}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <Text style={styles.benefitText}>AI-powered insights and recommendations</Text>
+              </View>
+              
+              <View style={styles.benefitItem}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <Text style={styles.benefitText}>Goal tracking and progress monitoring</Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing['2xl'],
+    padding: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing['3xl'],
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: fontSizes['4xl'],
+    fontSize: fontSizes['3xl'],
     fontFamily: fonts.anton,
     color: colors.textPrimary,
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: fontSizes.lg,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
+    marginBottom: spacing['2xl'],
   },
   optionsContainer: {
+    marginBottom: spacing['2xl'],
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  optionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.neutral100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.lg,
+  },
+  optionContent: {
     flex: 1,
-    gap: spacing.lg,
-  },
-  quickOption: {
-    backgroundColor: colors.backgroundSecondary,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    minHeight: 180,
-  },
-  extendedOption: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    minHeight: 180,
-  },
-  optionHeader: {
-    marginBottom: spacing.md,
   },
   optionTitle: {
-    fontSize: fontSizes['2xl'],
+    fontSize: fontSizes.xl,
     fontFamily: fonts.jakarta.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
-  },
-  optionTime: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   optionDescription: {
     fontSize: fontSizes.base,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  optionTime: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
+  },
+  benefitsContainer: {
+    backgroundColor: colors.neutral50,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+  },
+  benefitsTitle: {
+    fontSize: fontSizes.lg,
+    fontFamily: fonts.jakarta.semiBold,
+    color: colors.textPrimary,
     marginBottom: spacing.md,
   },
-  optionFeatures: {
-    gap: spacing.xs,
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
-  featureItem: {
-    fontSize: fontSizes.sm,
+  benefitText: {
+    fontSize: fontSizes.base,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  footer: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    lineHeight: 18,
+    marginLeft: spacing.sm,
+    flex: 1,
   },
 });

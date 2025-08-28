@@ -19,7 +19,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth - use getAuth for all platforms to avoid persistence issues
+// Initialize Auth - Firebase will automatically use AsyncStorage for React Native
 const auth = getAuth(app);
 
 // Initialize Firestore

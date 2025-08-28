@@ -10,6 +10,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import OnboardingStartScreen from './src/screens/OnboardingStartScreen';
+import OnboardingQuickScreen from './src/screens/OnboardingQuickScreen';
+import OnboardingExtendedScreen from './src/screens/OnboardingExtendedScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import { useAuthStore } from './src/stores/authStore';
 import { RootStackParamList } from './src/types';
@@ -103,6 +105,8 @@ export default function App() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Auth" component={AuthScreen} />
             <Stack.Screen name="OnboardingStart" component={OnboardingStartScreen} />
+            <Stack.Screen name="OnboardingQuick" component={OnboardingQuickScreen} />
+            <Stack.Screen name="OnboardingExtended" component={OnboardingExtendedScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
           </Stack.Navigator>
         </NavigationContainer>

@@ -24,7 +24,7 @@ const slides = [
     title: 'Welcome to StatLocker',
     subtitle: 'Track faster. Improve smarter.',
     description: 'Your all-in-one athletic performance platform.',
-    image: require('../../assets/images/welcome.png'),
+    image: require('../../assets/logos/logoBlack.png'),
   },
   {
     id: 1,
@@ -62,14 +62,6 @@ export default function WelcomeScreen() {
   const goToSlide = (index: number) => {
     scrollViewRef.current?.scrollTo({ x: index * width, animated: true });
     setCurrentSlide(index);
-  };
-
-  const handleGetStarted = () => {
-    navigation.navigate('Auth');
-  };
-
-  const handleSignIn = () => {
-    navigation.navigate('Auth');
   };
 
   return (
@@ -114,12 +106,21 @@ export default function WelcomeScreen() {
 
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('OnboardingStart')}
+        >
           <Text style={styles.primaryButtonText}>Get Started</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleSignIn}>
-          <Text style={styles.secondaryButtonText}>Sign In</Text>
+
+        {/* Sign In Link */}
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate('Auth')}
+        >
+          <Text style={styles.linkText}>
+            Already have an account? <Text style={styles.boldText}>Sign In</Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -217,20 +218,19 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.lg,
     fontFamily: fonts.jakarta.semiBold,
   },
-  secondaryButton: {
-    backgroundColor: 'transparent',
+  linkButton: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
     alignItems: 'center',
     minHeight: 44,
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.neutral300,
   },
-  secondaryButtonText: {
+  linkText: {
     color: colors.textPrimary,
     fontSize: fontSizes.lg,
     fontFamily: fonts.jakarta.medium,
+  },
+  boldText: {
+    fontWeight: 'bold',
   },
 });

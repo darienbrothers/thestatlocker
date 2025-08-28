@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -24,9 +25,8 @@ type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
 type Mode = 'signIn' | 'signUp';
 
-export default function AuthScreen() {
-  const navigation = useNavigation<AuthScreenNavigationProp>();
-  const { signIn, signUp, resetPassword } = useAuthStore();
+export default function AuthScreen({ navigation }: { navigation: AuthScreenNavigationProp }) {
+  const { signIn, signUp, appleSignIn, resetPassword } = useAuthStore();
   
   const [mode, setMode] = useState<Mode>('signIn');
   const [firstName, setFirstName] = useState('');
@@ -93,16 +93,20 @@ export default function AuthScreen() {
         ],
       });
       
-      // TODO: Implement Apple Sign In with Firebase
-      console.log('Apple credential:', credential);
-      Alert.alert('Apple Sign In', 'Apple Sign In not yet implemented');
+      if (credential.identityToken) {
+        await appleSignIn(credential.identityToken);
+        navigation.navigate('OnboardingStart');
+      } else {
+        throw new Error('No identity token received');
+      }
       
     } catch (error: any) {
       if (error.code === 'ERR_CANCELED') {
         // User canceled the sign-in flow
         return;
       }
-      setErrorMsg('Apple Sign In failed');
+      console.error('Apple Sign In Error:', error);
+      setErrorMsg('Apple Sign In failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -122,9 +126,11 @@ export default function AuthScreen() {
         <View style={styles.content}>
           {/* Logo + Title */}
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>SL</Text>
-            </View>
+            <Image 
+              source={require('../../assets/logos/logoBlack.png')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
             
             <Text style={styles.title}>
               {mode === 'signIn' ? 'Welcome Back' : 'Create Your Account'}
@@ -299,23 +305,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 20,
+    marginTop: 60,
+    marginBottom: 32,
   },
-  logoContainer: {
+  logo: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 8,
-  },
-  logoText: {
-    fontSize: 24,
-    fontFamily: FONTS.heading,
-    color: 'white',
-    fontWeight: 'bold',
   },
   title: {
     fontSize: 24,

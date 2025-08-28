@@ -6,7 +6,10 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  signInWithCredential,
+  OAuthProvider,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -20,9 +23,36 @@ export interface User {
   photoURL?: string | null;
   onboarding_completed?: boolean;
   sport?: string;
+  gender?: 'boys' | 'girls';
   position?: string;
   team?: string;
   graduationYear?: number;
+  highSchool?: {
+    name: string;
+    city: string;
+    state: string;
+    level: string;
+  };
+  strengths?: string[];
+  growth?: string[];
+  training_days_per_week?: number;
+  nudge?: {
+    time: string;
+    days: string[];
+    after_games_only: boolean;
+  };
+  motto?: string;
+  analytics_consent?: boolean;
+  goals?: string[];
+  purpose?: string;
+  focus_30d?: string[];
+  club?: {
+    enabled: boolean;
+    name?: string;
+    city?: string;
+    state?: string;
+    level?: string;
+  };
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -44,6 +74,7 @@ interface AuthActions {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   initialize: () => void;
+  appleSignIn: (identityToken: string, nonce?: string) => Promise<void>;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -244,5 +275,67 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
 
     return unsubscribe;
+  },
+
+  appleSignIn: async (identityToken: string, nonce?: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const provider = new OAuthProvider('apple.com');
+      provider.addScope('email');
+      provider.addScope('name');
+
+      const credential = provider.credential({
+        idToken: identityToken,
+        rawNonce: nonce,
+      });
+
+      const userCredential = await signInWithCredential(auth, credential);
+      const firebaseUser = userCredential.user;
+
+      // Check if user document exists
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      let user: User;
+
+      if (!userDoc.exists()) {
+        // Create new user document
+        user = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          onboarding_completed: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        await setDoc(doc(db, 'users', firebaseUser.uid), user);
+      } else {
+        // Get existing user data
+        const userData = userDoc.data();
+        user = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          ...userData,
+        };
+      }
+
+      set({ 
+        user, 
+        isAuthenticated: true, 
+        isLoading: false,
+        error: null 
+      });
+    } catch (error: any) {
+      set({ 
+        error: error.message, 
+        isLoading: false,
+        user: null,
+        isAuthenticated: false 
+      });
+      throw error;
+    }
   },
 }));
