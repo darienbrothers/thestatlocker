@@ -1,0 +1,39 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getAnalytics, isSupported } from 'firebase/analytics';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+// Firebase configuration - these should be filled in your .env file
+const firebaseConfig = {
+    apiKey: "AIzaSyDkFOcjU04aONSbQWUu_KRtXLrLOxmBU5E",
+    authDomain: "the-statlocker.firebaseapp.com",
+    projectId: "the-statlocker",
+    storageBucket: "the-statlocker.firebasestorage.app",
+    messagingSenderId: "454030243479",
+    appId: "1:454030243479:web:86ff3112995715c66c1bd2",
+    measurementId: "G-D1YK7S2M9Y"
+  };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Auth - use getAuth for all platforms to avoid persistence issues
+const auth = getAuth(app);
+
+// Initialize Firestore
+export const db = getFirestore(app);
+
+// Initialize Analytics (only if supported)
+let analytics;
+if (Platform.OS === 'web') {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  });
+}
+
+export { auth, analytics };
+export default app;

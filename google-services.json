@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "454030243479",
+    "project_id": "the-statlocker",
+    "storage_bucket": "the-statlocker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454030243479:android:d2dc4ae0138853de6c1bd2",
+        "android_client_info": {
+          "package_name": "com.thestatlocker.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYt8y5NvYlu1_QdySpiM4fbr25Rc4VTm4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
