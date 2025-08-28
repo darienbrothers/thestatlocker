@@ -4,9 +4,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   SafeAreaView,
   Image,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 import { RootStackParamList } from '../types';
 import { colors, fonts, spacing, fontSizes, borderRadius } from '../constants/theme';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 type OnboardingStartNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingStart'>;
 
@@ -33,87 +35,95 @@ export default function OnboardingStartScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.background, colors.backgroundSecondary]}
+      colors={['#FAFAFA', '#F5F5F7']}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            {/* Header */}
-            <View style={styles.header}>
+        <View style={styles.content}>
+          {/* Logo */}
+          <View style={styles.logoSection}>
+            <View style={styles.logoContainer}>
               <Image 
                 source={require('../../assets/logos/logoBlack.png')} 
                 style={styles.logo}
                 resizeMode="contain"
               />
-              
-              <Text style={styles.title}>
-                Welcome to StatLocker, {user?.firstName || 'Athlete'}!
-              </Text>
-              
-              <Text style={styles.subtitle}>
-                Let's get you set up to start tracking your performance
-              </Text>
-            </View>
-
-            {/* Setup Options */}
-            <View style={styles.optionsContainer}>
-              {/* Quick Start Option */}
-              <TouchableOpacity style={styles.optionCard} onPress={handleQuickStart}>
-                <View style={styles.optionIcon}>
-                  <Ionicons name="flash" size={32} color={colors.primary} />
-                </View>
-                
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>Quick Start</Text>
-                  <Text style={styles.optionDescription}>
-                    Jump right in and set up your profile as you go
-                  </Text>
-                  <Text style={styles.optionTime}>2 minutes</Text>
-                </View>
-                
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-
-              {/* Full Setup Option */}
-              <TouchableOpacity style={styles.optionCard} onPress={handleCompleteSetup}>
-                <View style={styles.optionIcon}>
-                  <Ionicons name="settings" size={32} color={colors.success} />
-                </View>
-                
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>Complete Setup</Text>
-                  <Text style={styles.optionDescription}>
-                    Tell us about your sport, goals, and preferences for a personalized experience
-                  </Text>
-                  <Text style={styles.optionTime}>5-8 minutes</Text>
-                </View>
-                
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Benefits */}
-            <View style={styles.benefitsContainer}>
-              <Text style={styles.benefitsTitle}>What you'll get:</Text>
-              
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={styles.benefitText}>Personalized performance tracking</Text>
-              </View>
-              
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={styles.benefitText}>AI-powered insights and recommendations</Text>
-              </View>
-              
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={styles.benefitText}>Goal tracking and progress monitoring</Text>
-              </View>
             </View>
           </View>
-        </ScrollView>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>
+              Welcome, {user?.firstName || 'Athlete'}!
+            </Text>
+            
+            <Text style={styles.subtitle}>
+              Choose your setup experience
+            </Text>
+          </View>
+
+          {/* Setup Options */}
+          <View style={styles.optionsContainer}>
+            {/* Quick Start Option */}
+            <TouchableOpacity style={[styles.optionCard, styles.quickStartCard]} onPress={handleQuickStart}>
+              <LinearGradient
+                colors={[colors.primary, '#6366F1']}
+                style={styles.optionGradient}
+              >
+                <View style={styles.optionHeader}>
+                  <View style={styles.optionIconContainer}>
+                    <Ionicons name="flash" size={28} color={colors.white} />
+                  </View>
+                  <View style={styles.timeTag}>
+                    <Text style={styles.timeText}>2 min</Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.optionTitle}>Quick Start</Text>
+                <Text style={styles.optionDescription}>
+                  Essential setup to get you started immediately
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Complete Setup Option */}
+            <TouchableOpacity style={[styles.optionCard, styles.completeCard]} onPress={handleCompleteSetup}>
+              <View style={styles.optionContent}>
+                <View style={styles.optionHeader}>
+                  <View style={[styles.optionIconContainer, styles.completeIcon]}>
+                    <Ionicons name="star" size={28} color={colors.primary} />
+                  </View>
+                  <View style={[styles.timeTag, styles.completeTimeTag]}>
+                    <Text style={[styles.timeText, styles.completeTimeText]}>5-8 min</Text>
+                  </View>
+                </View>
+                
+                <Text style={[styles.optionTitle, styles.completeTitle]}>Make It Mine</Text>
+                <Text style={[styles.optionDescription, styles.completeDescription]}>
+                  Personalized setup for the full StatLocker experience
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Benefits */}
+          <View style={styles.benefitsContainer}>
+            <View style={styles.benefitRow}>
+              <Ionicons name="analytics" size={20} color={colors.primary} />
+              <Text style={styles.benefitText}>Performance insights</Text>
+            </View>
+            
+            <View style={styles.benefitRow}>
+              <Ionicons name="trophy" size={20} color={colors.primary} />
+              <Text style={styles.benefitText}>Goal tracking</Text>
+            </View>
+            
+            <View style={styles.benefitRow}>
+              <Ionicons name="trending-up" size={20} color={colors.primary} />
+              <Text style={styles.benefitText}>Progress monitoring</Text>
+            </View>
+          </View>
+        </View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -126,25 +136,39 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     flex: 1,
-    padding: spacing.xl,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing['2xl'],
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: spacing['2xl'],
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  logo: {
+    width: 48,
+    height: 48,
   },
   header: {
     alignItems: 'center',
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    marginBottom: spacing.lg,
+    marginBottom: spacing['2xl'],
   },
   title: {
-    fontSize: fontSizes['3xl'],
+    fontSize: fontSizes['4xl'],
     fontFamily: fonts.anton,
     color: colors.textPrimary,
     textAlign: 'center',
@@ -155,72 +179,103 @@ const styles = StyleSheet.create({
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing['2xl'],
   },
   optionsContainer: {
-    marginBottom: spacing['2xl'],
+    marginBottom: spacing.xl,
+    gap: spacing.lg,
   },
   optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+    borderRadius: borderRadius.xl,
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  optionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.neutral100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.lg,
+  quickStartCard: {
+    overflow: 'hidden',
+  },
+  completeCard: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.primary + '20',
+  },
+  optionGradient: {
+    padding: spacing.xl,
   },
   optionContent: {
-    flex: 1,
+    padding: spacing.xl,
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  optionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completeIcon: {
+    backgroundColor: colors.primary + '15',
+  },
+  timeTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  completeTimeTag: {
+    backgroundColor: colors.primary + '15',
+  },
+  timeText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.semiBold,
+    color: colors.white,
+  },
+  completeTimeText: {
+    color: colors.primary,
   },
   optionTitle: {
-    fontSize: fontSizes.xl,
-    fontFamily: fonts.jakarta.semiBold,
+    fontSize: fontSizes['2xl'],
+    fontFamily: fonts.jakarta.bold,
+    color: colors.white,
+    marginBottom: spacing.sm,
+  },
+  completeTitle: {
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
   },
   optionDescription: {
     fontSize: fontSizes.base,
     fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 22,
   },
-  optionTime: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.primary,
+  completeDescription: {
+    color: colors.textSecondary,
   },
   benefitsContainer: {
-    backgroundColor: colors.neutral50,
+    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  benefitsTitle: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.jakarta.semiBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  benefitItem: {
+  benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
   benefitText: {
     fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.regular,
+    fontFamily: fonts.jakarta.medium,
     color: colors.textSecondary,
     marginLeft: spacing.sm,
     flex: 1,

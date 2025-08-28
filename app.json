@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.statlocker.app",
+      "bundleIdentifier": "com.thestatlocker.app",
       "buildNumber": "1.0.0",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/icons/appicon.png",
         "backgroundColor": "#4F46E5"
       },
-      "package": "com.statlocker.app",
+      "package": "com.thestatlocker.app",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json"
     },
@@ -34,7 +34,8 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

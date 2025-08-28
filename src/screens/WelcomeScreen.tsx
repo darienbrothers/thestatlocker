@@ -95,12 +95,21 @@ export default function WelcomeScreen() {
         {slides.map((_, index) => (
           <TouchableOpacity
             key={index}
-            style={[
-              styles.dot,
-              currentSlide === index ? styles.activeDot : styles.inactiveDot,
-            ]}
+            style={styles.dotContainer}
             onPress={() => goToSlide(index)}
-          />
+          >
+            <View
+              style={[
+                styles.dot,
+                {
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: currentSlide === index ? colors.primary : colors.neutral300,
+                },
+              ]}
+            />
+          </TouchableOpacity>
         ))}
       </View>
 
@@ -187,11 +196,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.lg,
   },
+  dotContainer: {
+    padding: 4,
+  },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginHorizontal: 4,
   },
   activeDot: {
     backgroundColor: colors.primary,
