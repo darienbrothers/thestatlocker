@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,18 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '../constants/theme';
 import { RootStackParamList } from '../types';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const slides = [
   {
@@ -53,6 +55,51 @@ export default function WelcomeScreen() {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Animation values for background effects
+  const floatingAnim1 = useRef(new Animated.Value(0)).current;
+  const floatingAnim2 = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Floating animation for background elements
+    const createFloatingAnimation = (animValue: Animated.Value, duration: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, {
+            toValue: 1,
+            duration: duration,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animValue, {
+            toValue: 0,
+            duration: duration,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    };
+
+    // Pulse animation for glow effects
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    createFloatingAnimation(floatingAnim1, 4000).start();
+    createFloatingAnimation(floatingAnim2, 6000).start();
+    pulseAnimation.start();
+  }, []);
 
   const handleScroll = (event: any) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -65,79 +112,205 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.scrollView}
-      >
-        {slides.map((slide) => (
-          <View key={slide.id} style={styles.slide}>
-            <View style={styles.imageContainer}>
-              <Image source={slide.image} style={styles.image} resizeMode="contain" />
-            </View>
-            
-            <View style={styles.content}>
-              <Text style={styles.title}>{slide.title}</Text>
-              <Text style={styles.subtitle}>{slide.subtitle}</Text>
-              <Text style={styles.description}>{slide.description}</Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+    <View style={styles.container}>
+      {/* Premium Background */}
+      <LinearGradient
+        colors={[
+          '#FAFAFA',
+          '#F8F9FA',
+          '#F5F6F8',
+          '#F2F4F6',
+        ]}
+        locations={[0, 0.3, 0.7, 1]}
+        style={styles.backgroundGradient}
+      />
+      
+      {/* Floating Background Elements */}
+      <Animated.View
+        style={[
+          styles.floatingElement1,
+          {
+            transform: [
+              {
+                translateY: floatingAnim1.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 20],
+                }),
+              },
+              {
+                translateX: floatingAnim1.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-10, 10],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
+      
+      <Animated.View
+        style={[
+          styles.floatingElement2,
+          {
+            transform: [
+              {
+                translateY: floatingAnim2.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [15, -15],
+                }),
+              },
+              {
+                translateX: floatingAnim2.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [8, -8],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
 
-      {/* Pagination Dots */}
-      <View style={styles.pagination}>
-        {slides.map((_, index) => (
+      {/* Pulsing Glow Effect */}
+      <Animated.View
+        style={[
+          styles.glowEffect,
+          {
+            transform: [{ scale: pulseAnim }],
+          },
+        ]}
+      />
+
+      {/* Grid Pattern Overlay */}
+      <View style={styles.gridPattern} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          style={styles.scrollView}
+        >
+          {slides.map((slide) => (
+            <View key={slide.id} style={styles.slide}>
+              <View style={styles.imageContainer}>
+                <Image source={slide.image} style={styles.image} resizeMode="contain" />
+              </View>
+              
+              <View style={styles.content}>
+                <Text style={styles.title}>{slide.title}</Text>
+                <Text style={styles.subtitle}>{slide.subtitle}</Text>
+                <Text style={styles.description}>{slide.description}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Pagination Dots */}
+        <View style={styles.pagination}>
+          {slides.map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.dotContainer}
+              onPress={() => goToSlide(index)}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    width: currentSlide === index ? 24 : 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: currentSlide === index ? colors.primary : colors.neutral300,
+                  },
+                ]}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.buttonContainer}>
           <TouchableOpacity
-            key={index}
-            style={styles.dotContainer}
-            onPress={() => goToSlide(index)}
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('OnboardingStart')}
           >
-            <View
-              style={[
-                styles.dot,
-                {
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: currentSlide === index ? colors.primary : colors.neutral300,
-                },
-              ]}
-            />
+            <LinearGradient
+              colors={[colors.primary, colors.primary + 'DD']}
+              start={[0, 0]}
+              end={[1, 1]}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.primaryButtonText}>Get Started</Text>
+            </LinearGradient>
           </TouchableOpacity>
-        ))}
-      </View>
 
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate('OnboardingStart')}
-        >
-          <Text style={styles.primaryButtonText}>Get Started</Text>
-        </TouchableOpacity>
-
-        {/* Sign In Link */}
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.navigate('Auth')}
-        >
-          <Text style={styles.linkText}>
-            Already have an account? <Text style={styles.boldText}>Sign In</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+          {/* Sign In Link */}
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => navigation.navigate('Auth')}
+          >
+            <Text style={styles.linkText}>
+              Already have an account? <Text style={styles.boldText}>Sign In</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  floatingElement1: {
+    position: 'absolute',
+    top: 100,
+    left: 100,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.neutral200,
+  },
+  floatingElement2: {
+    position: 'absolute',
+    top: 200,
+    left: 200,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.neutral200,
+  },
+  glowEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.primary,
+    opacity: 0.2,
+  },
+  gridPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.neutral100,
+    opacity: 0.1,
+  },
+  safeArea: {
     flex: 1,
     backgroundColor: colors.background,
   },
@@ -200,15 +373,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  activeDot: {
-    backgroundColor: colors.primary,
-  },
-  inactiveDot: {
-    backgroundColor: colors.neutral300,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   buttonContainer: {
     paddingHorizontal: spacing.xl,
@@ -223,6 +390,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 44,
     justifyContent: 'center',
+  },
+  buttonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: borderRadius.lg,
   },
   primaryButtonText: {
     color: colors.white,

@@ -7,6 +7,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import CustomSplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import OnboardingStartScreen from './src/screens/OnboardingStartScreen';
@@ -23,6 +24,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const { user, isAuthenticated, isLoading, initialize } = useAuthStore();
 
   useEffect(() => {
@@ -63,8 +65,17 @@ export default function App() {
     }
   }, [appIsReady]);
 
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
   if (!appIsReady || isLoading) {
     return null;
+  }
+
+  // Show custom splash screen first
+  if (showSplash) {
+    return <CustomSplashScreen onFinish={handleSplashFinish} />;
   }
 
   const getInitialRouteName = () => {

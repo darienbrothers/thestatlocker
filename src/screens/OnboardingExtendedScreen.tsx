@@ -57,9 +57,10 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
   const { user, updateUserProfile } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 7;
   
   // Form state
+  const [firstName, setFirstName] = useState('');
   const [gender, setGender] = useState<'boys' | 'girls'>('boys');
   const [position, setPosition] = useState<Position | ''>('');
   const [gradYear, setGradYear] = useState<number | null>(null);
@@ -114,6 +115,10 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
 
   const handleComplete = async () => {
     // Validation
+    if (!firstName.trim()) {
+      Alert.alert('Missing Information', 'Please enter your first name.');
+      return;
+    }
     if (!position || !gradYear || !highSchool.name || !highSchool.city || !highSchool.state) {
       Alert.alert('Missing Information', 'Please fill in all required fields.');
       return;
@@ -122,11 +127,13 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
     setLoading(true);
     try {
       const formData = {
+        firstName: firstName.trim(),
         gender,
         position,
         graduationYear: gradYear,
       };
       await updateUserProfile({
+        firstName: formData.firstName,
         gender: formData.gender,
         position: formData.position,
         graduationYear: formData.graduationYear,
@@ -159,6 +166,25 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
+        return (
+          <View>
+            <Text style={styles.stepTitle}>Welcome to StatLocker!</Text>
+            <Text style={styles.stepSubtitle}>We're excited to have you on board.</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>What's your first name?</Text>
+              <TextInput
+                style={styles.textInput}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Enter your first name"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+          </View>
+        );
+
+      case 2:
         return (
           <View>
             <Text style={styles.stepTitle}>Basic Information</Text>
@@ -241,7 +267,7 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
           </View>
         );
 
-      case 2:
+      case 3:
         return (
           <View>
             <Text style={styles.stepTitle}>High School</Text>
@@ -308,7 +334,7 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
           </View>
         );
 
-      case 3:
+      case 4:
         return (
           <View>
             <Text style={styles.stepTitle}>Club Team</Text>
@@ -352,7 +378,7 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
           </View>
         );
 
-      case 4:
+      case 5:
         return (
           <View>
             <Text style={styles.stepTitle}>Goals & Focus</Text>
@@ -418,7 +444,7 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
           </View>
         );
 
-      case 5:
+      case 6:
         return (
           <View>
             <Text style={styles.stepTitle}>Strengths & Growth</Text>
@@ -501,7 +527,7 @@ export default function OnboardingExtendedScreen({ navigation }: Props) {
           </View>
         );
 
-      case 6:
+      case 7:
         return (
           <View>
             <Text style={styles.stepTitle}>Final Touches</Text>

@@ -35,7 +35,12 @@
     },
     "plugins": [
       "expo-font",
-      "expo-apple-authentication"
+      [
+        "expo-apple-authentication",
+        {
+          "appleTeamId": "5433B64Y9K"
+        }
+      ]
     ],
     "extra": {
       "eas": {
@@ -49,6 +54,9 @@
         "messagingSenderId": "YOUR_MESSAGING_SENDER_ID",
         "appId": "YOUR_APP_ID"
       }
+    },
+    "experiments": {
+      "typedRoutes": false
     }
   }
 }

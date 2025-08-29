@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import Constants from 'expo-constants';
 
 export interface User {
   uid: string;
@@ -281,6 +282,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
+      // Check if we're in Expo Go (development mode)
+      // In Expo Go, bundle identifier is host.exp.Exponent which doesn't match Firebase
+      if (Constants.appOwnership === 'expo') {
+        set({ 
+          error: 'Apple Sign In is not available in development mode. Please test on a physical device with a production build.', 
+          isLoading: false,
+          user: null,
+          isAuthenticated: false 
+        });
+        throw new Error('Apple Sign In is not available in development mode. Please test on a physical device with a production build.');
+      }
+      
       const provider = new OAuthProvider('apple.com');
       provider.addScope('email');
       provider.addScope('name');
@@ -329,12 +342,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         error: null 
       });
     } catch (error: any) {
-      set({ 
-        error: error.message, 
-        isLoading: false,
-        user: null,
-        isAuthenticated: false 
-      });
+      console.error('Apple Sign In Error:', error);
+      
+      // Only set error state if not already set above
+      if (!get().error) {
+        set({ 
+          error: error.message, 
+          isLoading: false,
+          user: null,
+          isAuthenticated: false 
+        });
+      }
       throw error;
     }
   },

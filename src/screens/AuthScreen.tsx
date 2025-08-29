@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -19,7 +20,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { useAuthStore } from '../stores/authStore';
 import { RootStackParamList } from '../types';
-import { COLORS, FONTS } from '../constants/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius } from '../constants/theme';
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
@@ -36,15 +37,61 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  const validateField = (field: string, value: string) => {
+    const errors = { ...fieldErrors };
+    
+    switch (field) {
+      case 'email':
+        if (!value.trim()) {
+          errors.email = 'Email is required';
+        } else if (!/\S+@\S+\.\S+/.test(value)) {
+          errors.email = 'Please enter a valid email';
+        } else {
+          delete errors.email;
+        }
+        break;
+      case 'password':
+        if (!value.trim()) {
+          errors.password = 'Password is required';
+        } else if (value.length < 6) {
+          errors.password = 'Password must be at least 6 characters';
+        } else {
+          delete errors.password;
+        }
+        break;
+      case 'firstName':
+        if (mode === 'signUp' && !value.trim()) {
+          errors.firstName = 'First name is required';
+        } else {
+          delete errors.firstName;
+        }
+        break;
+      case 'lastName':
+        if (mode === 'signUp' && !value.trim()) {
+          errors.lastName = 'Last name is required';
+        } else {
+          delete errors.lastName;
+        }
+        break;
+    }
+    
+    setFieldErrors(errors);
+  };
+
+  const isFormValid = () => {
+    const hasNoErrors = Object.keys(fieldErrors).length === 0;
+    const hasRequiredFields = email.trim() && password.trim();
+    const hasNameFields = mode === 'signIn' || (firstName.trim() && lastName.trim());
+    
+    return hasNoErrors && hasRequiredFields && hasNameFields;
+  };
 
   const handleEmailAuth = async () => {
-    if (!email.trim() || !password.trim()) {
-      setErrorMsg('Enter email and password.');
-      return;
-    }
-
-    if (mode === 'signUp' && (!firstName.trim() || !lastName.trim())) {
-      setErrorMsg('Enter your name.');
+    if (!isFormValid()) {
+      setErrorMsg('Please fill in all required fields');
       return;
     }
 
@@ -69,13 +116,13 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
 
   const handlePasswordReset = async () => {
     if (!email.trim()) {
-      setErrorMsg('Enter your email to reset password.');
+      setErrorMsg('Enter your email to reset password');
       return;
     }
     
     try {
       await resetPassword(email);
-      Alert.alert('Password Reset', 'Password reset email sent.');
+      setResetSuccess(true);
     } catch (error: any) {
       setErrorMsg(error.message);
     }
@@ -94,7 +141,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
       });
       
       if (credential.identityToken) {
-        await appleSignIn(credential.identityToken);
+        await appleSignIn(credential.identityToken, credential.authorizationCode);
         navigation.navigate('OnboardingStart');
       } else {
         throw new Error('No identity token received');
@@ -106,7 +153,13 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
         return;
       }
       console.error('Apple Sign In Error:', error);
-      setErrorMsg('Apple Sign In failed. Please try again.');
+      
+      // Show specific error message for development mode
+      if (error.message?.includes('development mode')) {
+        setErrorMsg('Apple Sign In requires a production build. Use email/password for testing.');
+      } else {
+        setErrorMsg('Apple Sign In failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -115,180 +168,210 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
   const toggleMode = () => {
     setMode(mode === 'signIn' ? 'signUp' : 'signIn');
     setErrorMsg(null);
+    setResetSuccess(false);
   };
 
   return (
-    <LinearGradient
-      colors={[COLORS.background, COLORS.backgroundMuted]}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          {/* Logo + Title */}
-          <View style={styles.header}>
-            <Image 
-              source={require('../../assets/logos/logoBlack.png')} 
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            
-            <Text style={styles.title}>
-              {mode === 'signIn' ? 'Welcome Back' : 'Create Your Account'}
-            </Text>
-            
-            <Text style={styles.subtitle}>
-              Your stats. Your story. Your future.
-            </Text>
-          </View>
-
-          {/* Mode Selector */}
-          <View style={styles.modeSelector}>
-            <TouchableOpacity
-              style={[styles.modeButton, mode === 'signIn' && styles.modeButtonActive]}
-              onPress={() => setMode('signIn')}
-            >
-              <Text style={[styles.modeButtonText, mode === 'signIn' && styles.modeButtonTextActive]}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeButton, mode === 'signUp' && styles.modeButtonActive]}
-              onPress={() => setMode('signUp')}
-            >
-              <Text style={[styles.modeButtonText, mode === 'signUp' && styles.modeButtonTextActive]}>
-                Create Account
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Form */}
-          <View style={styles.form}>
-            {mode === 'signUp' && (
-              <View style={styles.nameRow}>
-                <TextInput
-                  style={[styles.input, styles.nameInput]}
-                  placeholder="First name"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  textContentType="givenName"
-                  autoCapitalize="words"
-                />
-                <TextInput
-                  style={[styles.input, styles.nameInput]}
-                  placeholder="Last name"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  textContentType="familyName"
-                  autoCapitalize="words"
-                />
-              </View>
-            )}
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={COLORS.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Password"
-                placeholderTextColor={COLORS.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                textContentType="password"
-                autoCapitalize="none"
-                autoCorrect={false}
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={[colors.background, colors.backgroundMuted]}
+        style={styles.container}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            {/* Logo + Title */}
+            <View style={styles.header}>
+              <Image 
+                source={require('../../assets/logos/logoBlack.png')} 
+                style={styles.logo}
+                resizeMode="contain"
               />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color={COLORS.textSecondary}
-                />
-              </TouchableOpacity>
+              
+              <Text style={styles.title}>
+                {mode === 'signIn' ? 'Welcome Back' : 'Create Your Account'}
+              </Text>
+              
+              <Text style={styles.subtitle}>
+                Your stats. Your story. Your future.
+              </Text>
             </View>
 
-            {errorMsg && (
-              <Text style={styles.errorText}>{errorMsg}</Text>
-            )}
-
-            {/* Primary CTA */}
-            <TouchableOpacity
-              style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
-              onPress={handleEmailAuth}
-              disabled={isLoading}
-            >
-              <Text style={styles.primaryButtonText}>
-                {mode === 'signIn' ? 'Sign In' : 'Create Account'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Secondary Links */}
-            <View style={styles.secondaryLinks}>
-              {mode === 'signIn' && (
-                <TouchableOpacity onPress={handlePasswordReset}>
-                  <Text style={styles.linkText}>Forgot password?</Text>
-                </TouchableOpacity>
-              )}
-              
-              <TouchableOpacity onPress={toggleMode}>
-                <Text style={styles.linkTextPrimary}>
-                  {mode === 'signIn' ? 'Need an account? Sign up' : 'Have an account? Sign in'}
+            {/* Mode Selector */}
+            <View style={styles.modeSelector}>
+              <TouchableOpacity
+                style={[styles.modeButton, mode === 'signIn' && styles.modeButtonActive]}
+                onPress={() => setMode('signIn')}
+              >
+                <Text style={[styles.modeButtonText, mode === 'signIn' && styles.modeButtonTextActive]}>
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modeButton, mode === 'signUp' && styles.modeButtonActive]}
+                onPress={() => setMode('signUp')}
+              >
+                <Text style={[styles.modeButtonText, mode === 'signUp' && styles.modeButtonTextActive]}>
+                  Create Account
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {/* Form */}
+            <View style={styles.form}>
+              {mode === 'signUp' && (
+                <View style={styles.nameRow}>
+                  <TextInput
+                    style={[styles.input, styles.nameInput]}
+                    placeholder="First name"
+                    placeholderTextColor={colors.textSecondary}
+                    value={firstName}
+                    onChangeText={(text) => {
+                      setFirstName(text);
+                      validateField('firstName', text);
+                    }}
+                    textContentType="givenName"
+                    autoCapitalize="words"
+                  />
+                  <TextInput
+                    style={[styles.input, styles.nameInput]}
+                    placeholder="Last name"
+                    placeholderTextColor={colors.textSecondary}
+                    value={lastName}
+                    onChangeText={(text) => {
+                      setLastName(text);
+                      validateField('lastName', text);
+                    }}
+                    textContentType="familyName"
+                    autoCapitalize="words"
+                  />
+                </View>
+              )}
 
-            {/* Apple Sign In */}
-            {Platform.OS === 'ios' && (
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={12}
-                style={styles.appleButton}
-                onPress={handleAppleSignIn}
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={colors.textSecondary}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  validateField('email', text);
+                }}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
-            )}
-            
-            {Platform.OS !== 'ios' && (
-              <TouchableOpacity style={styles.appleButton} onPress={handleAppleSignIn} disabled={isLoading}>
-                <Ionicons name="logo-apple" size={20} color="white" />
-                <Text style={styles.appleButtonText}>Sign in with Apple</Text>
+
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textSecondary}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    validateField('password', text);
+                  }}
+                  secureTextEntry={!showPassword}
+                  textContentType="password"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {fieldErrors.email && (
+                <Text style={styles.errorText}>{fieldErrors.email}</Text>
+              )}
+              {fieldErrors.password && (
+                <Text style={styles.errorText}>{fieldErrors.password}</Text>
+              )}
+              {mode === 'signUp' && fieldErrors.firstName && (
+                <Text style={styles.errorText}>{fieldErrors.firstName}</Text>
+              )}
+              {mode === 'signUp' && fieldErrors.lastName && (
+                <Text style={styles.errorText}>{fieldErrors.lastName}</Text>
+              )}
+              {errorMsg && (
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              )}
+
+              {/* Primary CTA */}
+              <TouchableOpacity
+                style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                onPress={handleEmailAuth}
+                disabled={isLoading}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {mode === 'signIn' ? 'Sign In' : 'Create Account'}
+                </Text>
               </TouchableOpacity>
-            )}
 
-            {isLoading && (
-              <ActivityIndicator size="small" color={COLORS.primary} style={styles.loader} />
-            )}
+              {/* Secondary Links */}
+              <View style={styles.secondaryLinks}>
+                {mode === 'signIn' && (
+                  <TouchableOpacity onPress={handlePasswordReset}>
+                    <Text style={styles.linkText}>Forgot password?</Text>
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity onPress={toggleMode}>
+                  <Text style={styles.linkTextPrimary}>
+                    {mode === 'signIn' ? 'Need an account? Sign up' : 'Have an account? Sign in'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-            {/* Legal */}
-            <Text style={styles.legalText}>
-              By continuing, you agree to our Terms of Service and Privacy Policy.
-            </Text>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Apple Sign In */}
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={12}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                />
+              )}
+              
+              {Platform.OS !== 'ios' && (
+                <TouchableOpacity style={styles.appleButton} onPress={handleAppleSignIn} disabled={isLoading}>
+                  <Ionicons name="logo-apple" size={20} color="white" />
+                  <Text style={styles.appleButtonText}>Sign in with Apple</Text>
+                </TouchableOpacity>
+              )}
+
+              {isLoading && (
+                <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
+              )}
+
+              {/* Legal */}
+              <Text style={styles.legalText}>
+                By continuing, you agree to our Terms of Service and Privacy Policy.
+              </Text>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
@@ -315,20 +398,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: FONTS.heading,
-    color: COLORS.text,
+    fontFamily: fonts.heading,
+    color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: FONTS.body,
-    color: COLORS.textSecondary,
+    fontFamily: fonts.body,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   modeSelector: {
     flexDirection: 'row',
-    backgroundColor: COLORS.backgroundMuted,
+    backgroundColor: colors.backgroundMuted,
     borderRadius: 12,
     padding: 4,
     marginBottom: 20,
@@ -340,12 +423,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modeButtonActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   modeButtonText: {
     fontSize: 14,
-    fontFamily: FONTS.medium,
-    color: COLORS.textSecondary,
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
   },
   modeButtonTextActive: {
     color: 'white',
@@ -362,29 +445,29 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 56,
-    backgroundColor: COLORS.backgroundMuted,
+    backgroundColor: colors.backgroundMuted,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     fontSize: 16,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   passwordContainer: {
     position: 'relative',
   },
   passwordInput: {
     height: 56,
-    backgroundColor: COLORS.backgroundMuted,
+    backgroundColor: colors.backgroundMuted,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingRight: 50,
     fontSize: 16,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   eyeButton: {
     position: 'absolute',
@@ -393,14 +476,14 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    fontFamily: FONTS.body,
+    fontFamily: fonts.body,
     color: '#ef4444',
     textAlign: 'center',
     marginTop: 4,
   },
   primaryButton: {
     height: 56,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
@@ -411,7 +494,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 16,
-    fontFamily: FONTS.medium,
+    fontFamily: fonts.medium,
     color: 'white',
   },
   secondaryLinks: {
@@ -421,13 +504,13 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    fontFamily: FONTS.medium,
-    color: COLORS.textSecondary,
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
   },
   linkTextPrimary: {
     fontSize: 14,
-    fontFamily: FONTS.medium,
-    color: COLORS.text,
+    fontFamily: fonts.medium,
+    color: colors.text,
   },
   divider: {
     flexDirection: 'row',
@@ -437,12 +520,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
   },
   dividerText: {
     fontSize: 12,
-    fontFamily: FONTS.body,
-    color: COLORS.textSecondary,
+    fontFamily: fonts.body,
+    color: colors.textSecondary,
     marginHorizontal: 16,
   },
   appleButton: {
@@ -456,7 +539,7 @@ const styles = StyleSheet.create({
   },
   appleButtonText: {
     fontSize: 16,
-    fontFamily: FONTS.medium,
+    fontFamily: fonts.medium,
     color: 'white',
   },
   loader: {
@@ -464,11 +547,17 @@ const styles = StyleSheet.create({
   },
   legalText: {
     fontSize: 12,
-    fontFamily: FONTS.body,
-    color: COLORS.textSecondary,
+    fontFamily: fonts.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 12,
     marginHorizontal: 8,
     lineHeight: 16,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 1,
   },
 });

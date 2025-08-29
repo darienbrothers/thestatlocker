@@ -33,6 +33,7 @@ export default function OnboardingQuickScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   
   // Form state
+  const [firstName, setFirstName] = useState('');
   const [position, setPosition] = useState<Position | ''>('');
   const [gradYear, setGradYear] = useState<number | null>(null);
   const [highSchool, setHighSchool] = useState<HighSchool>({
@@ -44,6 +45,10 @@ export default function OnboardingQuickScreen({ navigation }: Props) {
 
   const handleComplete = async () => {
     // Validation
+    if (!firstName.trim()) {
+      Alert.alert('Missing Information', 'Please enter your first name.');
+      return;
+    }
     if (!position) {
       Alert.alert('Missing Information', 'Please select your position.');
       return;
@@ -60,6 +65,7 @@ export default function OnboardingQuickScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await updateUserProfile({
+        firstName: firstName.trim(),
         sport: 'lacrosse',
         gender: 'boys', // Default for now - can be updated later
         position: position as Position,
@@ -106,6 +112,24 @@ export default function OnboardingQuickScreen({ navigation }: Props) {
         <Text style={styles.subtitle}>
           Let's get you set up with the essentials
         </Text>
+
+        {/* Name */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What's your name?</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>First Name</Text>
+            <TextInput
+              style={styles.textInput}
+              value={firstName}
+              onChangeText={(text) => setFirstName(text)}
+              placeholder="Enter your first name"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+          <Text style={styles.welcomeMessage}>
+            We're excited to have you on board, {firstName}!
+          </Text>
+        </View>
 
         {/* Position Selection */}
         <View style={styles.section}>
@@ -377,5 +401,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.lg,
     fontFamily: fonts.jakarta.semiBold,
     color: colors.white,
+  },
+  welcomeMessage: {
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
+    marginBottom: 16,
   },
 });

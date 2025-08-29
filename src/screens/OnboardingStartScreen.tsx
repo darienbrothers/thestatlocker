@@ -1,283 +1,285 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  Image,
-  Dimensions,
-} from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../constants/theme';
 
-import { useAuthStore } from '../stores/authStore';
-import { RootStackParamList } from '../types';
-import { colors, fonts, spacing, fontSizes, borderRadius } from '../constants/theme';
+const { width, height } = Dimensions.get('window');
 
-const { height: screenHeight } = Dimensions.get('window');
+interface OnboardingStartScreenProps {
+  navigation: any;
+  route: { params?: { firstName?: string } };
+}
 
-type OnboardingStartNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingStart'>;
-
-export default function OnboardingStartScreen() {
-  const navigation = useNavigation<OnboardingStartNavigationProp>();
-  const { user } = useAuthStore();
+export default function OnboardingStartScreen({ navigation, route }: OnboardingStartScreenProps) {
+  const firstName = route.params?.firstName || 'Athlete';
 
   const handleQuickStart = () => {
     navigation.navigate('OnboardingQuick');
   };
 
-  const handleCompleteSetup = () => {
+  const handleExtended = () => {
     navigation.navigate('OnboardingExtended');
   };
 
   return (
-    <LinearGradient
-      colors={['#FAFAFA', '#F5F5F7']}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          {/* Logo */}
-          <View style={styles.logoSection}>
-            <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../assets/logos/logoBlack.png')} 
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>
-              Welcome, {user?.firstName || 'Athlete'}!
-            </Text>
-            
-            <Text style={styles.subtitle}>
-              Choose your setup experience
-            </Text>
-          </View>
-
-          {/* Setup Options */}
-          <View style={styles.optionsContainer}>
-            {/* Quick Start Option */}
-            <TouchableOpacity style={[styles.optionCard, styles.quickStartCard]} onPress={handleQuickStart}>
-              <LinearGradient
-                colors={[colors.primary, '#6366F1']}
-                style={styles.optionGradient}
-              >
-                <View style={styles.optionHeader}>
-                  <View style={styles.optionIconContainer}>
-                    <Ionicons name="flash" size={28} color={colors.white} />
-                  </View>
-                  <View style={styles.timeTag}>
-                    <Text style={styles.timeText}>2 min</Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.optionTitle}>Quick Start</Text>
-                <Text style={styles.optionDescription}>
-                  Essential setup to get you started immediately
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Complete Setup Option */}
-            <TouchableOpacity style={[styles.optionCard, styles.completeCard]} onPress={handleCompleteSetup}>
-              <View style={styles.optionContent}>
-                <View style={styles.optionHeader}>
-                  <View style={[styles.optionIconContainer, styles.completeIcon]}>
-                    <Ionicons name="star" size={28} color={colors.primary} />
-                  </View>
-                  <View style={[styles.timeTag, styles.completeTimeTag]}>
-                    <Text style={[styles.timeText, styles.completeTimeText]}>5-8 min</Text>
-                  </View>
-                </View>
-                
-                <Text style={[styles.optionTitle, styles.completeTitle]}>Make It Mine</Text>
-                <Text style={[styles.optionDescription, styles.completeDescription]}>
-                  Personalized setup for the full StatLocker experience
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Benefits */}
-          <View style={styles.benefitsContainer}>
-            <View style={styles.benefitRow}>
-              <Ionicons name="analytics" size={20} color={colors.primary} />
-              <Text style={styles.benefitText}>Performance insights</Text>
-            </View>
-            
-            <View style={styles.benefitRow}>
-              <Ionicons name="trophy" size={20} color={colors.primary} />
-              <Text style={styles.benefitText}>Goal tracking</Text>
-            </View>
-            
-            <View style={styles.benefitRow}>
-              <Ionicons name="trending-up" size={20} color={colors.primary} />
-              <Text style={styles.benefitText}>Progress monitoring</Text>
-            </View>
-          </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <Image 
+            source={require('../../assets/logos/logoBlack.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <Text style={styles.welcomeText}>
+          Your athletic journey starts here.
+          </Text>
+          <Text style={styles.headerText}>
+            Choose your path.
+          </Text>
+        </View>
+
+        {/* Option Cards */}
+        <View style={styles.optionsContainer}>
+          {/* Rookie Path - Quick Start */}
+          <TouchableOpacity 
+            style={styles.rookieCard}
+            onPress={handleQuickStart}
+            activeOpacity={0.85}
+          >
+            <View style={styles.cardHeader}>
+              <Text style={styles.rookieEmoji}>⚡</Text>
+              <View style={styles.cardTitleContainer}>
+                <Text style={styles.rookieTitle}>Rookie Path</Text>
+                <View style={styles.timeTag}>
+                  <Text style={styles.timeText}>2 min</Text>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.rookieDescription}>
+              Quick setup to get you started with basic stats tracking
+            </Text>
+          </TouchableOpacity>
+
+          {/* Pro Path - Extended */}
+          <TouchableOpacity 
+            style={styles.proCardContainer}
+            onPress={handleExtended}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.primary + '08',
+                theme.colors.primary + '04',
+                'rgba(255, 255, 255, 0.5)'
+              ]}
+              style={styles.proCard}
+            >
+              <View style={styles.proGlowBorder} />
+              <View style={styles.cardHeader}>
+                <Text style={styles.proEmoji}>🏆</Text>
+                <View style={styles.cardTitleContainer}>
+                  <Text style={styles.proTitle}>Pro Path</Text>
+                  <View style={[styles.timeTag, styles.proTimeTag]}>
+                    <Text style={styles.proTimeText}>5–8 min</Text>
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.proDescription}>
+                Complete profile setup with goals, training plans, and personalized insights
+              </Text>
+              <View style={styles.recommendedBadge}>
+                <Text style={styles.recommendedText}>RECOMMENDED</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer Microcopy */}
+        <View style={styles.footerSection}>
+          <Text style={styles.footerText}>
+            We'll help you organize your season, track progress, and share a clean athletic profile. Outcomes are always yours.
+          </Text>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  safeArea: {
-    flex: 1,
+    backgroundColor: theme.colors.white,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing['2xl'],
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    justifyContent: 'space-between',
   },
+  // Logo Section
   logoSection: {
     alignItems: 'center',
-    marginBottom: spacing['2xl'],
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingTop: 20,
   },
   logo: {
-    width: 48,
-    height: 48,
+    width: 64,
+    height: 64,
   },
-  header: {
+  // Header Section
+  headerSection: {
     alignItems: 'center',
-    marginBottom: spacing['2xl'],
+    paddingHorizontal: 16,
   },
-  title: {
-    fontSize: fontSizes['4xl'],
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
+  welcomeText: {
+    fontSize: 18,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
+  headerText: {
+    fontSize: 28,
+    fontFamily: theme.fonts.anton,
+    color: theme.colors.textPrimary,
     textAlign: 'center',
+    lineHeight: 34,
+    marginBottom: 12,
   },
+  // Option Cards
   optionsContainer: {
-    marginBottom: spacing.xl,
-    gap: spacing.lg,
+    gap: 16,
   },
-  optionCard: {
-    borderRadius: borderRadius.xl,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  quickStartCard: {
-    overflow: 'hidden',
-  },
-  completeCard: {
-    backgroundColor: colors.white,
+  rookieCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.primary + '20',
-  },
-  optionGradient: {
-    padding: spacing.xl,
-  },
-  optionContent: {
-    padding: spacing.xl,
-  },
-  optionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  optionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  completeIcon: {
-    backgroundColor: colors.primary + '15',
-  },
-  timeTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  completeTimeTag: {
-    backgroundColor: colors.primary + '15',
-  },
-  timeText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.semiBold,
-    color: colors.white,
-  },
-  completeTimeText: {
-    color: colors.primary,
-  },
-  optionTitle: {
-    fontSize: fontSizes['2xl'],
-    fontFamily: fonts.jakarta.bold,
-    color: colors.white,
-    marginBottom: spacing.sm,
-  },
-  completeTitle: {
-    color: colors.textPrimary,
-  },
-  optionDescription: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.regular,
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 22,
-  },
-  completeDescription: {
-    color: colors.textSecondary,
-  },
-  benefitsContainer: {
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    shadowColor: colors.black,
+    borderColor: theme.colors.neutral200,
+    padding: 20,
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  benefitRow: {
+  proCardContainer: {
+    position: 'relative',
+  },
+  proCard: {
+    borderRadius: 16,
+    padding: 20,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: theme.colors.white,
+  },
+  proGlowBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.primary + '30',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
-  benefitText: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.textSecondary,
-    marginLeft: spacing.sm,
+  rookieEmoji: {
+    fontSize: 28,
+    marginRight: 16,
+  },
+  proEmoji: {
+    fontSize: 28,
+    marginRight: 16,
+  },
+  cardTitleContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rookieTitle: {
+    fontSize: 18,
+    fontFamily: theme.fonts.jakarta.bold,
+    color: theme.colors.textPrimary,
+  },
+  proTitle: {
+    fontSize: 18,
+    fontFamily: theme.fonts.jakarta.bold,
+    color: theme.colors.textPrimary,
+  },
+  timeTag: {
+    backgroundColor: theme.colors.neutral100,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  proTimeTag: {
+    backgroundColor: theme.colors.primary + '15',
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  timeText: {
+    fontSize: 11,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textSecondary,
+  },
+  proTimeText: {
+    fontSize: 11,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.primary,
+  },
+  rookieDescription: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  proDescription: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  recommendedBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.primary + '15',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  recommendedText: {
+    fontSize: 9,
+    fontFamily: theme.fonts.jakarta.bold,
+    color: theme.colors.primary,
+    letterSpacing: 0.5,
+  },
+  // Footer Section
+  footerSection: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingBottom: 10,
+  },
+  footerText: {
+    fontSize: 13,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
