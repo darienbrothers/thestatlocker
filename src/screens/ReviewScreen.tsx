@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Animated, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Animated, Switch, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { OnboardingStepper } from '../components/gamification';
 import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
 import { useGamificationStore } from '../stores/gamificationStore';
+import { useAuthStore } from '../stores/authStore';
 
 interface ReviewScreenProps {
   navigation: any;
@@ -40,8 +41,12 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   } = route.params || {};
 
   const { addXP } = useGamificationStore();
+  const { createUserWithOnboardingData } = useAuthStore();
   const [commitment, setCommitment] = useState(true);
   const [showXPReward, setShowXPReward] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -70,15 +75,54 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
     ]).start();
   }, []);
 
-  const handleEnterLocker = () => {
-    // Award completion XP
-    addXP(100, "Onboarding Complete! Welcome to your locker!");
-    setShowXPReward(true);
+  const handleEnterLocker = async () => {
+    if (!email || !password) {
+      alert('Please enter email and password');
+      return;
+    }
     
-    setTimeout(() => {
-      setShowXPReward(false);
-      navigation.navigate('MainTabs');
-    }, 2000);
+    try {
+      setIsCreatingUser(true);
+      
+      // Create complete onboarding data object
+      const onboardingData = {
+        firstName,
+        lastName,
+        email,
+        password,
+        gender,
+        position,
+        graduationYear,
+        schoolName,
+        city,
+        state,
+        level,
+        clubEnabled,
+        clubOrgName,
+        clubTeamName,
+        clubCity,
+        clubState,
+        goals,
+        strengths,
+        growthAreas,
+        sport: 'lacrosse',
+      };
+      
+      // Create user in Firebase with all onboarding data
+      await createUserWithOnboardingData(onboardingData);
+      
+      // Award completion XP
+      addXP(100, "Onboarding Complete! Welcome to your locker!");
+      setShowXPReward(true);
+      
+      setTimeout(() => {
+        setShowXPReward(false);
+        navigation.navigate('MainTabs');
+      }, 2000);
+    } catch (error: any) {
+      alert(`Error creating account: ${error.message}`);
+      setIsCreatingUser(false);
+    }
   };
 
   const handleBack = () => {
@@ -189,6 +233,27 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
           </LinearGradient>
         </View>
 
+        {/* Email and Password Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+          />
+        </View>
+
         {/* Commitment Section */}
         <View style={styles.commitmentCard}>
           <View style={styles.commitmentHeader}>
@@ -218,7 +283,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         <TouchableOpacity 
           style={[styles.enterButton, !commitment && styles.enterButtonDisabled]}
           onPress={handleEnterLocker}
-          disabled={!commitment}
+          disabled={!commitment || isCreatingUser}
         >
           <LinearGradient
             colors={commitment ? [theme.colors.primary, theme.colors.primaryDark] : [theme.colors.neutral300, theme.colors.neutral400]}
@@ -411,6 +476,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textSecondary,
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  input: {
+    height: 48,
+    borderColor: theme.colors.neutral200,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textPrimary,
+    marginBottom: 16,
   },
   enterButton: {
     borderRadius: 16,

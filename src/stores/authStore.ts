@@ -71,6 +71,7 @@ interface AuthActions {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (userData: Partial<User>) => Promise<void>;
+  createUserWithOnboardingData: (onboardingData: any) => Promise<void>;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -212,6 +213,44 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ user: updatedUser });
     } catch (error: any) {
       set({ error: error.message });
+      throw error;
+    }
+  },
+
+  createUserWithOnboardingData: async (onboardingData: any) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const userCredential = await createUserWithEmailAndPassword(auth, onboardingData.email, onboardingData.password);
+      const firebaseUser = userCredential.user;
+      
+      // Create user document in Firestore
+      const user: User = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        ...onboardingData,
+        onboarding_completed: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      await setDoc(doc(db, 'users', firebaseUser.uid), user);
+      
+      set({ 
+        user, 
+        isAuthenticated: true, 
+        isLoading: false,
+        error: null 
+      });
+    } catch (error: any) {
+      set({ 
+        error: error.message, 
+        isLoading: false,
+        user: null,
+        isAuthenticated: false 
+      });
       throw error;
     }
   },
