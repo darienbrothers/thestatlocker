@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { AppState } from 'react-native';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
@@ -48,10 +49,21 @@ export default function App() {
     prepare();
     
     // Initialize auth listener
-    const unsubscribe = initialize();
+    initialize();
+    
+    // Handle app state changes to show splash on every foreground
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        setShowSplash(true);
+      }
+    };
+
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
     
     // Cleanup on unmount
-    return unsubscribe;
+    return () => {
+      appStateSubscription.remove();
+    };
   }, [initialize]);
 
   const onLayoutRootView = useCallback(async () => {
