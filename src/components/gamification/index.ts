@@ -4,6 +4,7 @@ export { default as QuestRow } from './QuestRow';
 export { default as BadgeTile } from './BadgeTile';
 export { default as ProfilePreview } from './ProfilePreview';
 export { OnboardingStepper } from './OnboardingStepper';
+export { XPRewardAnimation } from './XPRewardAnimation';
 
 // Re-export utilities for convenience
 export * from '../../utils/gamification';

@@ -12,7 +12,11 @@ import CustomSplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import NameCollectionScreen from './src/screens/NameCollectionScreen';
-import OnboardingStartScreen from './src/screens/OnboardingStartScreen';
+import BasicInfoScreen from './src/screens/BasicInfoScreen';
+import HighSchoolScreen from './src/screens/HighSchoolScreen';
+import ClubTeamScreen from './src/screens/ClubTeamScreen';
+import GoalsScreen from './src/screens/GoalsScreen';
+import ReviewScreen from './src/screens/ReviewScreen';
 import OnboardingExtendedScreen from './src/screens/OnboardingExtendedScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import { useAuthStore } from './src/stores/authStore';
@@ -50,20 +54,6 @@ export default function App() {
     
     // Initialize auth listener
     initialize();
-    
-    // Handle app state changes to show splash on every foreground
-    const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'active') {
-        setShowSplash(true);
-      }
-    };
-
-    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
-    
-    // Cleanup on unmount
-    return () => {
-      appStateSubscription.remove();
-    };
   }, [initialize]);
 
   const onLayoutRootView = useCallback(async () => {
@@ -130,7 +120,11 @@ export default function App() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Auth" component={AuthScreen} />
             <Stack.Screen name="NameCollection" component={NameCollectionScreen} />
-            <Stack.Screen name="OnboardingStart" component={OnboardingStartScreen} />
+            <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
+            <Stack.Screen name="HighSchool" component={HighSchoolScreen} />
+            <Stack.Screen name="ClubTeam" component={ClubTeamScreen} />
+            <Stack.Screen name="Goals" component={GoalsScreen} />
+            <Stack.Screen name="Review" component={ReviewScreen} />
             <Stack.Screen name="Onboarding" component={OnboardingExtendedScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
           </Stack.Navigator>

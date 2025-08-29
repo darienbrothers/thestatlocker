@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
@@ -7,22 +7,33 @@ import { OnboardingStepper } from '../components/gamification';
 import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
 import { useGamificationStore } from '../stores/gamificationStore';
 
-interface NameCollectionScreenProps {
+interface HighSchoolScreenProps {
   navigation: any;
+  route: { 
+    params?: { 
+      firstName?: string; 
+      lastName?: string; 
+      gender?: 'boys' | 'girls'; 
+      position?: string; 
+      graduationYear?: number;
+    } 
+  };
 }
 
-export default function NameCollectionScreen({ navigation }: NameCollectionScreenProps) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+export default function HighSchoolScreen({ navigation, route }: HighSchoolScreenProps) {
+  const { firstName, lastName, gender, position, graduationYear } = route.params || {};
+  const [schoolName, setSchoolName] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [level, setLevel] = useState<'Varsity' | 'JV' | 'Freshman' | ''>('');
   const [showXPReward, setShowXPReward] = useState(false);
+  const [hasCompletedStep, setHasCompletedStep] = useState(false);
   const { totalXP, addXP } = useGamificationStore();
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const bounceAnim = useRef(new Animated.Value(1)).current;
-  const firstNameBounce = useRef(new Animated.Value(1)).current;
-  const lastNameBounce = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // Entrance animation
@@ -40,50 +51,17 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
     ]).start();
   }, []);
 
-  const handleFirstNameChange = (text: string) => {
-    setFirstName(text);
-    if (text.trim() && !firstName.trim()) {
-      // First time entering name - bounce animation + XP
-      addXP(15, 'Started entering name');
-      Animated.sequence([
-        Animated.timing(firstNameBounce, {
-          toValue: 1.1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(firstNameBounce, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  };
-
-  const handleLastNameChange = (text: string) => {
-    setLastName(text);
-    if (text.trim() && !lastName.trim()) {
-      // First time entering last name - bounce animation + XP
-      addXP(10, 'Added last name');
-      Animated.sequence([
-        Animated.timing(lastNameBounce, {
-          toValue: 1.1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(lastNameBounce, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
+  const handleLevelSelect = (selectedLevel: 'Varsity' | 'JV' | 'Freshman') => {
+    setLevel(selectedLevel);
   };
 
   const handleContinue = () => {
-    if (firstName.trim() && lastName.trim()) {
+    if (schoolName.trim() && city.trim() && state.trim() && level && !hasCompletedStep) {
+      // Prevent duplicate XP rewards
+      setHasCompletedStep(true);
+      
       // Add XP for completing the step
-      addXP(25, 'Name collection completed');
+      addXP(30, 'High school information completed');
       
       // Show XP reward animation
       setShowXPReward(true);
@@ -107,7 +85,17 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
   const handleXPAnimationComplete = () => {
     setShowXPReward(false);
     // Navigate after XP animation completes
-    navigation.navigate('BasicInfo', { firstName, lastName });
+    navigation.navigate('ClubTeam', { 
+      firstName,
+      lastName,
+      gender,
+      position,
+      graduationYear,
+      schoolName: schoolName.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      level
+    });
   };
 
   const handleBack = () => {
@@ -118,15 +106,15 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
     Keyboard.dismiss();
   };
 
-  const isValid = firstName.trim().length > 0 && lastName.trim().length > 0;
+  const isValid = schoolName.trim() && city.trim() && state.trim() && level;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Enhanced Stepper with Back Button */}
+      {/* Stepper with Back Button */}
       <OnboardingStepper 
-        currentStep={1}
+        currentStep={3}
         totalSteps={8}
-        stepTitle="Welcome"
+        stepTitle="High School"
         showBackButton={true}
         onBackPress={handleBack}
       />
@@ -139,10 +127,11 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
         {/* XP Reward Animation */}
         <XPRewardAnimation
           visible={showXPReward}
-          xpAmount={25}
-          message="Great start to your journey!"
+          xpAmount={30}
+          message="School spirit activated!"
           onComplete={handleXPAnimationComplete}
         />
+        
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
           <ScrollView 
             style={styles.scrollView}
@@ -159,88 +148,91 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
                 }
               ]}
             >
-              {/* Logo Section */}
-              <View style={styles.logoSection}>
-                <Image 
-                  source={require('../../assets/logos/logoBlack.png')} 
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              </View>
-
               {/* Header Section */}
               <View style={styles.headerSection}>
-                <Text style={styles.title}>Welcome to the squad!</Text>
+                <Text style={styles.title}>
+                  Where do you play, {firstName}?
+                </Text>
                 <Text style={styles.subtitle}>
-                  What should we call you on the field?
+                  Tell us about your high school lacrosse program
                 </Text>
               </View>
 
-              {/* Input Section */}
-              <View style={styles.inputSection}>
-                <Animated.View 
-                  style={[
-                    styles.inputCard,
-                    { transform: [{ scale: firstNameBounce }] },
-                    !firstName.trim() && styles.inputCardRequired
-                  ]}
-                >
-                  <Text style={styles.inputLabel}>First Name *</Text>
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[
-                        styles.textInput,
-                        firstName.trim() && styles.textInputActive,
-                        !firstName.trim() && styles.textInputRequired
-                      ]}
-                      value={firstName}
-                      onChangeText={handleFirstNameChange}
-                      placeholder="Your first name"
-                      placeholderTextColor={theme.colors.textTertiary}
-                      autoCapitalize="words"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      autoFocus
-                    />
-                    {firstName.trim() && (
-                      <View style={styles.inputIcon}>
-                        <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
-                      </View>
-                    )}
-                  </View>
-                </Animated.View>
+              {/* School Information */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>School Information *</Text>
+                
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>School Name</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={schoolName}
+                    onChangeText={setSchoolName}
+                    placeholder="Enter your high school name"
+                    placeholderTextColor={theme.colors.textTertiary}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                  />
+                </View>
 
-                <Animated.View 
-                  style={[
-                    styles.inputCard,
-                    { transform: [{ scale: lastNameBounce }] },
-                    !lastName.trim() && styles.inputCardRequired
-                  ]}
-                >
-                  <Text style={styles.inputLabel}>Last Name *</Text>
-                  <View style={styles.inputContainer}>
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputContainer, { flex: 2 }]}>
+                    <Text style={styles.inputLabel}>City</Text>
                     <TextInput
-                      style={[
-                        styles.textInput,
-                        lastName.trim() && styles.textInputActive,
-                        !lastName.trim() && styles.textInputRequired
-                      ]}
-                      value={lastName}
-                      onChangeText={handleLastNameChange}
-                      placeholder="Your last name"
+                      style={styles.textInput}
+                      value={city}
+                      onChangeText={setCity}
+                      placeholder="City"
                       placeholderTextColor={theme.colors.textTertiary}
                       autoCapitalize="words"
-                      autoCorrect={false}
-                      returnKeyType="done"
-                      onSubmitEditing={handleContinue}
+                      returnKeyType="next"
                     />
-                    {lastName.trim() && (
-                      <View style={styles.inputIcon}>
-                        <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
-                      </View>
-                    )}
                   </View>
-                </Animated.View>
+                  
+                  <View style={[styles.inputContainer, { flex: 1, marginLeft: 12 }]}>
+                    <Text style={styles.inputLabel}>State</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={state}
+                      onChangeText={setState}
+                      placeholder="ST"
+                      placeholderTextColor={theme.colors.textTertiary}
+                      autoCapitalize="characters"
+                      maxLength={2}
+                      returnKeyType="done"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Team Level Selection */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Team Level *</Text>
+                <View style={styles.levelGrid}>
+                  {(['Varsity', 'JV', 'Freshman'] as const).map((teamLevel) => (
+                    <TouchableOpacity
+                      key={teamLevel}
+                      style={[
+                        styles.levelCard,
+                        level === teamLevel && styles.levelCardSelected
+                      ]}
+                      onPress={() => handleLevelSelect(teamLevel)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[
+                        styles.levelText,
+                        level === teamLevel && styles.levelTextSelected
+                      ]}>
+                        {teamLevel}
+                      </Text>
+                      {level === teamLevel && (
+                        <View style={styles.levelCheckmark}>
+                          <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
 
               {/* Continue Button */}
@@ -249,29 +241,29 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
                   <TouchableOpacity
                     style={[styles.continueButton, !isValid && styles.disabledButton]}
                     onPress={handleContinue}
-                    disabled={!isValid}
+                    disabled={!isValid || hasCompletedStep}
                     activeOpacity={0.8}
                   >
                     <LinearGradient
-                      colors={isValid ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
+                      colors={isValid && !hasCompletedStep ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
                       start={[0, 0]}
                       end={[1, 1]}
                       style={styles.buttonGradient}
                     >
-                      <Text style={[styles.buttonText, !isValid && styles.disabledButtonText]}>
+                      <Text style={[styles.buttonText, (!isValid || hasCompletedStep) && styles.disabledButtonText]}>
                         Continue
                       </Text>
                       <Ionicons 
                         name="arrow-forward" 
                         size={20} 
-                        color={isValid ? theme.colors.white : theme.colors.textTertiary} 
+                        color={isValid && !hasCompletedStep ? theme.colors.white : theme.colors.textTertiary} 
                       />
                     </LinearGradient>
                   </TouchableOpacity>
                 </Animated.View>
                 
                 <Text style={styles.helperText}>
-                  🏆 We'll personalize your championship journey
+                  🏫 Adding your school to your profile
                 </Text>
               </View>
             </Animated.View>
@@ -301,16 +293,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
     justifyContent: 'space-between',
-    minHeight: 500,
-  },
-  // Logo Section
-  logoSection: {
-    alignItems: 'center',
-    paddingTop: 20,
-  },
-  logo: {
-    width: 70,
-    height: 70,
+    minHeight: 600,
   },
   // Header Section
   headerSection: {
@@ -332,56 +315,77 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  // Input Section
-  inputSection: {
-    gap: 14,
-    paddingVertical: 16,
+  // Section Container
+  sectionContainer: {
+    marginBottom: 24,
   },
-  inputCard: {
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.textPrimary,
+    marginBottom: 16,
+  },
+  // Input Styles
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+  },
+  textInput: {
     backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral200,
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textPrimary,
     shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
+  },
+  // Level Grid
+  levelGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  levelCard: {
+    flex: 1,
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
+    padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.neutral100,
-  },
-  inputCardRequired: {
-    borderColor: theme.colors.error + '30',
-    backgroundColor: theme.colors.error + '05',
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-  },
-  inputContainer: {
+    borderColor: theme.colors.neutral200,
+    alignItems: 'center',
     position: 'relative',
   },
-  textInput: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
+  levelCardSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '10',
+  },
+  levelText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.medium,
     color: theme.colors.textPrimary,
-    paddingVertical: 8,
-    paddingRight: 32,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.colors.neutral200,
-    backgroundColor: 'transparent',
   },
-  textInputActive: {
-    borderBottomColor: theme.colors.primary,
+  levelTextSelected: {
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.jakarta.semiBold,
   },
-  textInputRequired: {
-    borderBottomColor: theme.colors.error + '50',
-  },
-  inputIcon: {
+  levelCheckmark: {
     position: 'absolute',
+    top: 4,
     right: 4,
-    top: 8,
   },
   // Button Section
   buttonSection: {

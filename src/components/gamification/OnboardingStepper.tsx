@@ -1,85 +1,77 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
-import XPStrip from './XPStrip';
 
 const { width } = Dimensions.get('window');
 
 interface OnboardingStepperProps {
   currentStep: number;
   totalSteps: number;
-  currentXP: number;
   stepTitle?: string;
-  showXP?: boolean;
+  onBackPress?: () => void;
+  showBackButton?: boolean;
 }
 
 export function OnboardingStepper({ 
   currentStep, 
   totalSteps, 
-  currentXP, 
   stepTitle,
-  showXP = true 
+  onBackPress,
+  showBackButton = false
 }: OnboardingStepperProps) {
   const progress = currentStep / totalSteps;
   
   return (
     <View style={styles.container}>
-      {/* XP Strip */}
-      {showXP && (
-        <View style={styles.xpContainer}>
-          <XPStrip 
-            currentXP={currentXP} 
-            compact 
-            showLabel={false}
-          />
-        </View>
-      )}
-      
-      {/* Step Progress */}
-      <View style={styles.stepContainer}>
-        <View style={styles.stepHeader}>
-          <Text style={styles.stepText}>
-            Step {currentStep} of {totalSteps}
-          </Text>
-          {stepTitle && (
-            <Text style={styles.stepTitle}>{stepTitle}</Text>
-          )}
-        </View>
+      {/* Inline Back Button and Progress Bar */}
+      <View style={styles.progressRow}>
+        {/* Back Button */}
+        {showBackButton && onBackPress ? (
+          <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+            <Ionicons name="chevron-back" size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.backButtonPlaceholder} />
+        )}
         
-        {/* Progress Bar */}
-        <View style={styles.progressTrack}>
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primary + 'CC']}
-            start={[0, 0]}
-            end={[1, 0]}
-            style={[styles.progressFill, { width: `${progress * 100}%` }]}
-          />
+        {/* Progress Bar Container */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { width: `${progress * 100}%` }
+              ]} 
+            />
+          </View>
           
-          {/* Step Dots */}
+          {/* Progress Dots */}
           <View style={styles.dotsContainer}>
             {Array.from({ length: totalSteps }, (_, index) => (
               <View
                 key={index}
                 style={[
-                  styles.stepDot,
-                  index < currentStep && styles.stepDotCompleted,
-                  index === currentStep - 1 && styles.stepDotCurrent,
+                  styles.progressDot,
+                  index < currentStep && styles.progressDotCompleted,
+                  index === currentStep - 1 && styles.progressDotCurrent,
                 ]}
-              >
-                {index < currentStep - 1 && (
-                  <Ionicons 
-                    name="checkmark" 
-                    size={12} 
-                    color={theme.colors.white} 
-                  />
-                )}
-              </View>
+              />
             ))}
           </View>
         </View>
+        
+        {/* Right spacer for balance */}
+        <View style={styles.rightSpacer} />
       </View>
+      
+      {/* Centered Step Title */}
+      {stepTitle && (
+        <View style={styles.titleContainer}>
+          <Text style={styles.stepTitle}>{stepTitle}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -88,35 +80,38 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.white,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral100,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  xpContainer: {
-    marginBottom: 12,
-  },
-  stepContainer: {
-    gap: 8,
-  },
-  stepHeader: {
+  progressRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  stepText: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textSecondary,
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 20,
+  },
+  backButtonPlaceholder: {
+    width: 40,
+    marginRight: 8,
+  },
+  progressContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  rightSpacer: {
+    width: 48,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginTop: 4,
   },
   stepTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   progressTrack: {
     height: 6,
@@ -128,35 +123,42 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 3,
+    backgroundColor: theme.colors.primary,
   },
   dotsContainer: {
     position: 'absolute',
-    top: -7,
+    top: -6,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 2,
   },
-  stepDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  progressDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: theme.colors.neutral200,
     borderWidth: 2,
     borderColor: theme.colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  stepDotCompleted: {
+  progressDotCompleted: {
     backgroundColor: theme.colors.primary,
   },
-  stepDotCurrent: {
+  progressDotCurrent: {
     backgroundColor: theme.colors.primary,
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
+    transform: [{ scale: 1.1 }],
   },
 });
