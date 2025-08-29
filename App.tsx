@@ -11,8 +11,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import CustomSplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import AuthScreen from './src/screens/AuthScreen';
+import NameCollectionScreen from './src/screens/NameCollectionScreen';
 import OnboardingStartScreen from './src/screens/OnboardingStartScreen';
-import OnboardingQuickScreen from './src/screens/OnboardingQuickScreen';
 import OnboardingExtendedScreen from './src/screens/OnboardingExtendedScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import { useAuthStore } from './src/stores/authStore';
@@ -91,11 +91,13 @@ export default function App() {
   }
 
   const getInitialRouteName = () => {
+    // Always start with Welcome screen for unauthenticated users
+    // This ensures we don't get stuck in a loading state
     if (!isAuthenticated) {
       return 'Welcome';
     }
     if (!user?.onboarding_completed) {
-      return 'OnboardingStart';
+      return 'NameCollection';
     }
     return 'MainTabs';
   };
@@ -127,9 +129,9 @@ export default function App() {
           >
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Auth" component={AuthScreen} />
+            <Stack.Screen name="NameCollection" component={NameCollectionScreen} />
             <Stack.Screen name="OnboardingStart" component={OnboardingStartScreen} />
-            <Stack.Screen name="OnboardingQuick" component={OnboardingQuickScreen} />
-            <Stack.Screen name="OnboardingExtended" component={OnboardingExtendedScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingExtendedScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
           </Stack.Navigator>
         </NavigationContainer>

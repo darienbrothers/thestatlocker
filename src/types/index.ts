@@ -34,6 +34,8 @@ export interface Club {
   enabled: boolean;
   org_name: string;
   team_name: string;
+  city: string;
+  state: string;
 }
 
 export type Purpose = 'improve' | 'consistent' | 'track' | 'profile' | 'accountable' | 'other';
@@ -120,18 +122,19 @@ export interface AnalyticsEvent {
 export type RootStackParamList = {
   Welcome: undefined;
   Auth: undefined;
-  OnboardingStart: undefined;
-  OnboardingQuick: undefined;
-  OnboardingExtended: undefined;
+  NameCollection: undefined;
+  OnboardingStart: { firstName?: string; lastName?: string; email?: string };
+  Onboarding: undefined;
+  Paywall: undefined;
   MainTabs: undefined;
 };
 
 export type MainTabParamList = {
-  Locker: undefined;
+  Home: undefined;
   Stats: undefined;
-  Goals: undefined;
+  AddStat: undefined;
   Recruiting: undefined;
-  Profile: undefined;
+  Goals: undefined;
 };
 
 // Component Props Types

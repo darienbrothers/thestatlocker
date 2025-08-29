@@ -235,7 +235,7 @@ export default function WelcomeScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.navigate('OnboardingStart')}
+            onPress={() => navigation.navigate('NameCollection')}
           >
             <LinearGradient
               colors={[colors.primary, colors.primary + 'DD']}

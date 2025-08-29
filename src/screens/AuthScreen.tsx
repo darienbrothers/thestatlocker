@@ -20,16 +20,16 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { useAuthStore } from '../stores/authStore';
 import { RootStackParamList } from '../types';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../constants/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, COLORS, FONTS } from '../constants/theme';
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
 type Mode = 'signIn' | 'signUp';
 
 export default function AuthScreen({ navigation }: { navigation: AuthScreenNavigationProp }) {
-  const { signIn, signUp, appleSignIn, resetPassword } = useAuthStore();
+  const { signIn, appleSignIn, resetPassword } = useAuthStore();
   
-  const [mode, setMode] = useState<Mode>('signIn');
+  const [mode, setMode] = useState<Mode>('signUp');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -38,7 +38,6 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   const validateField = (field: string, value: string) => {
     const errors = { ...fieldErrors };
@@ -54,9 +53,9 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
         }
         break;
       case 'password':
-        if (!value.trim()) {
+        if (mode === 'signIn' && !value.trim()) {
           errors.password = 'Password is required';
-        } else if (value.length < 6) {
+        } else if (mode === 'signIn' && value.length < 6) {
           errors.password = 'Password must be at least 6 characters';
         } else {
           delete errors.password;
@@ -83,13 +82,17 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
 
   const isFormValid = () => {
     const hasNoErrors = Object.keys(fieldErrors).length === 0;
-    const hasRequiredFields = email.trim() && password.trim();
-    const hasNameFields = mode === 'signIn' || (firstName.trim() && lastName.trim());
     
-    return hasNoErrors && hasRequiredFields && hasNameFields;
+    if (mode === 'signUp') {
+      // For sign up, only need name and email
+      return hasNoErrors && firstName.trim() && lastName.trim() && email.trim();
+    } else {
+      // For sign in, need email and password
+      return hasNoErrors && email.trim() && password.trim();
+    }
   };
 
-  const handleEmailAuth = async () => {
+  const handleAuth = async () => {
     if (!isFormValid()) {
       setErrorMsg('Please fill in all required fields');
       return;
@@ -100,31 +103,21 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
 
     try {
       if (mode === 'signUp') {
-        await signUp(email, password, { firstName, lastName });
-        navigation.navigate('OnboardingStart');
+        // For new users, go directly to onboarding with basic info
+        navigation.navigate('OnboardingStart', { 
+          firstName: firstName.trim(), 
+          lastName: lastName.trim(),
+          email: email.trim()
+        });
       } else {
+        // Existing users sign in normally
         await signIn(email, password);
-        // Check if user needs onboarding
-        navigation.navigate('OnboardingStart');
+        navigation.navigate('MainTabs');
       }
     } catch (error: any) {
       setErrorMsg(error.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handlePasswordReset = async () => {
-    if (!email.trim()) {
-      setErrorMsg('Enter your email to reset password');
-      return;
-    }
-    
-    try {
-      await resetPassword(email);
-      setResetSuccess(true);
-    } catch (error: any) {
-      setErrorMsg(error.message);
     }
   };
 
@@ -156,7 +149,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
       
       // Show specific error message for development mode
       if (error.message?.includes('development mode')) {
-        setErrorMsg('Apple Sign In requires a production build. Use email/password for testing.');
+        setErrorMsg('Apple Sign In requires a production build. Use email for testing.');
       } else {
         setErrorMsg('Apple Sign In failed. Please try again.');
       }
@@ -165,18 +158,31 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!email.trim()) {
+      setErrorMsg('Enter your email to reset password');
+      return;
+    }
+    
+    try {
+      await resetPassword(email);
+      setErrorMsg('Password reset email sent!');
+    } catch (error: any) {
+      setErrorMsg(error.message);
+    }
+  };
+
   const toggleMode = () => {
     setMode(mode === 'signIn' ? 'signUp' : 'signIn');
     setErrorMsg(null);
-    setResetSuccess(false);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={[colors.background, colors.backgroundMuted]}
-        style={styles.container}
-      >
+    <LinearGradient
+      colors={[COLORS.background, COLORS.backgroundMuted]}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             {/* Logo + Title */}
@@ -262,44 +268,40 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                 autoCorrect={false}
               />
 
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder="Password"
-                  placeholderTextColor={colors.textSecondary}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    validateField('password', text);
-                  }}
-                  secureTextEntry={!showPassword}
-                  textContentType="password"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    color={colors.textSecondary}
+              {mode === 'signIn' && (
+                <View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor={colors.textSecondary}
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      validateField('password', text);
+                    }}
+                    secureTextEntry={!showPassword}
+                    textContentType="password"
                   />
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {fieldErrors.email && (
                 <Text style={styles.errorText}>{fieldErrors.email}</Text>
-              )}
-              {fieldErrors.password && (
-                <Text style={styles.errorText}>{fieldErrors.password}</Text>
               )}
               {mode === 'signUp' && fieldErrors.firstName && (
                 <Text style={styles.errorText}>{fieldErrors.firstName}</Text>
               )}
               {mode === 'signUp' && fieldErrors.lastName && (
                 <Text style={styles.errorText}>{fieldErrors.lastName}</Text>
+              )}
+              {mode === 'signIn' && fieldErrors.password && (
+                <Text style={styles.errorText}>{fieldErrors.password}</Text>
               )}
               {errorMsg && (
                 <Text style={styles.errorText}>{errorMsg}</Text>
@@ -308,7 +310,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
               {/* Primary CTA */}
               <TouchableOpacity
                 style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
-                onPress={handleEmailAuth}
+                onPress={handleAuth}
                 disabled={isLoading}
               >
                 <Text style={styles.primaryButtonText}>
@@ -318,17 +320,18 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
 
               {/* Secondary Links */}
               <View style={styles.secondaryLinks}>
-                {mode === 'signIn' && (
-                  <TouchableOpacity onPress={handlePasswordReset}>
-                    <Text style={styles.linkText}>Forgot password?</Text>
-                  </TouchableOpacity>
-                )}
-                
                 <TouchableOpacity onPress={toggleMode}>
                   <Text style={styles.linkTextPrimary}>
                     {mode === 'signIn' ? 'Need an account? Sign up' : 'Have an account? Sign in'}
                   </Text>
                 </TouchableOpacity>
+                {mode === 'signIn' && (
+                  <TouchableOpacity onPress={handlePasswordReset}>
+                    <Text style={styles.linkTextSecondary}>
+                      Forgot Password?
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Divider */}
@@ -367,18 +370,15 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
             </View>
           </View>
         </ScrollView>
-      </LinearGradient>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </SafeAreaView>
+      <TouchableOpacity style={[styles.backButton, { top: 80 }]} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
       </TouchableOpacity>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
   },
@@ -398,20 +398,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: FONTS.heading,
+    color: COLORS.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: fonts.body,
-    color: colors.textSecondary,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
     textAlign: 'center',
   },
   modeSelector: {
     flexDirection: 'row',
-    backgroundColor: colors.backgroundMuted,
+    backgroundColor: COLORS.backgroundMuted,
     borderRadius: 12,
     padding: 4,
     marginBottom: 20,
@@ -427,8 +427,8 @@ const styles = StyleSheet.create({
   },
   modeButtonText: {
     fontSize: 14,
-    fontFamily: fonts.medium,
-    color: colors.textSecondary,
+    fontFamily: FONTS.medium,
+    color: COLORS.textSecondary,
   },
   modeButtonTextActive: {
     color: 'white',
@@ -445,38 +445,18 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 56,
-    backgroundColor: colors.backgroundMuted,
+    backgroundColor: COLORS.backgroundMuted,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: COLORS.border,
     paddingHorizontal: 16,
     fontSize: 16,
-    fontFamily: fonts.body,
-    color: colors.text,
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    height: 56,
-    backgroundColor: colors.backgroundMuted,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 16,
-    paddingRight: 50,
-    fontSize: 16,
-    fontFamily: fonts.body,
-    color: colors.text,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: 16,
-    top: 18,
+    fontFamily: FONTS.body,
+    color: COLORS.text,
   },
   errorText: {
     fontSize: 12,
-    fontFamily: fonts.body,
+    fontFamily: FONTS.body,
     color: '#ef4444',
     textAlign: 'center',
     marginTop: 4,
@@ -494,7 +474,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: FONTS.medium,
     color: 'white',
   },
   secondaryLinks: {
@@ -502,15 +482,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  linkText: {
-    fontSize: 14,
-    fontFamily: fonts.medium,
-    color: colors.textSecondary,
-  },
   linkTextPrimary: {
     fontSize: 14,
-    fontFamily: fonts.medium,
-    color: colors.text,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  linkTextSecondary: {
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
   },
   divider: {
     flexDirection: 'row',
@@ -520,12 +500,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: COLORS.border,
   },
   dividerText: {
     fontSize: 12,
-    fontFamily: fonts.body,
-    color: colors.textSecondary,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
     marginHorizontal: 16,
   },
   appleButton: {
@@ -539,7 +519,7 @@ const styles = StyleSheet.create({
   },
   appleButtonText: {
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: FONTS.medium,
     color: 'white',
   },
   loader: {
@@ -547,8 +527,8 @@ const styles = StyleSheet.create({
   },
   legalText: {
     fontSize: 12,
-    fontFamily: fonts.body,
-    color: colors.textSecondary,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 12,
     marginHorizontal: 8,
@@ -556,8 +536,13 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 16,
+    top: 80,
     left: 16,
     zIndex: 1,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
   },
 });
