@@ -1,20 +1,45 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainTabParamList } from '../types';
 import { colors, fonts, fontSizes, COLORS, FONTS } from '../constants/theme';
+import { useGamificationStore } from '../stores/gamificationStore';
+
+interface PositionStrengthsData {
+  [key: string]: string[];
+}
+
+interface GenderStrengths {
+  boys: PositionStrengthsData;
+  girls: PositionStrengthsData;
+}
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // Skeleton screens for testing onboarding flow
 function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const { totalXP, currentLevel, xpToNextLevel } = useGamificationStore((state) => ({
+    totalXP: state.totalXP,
+    currentLevel: state.currentLevel,
+    xpToNextLevel: state.xpToNextLevel
+  }));
+
   return (
-    <View style={styles.placeholder}>
+    <SafeAreaView style={[styles.placeholder, { paddingBottom: insets.bottom }]}>
       <Text style={styles.placeholderText}>🏠 Home Dashboard</Text>
       <Text style={styles.placeholderSubtext}>Welcome to StatLocker!</Text>
       <Text style={styles.placeholderSubtext}>Your athletic journey starts here</Text>
-    </View>
+      <View style={styles.xpContainer}>
+        <Text style={styles.xpText}>Level {currentLevel.name}</Text>
+        <Text style={styles.xpText}>XP: {totalXP} / {xpToNextLevel}</Text>
+        <View style={styles.xpProgressBar}>
+          <View style={[styles.xpProgressBarFill, { width: `${(totalXP / xpToNextLevel) * 100}%` }]} />
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -51,6 +76,8 @@ function FABPlaceholder() {
 }
 
 export default function MainTabNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -60,7 +87,7 @@ export default function MainTabNavigator() {
         tabBarStyle: {
           backgroundColor: COLORS.background,
           borderTopColor: colors.neutral200,
-          height: 85,
+          height: 85 + insets.bottom,
           paddingBottom: 10,
           paddingTop: 5,
         },
@@ -163,6 +190,30 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 4,
+  },
+  xpContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  xpText: {
+    fontSize: fontSizes.base,
+    fontFamily: FONTS.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  xpProgressBar: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.neutral200,
+    overflow: 'hidden',
+  },
+  xpProgressBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
   },
   fabContainer: {
     top: -15,

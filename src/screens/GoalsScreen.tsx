@@ -30,8 +30,44 @@ interface GoalsScreenProps {
   };
 }
 
+interface Goal {
+  key: string;
+  name: string;
+  min: number;
+  max: number;
+  default: number;
+  unit: string;
+}
+
+interface PositionData {
+  [key: string]: Goal[];
+}
+
+interface GenderPositions {
+  boys: PositionData;
+  girls: PositionData;
+}
+
+interface PositionStrengthsData {
+  [key: string]: string[];
+}
+
+interface GenderStrengths {
+  boys: PositionStrengthsData;
+  girls: PositionStrengthsData;
+}
+
+interface PositionGrowthAreasData {
+  [key: string]: string[];
+}
+
+interface GenderGrowthAreas {
+  boys: PositionGrowthAreasData;
+  girls: PositionGrowthAreasData;
+}
+
 // Position-specific goals data
-const POSITION_GOALS = {
+const POSITION_GOALS: GenderPositions = {
   boys: {
     Attack: [
       { key: 'goals_per_game', name: 'Goals per Game', min: 0.5, max: 4, default: 2, unit: 'goals' },
@@ -89,7 +125,7 @@ const POSITION_GOALS = {
 };
 
 // Position-specific strengths and growth areas
-const POSITION_STRENGTHS = {
+const POSITION_STRENGTHS: GenderStrengths = {
   boys: {
     Attack: ['Shooting Accuracy', 'Dodging', 'Stick Protection', 'Field Vision', 'Finishing', 'Quick Release'],
     Midfield: ['Ground Balls', 'Transition', 'Faceoffs', 'Two-Way Play', 'Conditioning', 'Field Vision'],
@@ -106,7 +142,7 @@ const POSITION_STRENGTHS = {
   },
 };
 
-const POSITION_GROWTH_AREAS = {
+const POSITION_GROWTH_AREAS: GenderGrowthAreas = {
   boys: {
     Attack: ['Off-Hand Development', 'Shooting Consistency', 'Decision Making', 'Physicality', 'Defensive Awareness'],
     Midfield: ['Faceoff Consistency', 'Defensive Positioning', 'Conditioning', 'Stick Protection', 'Leadership'],
@@ -142,9 +178,9 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
   const bounceAnim = useRef(new Animated.Value(1)).current;
   const goalCardAnims = useRef<{[key: string]: Animated.Value}>({}).current;
 
-  const positionGoals = gender && position ? POSITION_GOALS[gender]?.[position as keyof typeof POSITION_GOALS.boys] || [] : [];
-  const positionStrengths = gender && position ? POSITION_STRENGTHS[gender]?.[position as keyof typeof POSITION_STRENGTHS.boys] || [] : [];
-  const positionGrowthAreas = gender && position ? POSITION_GROWTH_AREAS[gender]?.[position as keyof typeof POSITION_GROWTH_AREAS.boys] || [] : [];
+  const positionGoals = gender && position ? POSITION_GOALS[gender][position] || [] : [];
+  const positionStrengths = gender && position ? POSITION_STRENGTHS[gender][position] || [] : [];
+  const positionGrowthAreas = gender && position ? POSITION_GROWTH_AREAS[gender][position] || [] : [];
 
   useEffect(() => {
     // Initialize default goals
@@ -172,21 +208,14 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
     ]).start();
   }, []);
 
-  const handleGoalChange = (goalKey: string, value: number) => {
-    setSelectedGoals(prev => ({ ...prev, [goalKey]: value }));
+  const handleGoalChange = (key: string, value: number) => {
+    setSelectedGoals(prev => ({ ...prev, [key]: value }));
     
-    // Animate goal card
+    // Animate the goal card
+    const animValue = goalCardAnims[key] || (goalCardAnims[key] = new Animated.Value(1));
     Animated.sequence([
-      Animated.timing(goalCardAnims[goalKey], {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(goalCardAnims[goalKey], {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
+      Animated.timing(animValue, { toValue: 1.05, duration: 100, useNativeDriver: true }),
+      Animated.timing(animValue, { toValue: 1, duration: 100, useNativeDriver: true })
     ]).start();
   };
 
@@ -246,7 +275,13 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
       target
     }));
     
-    navigation.navigate('MainTabs');
+    navigation.navigate('Review', {
+      firstName, lastName, gender, position, graduationYear, schoolName, city, state, level,
+      clubEnabled, clubOrgName, clubTeamName, clubCity, clubState,
+      goals: selectedGoals,
+      strengths: selectedStrengths,
+      growthAreas: selectedGrowthAreas,
+    });
   };
 
   const handleBack = () => {
@@ -323,7 +358,7 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
                 </Text>
                 
                 <View style={styles.goalsGrid}>
-                  {positionGoals.map((goal) => (
+                  {positionGoals.map((goal: Goal) => (
                     <Animated.View 
                       key={goal.key}
                       style={[
@@ -371,7 +406,7 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
                 </Text>
                 
                 <View style={styles.tagsContainer}>
-                  {positionStrengths.map((strength) => (
+                  {positionStrengths.map((strength: string) => (
                     <TouchableOpacity
                       key={strength}
                       style={[
@@ -414,7 +449,7 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
                 </Text>
                 
                 <View style={styles.tagsContainer}>
-                  {positionGrowthAreas.map((area) => (
+                  {positionGrowthAreas.map((area: string) => (
                     <TouchableOpacity
                       key={area}
                       style={[
