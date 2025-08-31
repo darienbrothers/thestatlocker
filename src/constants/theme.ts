@@ -1,8 +1,8 @@
 export const colors = {
   // Primary Brand Colors
-  primary: '#4F46E5',
-  primaryDark: '#3730A3',
-  primaryLight: '#6366F1',
+  primary: '#6366F1',
+  primaryDark: '#4F46E5',
+  primaryLight: '#E0E7FF',
   
   // Base Colors
   white: '#FFFFFF',
@@ -27,12 +27,12 @@ export const colors = {
   neutral900: '#111827',
   
   // Background Colors
-  background: '#FFFFFF',
-  backgroundSecondary: '#F9FAFB',
+  background: '#F8FAFC',
+  backgroundSecondary: '#F1F5F9',
   surface: '#FFFFFF',
   
   // Text Colors
-  textPrimary: '#111827',
+  textPrimary: '#1F2937',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
@@ -111,6 +111,12 @@ export const shadows = {
 // Export aliases for consistency
 export const COLORS = {
   primary: colors.primary,
+  primaryDark: colors.primaryDark,
+  primaryLight: colors.primaryLight,
+  secondary: colors.warning,
+  success: colors.success,
+  error: colors.error,
+  warning: colors.warning,
   background: colors.background,
   backgroundMuted: colors.backgroundSecondary,
   text: colors.textPrimary,

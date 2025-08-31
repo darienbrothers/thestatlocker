@@ -110,6 +110,70 @@ export interface PositionStats {
   defensive_attempts?: number;
 }
 
+// Game and Stats Types
+export interface GameStats {
+  goals: number;
+  assists: number;
+  shots: number;
+  shotsOnGoal: number;
+  turnovers: number;
+  groundBalls: number;
+  causedTurnovers: number;
+  fouls: number;
+  penalties: number;
+  // Goalie specific
+  saves?: number;
+  goalsAgainst?: number;
+  // Faceoff specific
+  faceoffWins?: number;
+  faceoffLosses?: number;
+}
+
+export interface Game {
+  id: string;
+  userId: string;
+  date: Date;
+  opponent: string;
+  venue?: string;
+  seasonType: 'School Season' | 'Club Season' | 'Summer League' | 'Tournament';
+  gameType: 'Regular Season' | 'Playoff' | 'Championship' | 'Scrimmage';
+  isHome: boolean;
+  teamScore?: number;
+  opponentScore?: number;
+  stats: GameStats;
+  position: string;
+  weather?: string;
+  fieldConditions?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OnboardingChecklist {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  xpReward: number;
+  icon: string;
+  action: 'LOG_GAME' | 'ADD_COLLEGES' | 'COMPLETE_PROFILE' | 'UPLOAD_PHOTO';
+}
+
+export interface TargetCollege {
+  id: string;
+  name: string;
+  division: 'D1' | 'D2' | 'D3' | 'NAIA' | 'JUCO';
+  conference?: string;
+  location: string;
+  priority: 'Dream' | 'Target' | 'Safety';
+  notes?: string;
+  contactInfo?: {
+    coachName?: string;
+    coachEmail?: string;
+    recruitingCoordinator?: string;
+  };
+}
+
 // Analytics Types
 export interface AnalyticsEvent {
   event_name: string;
