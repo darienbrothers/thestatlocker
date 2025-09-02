@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { colors, fonts, fontSizes, COLORS, FONTS } from '../constants/theme';
+import { colors, fonts, fontSizes, COLORS, FONTS } from '@shared/theme';
 import { GameStats } from '../types';
 import { useGameStore } from '../stores/gameStore';
 import { useAuthStore } from '../stores/authStore';

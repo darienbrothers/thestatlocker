@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../constants/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
 import { RootStackParamList } from '../types';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;

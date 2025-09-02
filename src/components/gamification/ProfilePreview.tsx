@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../constants/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
 import { User } from '../../stores/authStore';
 import XPStrip from './XPStrip';
 

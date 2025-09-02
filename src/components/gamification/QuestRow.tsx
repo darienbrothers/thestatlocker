@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { colors, fonts, fontSizes, spacing, borderRadius } from '../../constants/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
 import { ANIMATION_DURATIONS } from '../../utils/gamification';
 
 interface QuestRowProps {

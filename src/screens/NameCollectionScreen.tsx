@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../constants/theme';
+import { theme } from '@shared/theme';
 import { OnboardingStepper } from '../components/gamification';
 import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
 import { useGamificationStore } from '../stores/gamificationStore';

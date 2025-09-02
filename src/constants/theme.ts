@@ -36,6 +36,10 @@ export const colors = {
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
+  
+  // Legacy aliases
+  text: '#1F2937',
+  border: '#E5E7EB',
 };
 
 export const fonts = {
@@ -49,12 +53,18 @@ export const fonts = {
     semiBold: 'PlusJakartaSans-SemiBold',
     bold: 'PlusJakartaSans-SemiBold', // Using semiBold as bold fallback
   },
+  
+  // Legacy aliases
+  heading: 'Anton-Regular',
+  body: 'PlusJakartaSans-Regular',
+  medium: 'PlusJakartaSans-Medium',
 };
 
 export const fontSizes = {
   xs: 12,
   sm: 14,
   base: 16,
+  md: 16, // alias for base
   lg: 18,
   xl: 20,
   '2xl': 24,
@@ -72,6 +82,11 @@ export const spacing = {
   xl: 32,
   '2xl': 48,
   '3xl': 64,
+  
+  // Legacy aliases
+  s: 8,
+  m: 16,
+  l: 24,
 };
 
 export const borderRadius = {
@@ -82,6 +97,10 @@ export const borderRadius = {
   xl: 16,
   '2xl': 24,
   full: 9999,
+  
+  // Legacy aliases
+  s: 4,
+  m: 8,
 };
 
 export const shadows = {
@@ -108,28 +127,39 @@ export const shadows = {
   },
 };
 
-// Export aliases for consistency
-export const COLORS = {
-  primary: colors.primary,
-  primaryDark: colors.primaryDark,
-  primaryLight: colors.primaryLight,
-  secondary: colors.warning,
-  success: colors.success,
-  error: colors.error,
-  warning: colors.warning,
-  background: colors.background,
-  backgroundMuted: colors.backgroundSecondary,
-  text: colors.textPrimary,
-  textSecondary: colors.textSecondary,
-  border: colors.neutral200,
+// Typography system
+export const typography = {
+  h1: {
+    size: 32,
+    lineHeight: 40,
+  },
+  h2: {
+    size: 24,
+    lineHeight: 32,
+  },
+  h3: {
+    size: 20,
+    lineHeight: 28,
+  },
+  body: {
+    size: 16,
+    lineHeight: 24,
+  },
 };
 
-export const FONTS = {
-  heading: fonts.anton,
-  body: fonts.jakarta.regular,
-  medium: fonts.jakarta.medium,
+// Legacy theme exports for compatibility
+export const tokens = {
+  colors,
+  fonts,
+  fontSizes,
+  spacing,
+  borderRadius,
+  shadows,
+  typography,
+  radius: borderRadius, // alias
 };
 
+// Default theme object
 export const theme = {
   colors,
   fonts,
@@ -137,6 +167,5 @@ export const theme = {
   spacing,
   borderRadius,
   shadows,
-  COLORS,
-  FONTS,
+  typography,
 };

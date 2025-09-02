@@ -20,7 +20,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { useAuthStore } from '../stores/authStore';
 import { RootStackParamList } from '../types';
-import { colors, fonts, fontSizes, spacing, borderRadius, COLORS, FONTS } from '../constants/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius, COLORS, FONTS } from '@shared/theme';
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 

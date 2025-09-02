@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
-import { theme, COLORS, FONTS } from '../constants/theme';
+import { theme, COLORS, FONTS } from '@shared/theme';
 
 const { width } = Dimensions.get('window');
 

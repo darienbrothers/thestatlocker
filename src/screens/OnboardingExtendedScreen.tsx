@@ -22,7 +22,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootStackParamList, Position, HighSchool, Club } from '../types';
-import { theme } from '../constants/theme';
+import { theme } from '@shared/theme';
 import { useAuthStore } from '../stores/authStore';
 import { OnboardingStepper } from '../components/gamification';
 import { useGamificationStore } from '../stores/gamificationStore';

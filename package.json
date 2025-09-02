@@ -9,7 +9,14 @@
     "web": "expo start --web",
     "build": "expo build",
     "build:ios": "expo build:ios",
-    "build:android": "expo build:android"
+    "build:android": "expo build:android",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit",
+    "quality": "npm run type-check && npm run lint && npm run format:check",
+    "quality:fix": "npm run type-check && npm run lint:fix && npm run format"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -20,12 +27,14 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
+    "@shopify/flash-list": "1.7.1",
     "date-fns": "^3.0.6",
     "expo": "53.0.22",
     "expo-apple-authentication": "~7.2.4",
     "expo-constants": "~17.1.7",
     "expo-device": "~7.1.4",
     "expo-font": "~13.3.2",
+    "expo-haptics": "~14.1.4",
     "expo-image-picker": "~16.0.4",
     "expo-linear-gradient": "~14.1.5",
     "expo-notifications": "~0.31.4",
@@ -51,7 +60,31 @@
     "@types/node": "^20.10.0",
     "@types/react": "~19.0.10",
     "@types/react-native": "~0.73.0",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "eslint-config-expo": "^9.2.0",
+    "@react-native-community/eslint-config": "^3.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-native": "^4.1.0",
+    "prettier": "^3.2.5",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
   },
-  "private": true
+  "private": true,
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
 }
