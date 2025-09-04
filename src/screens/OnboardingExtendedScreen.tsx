@@ -6,15 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
-  Switch,
   Platform,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
   AppState,
   Animated,
-  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,8 +20,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootStackParamList, Position, HighSchool, Club } from '../types';
 import { theme } from '@shared/theme';
-import { useAuthStore } from '../stores/authStore';
-import { OnboardingStepper } from '../components/gamification';
 import { useGamificationStore } from '../stores/gamificationStore';
 
 type OnboardingScreenNavigationProp = StackNavigationProp<
@@ -32,34 +27,8 @@ type OnboardingScreenNavigationProp = StackNavigationProp<
   'Onboarding'
 >;
 
-interface OnboardingExtendedScreenProps {
-  navigation: any;
-  route: { params?: { email?: string } };
-}
-
-interface OnboardingData {
-  currentStep: number;
-  firstName: string;
-  gender: 'boys' | 'girls';
-  position: Position | '';
-  gradYear: number | null;
-  highSchool: HighSchool;
-  club: Club;
-  strengths: string[];
-  growthAreas: string[];
-  trainingFrequency: number | null;
-  motto: string;
-  profileSummary: string;
-  height?: string;
-  weight?: string;
-  password: string;
-  confirmPassword: string;
-  userEmail: string;
-}
-
 const ONBOARDING_STORAGE_KEY = '@StatLocker:OnboardingData';
 
-const positions: Position[] = ['Goalie', 'Attack', 'Midfield', 'Defense', 'FOGO', 'LSM', 'SSDM'];
 const gradYears = Array.from({ length: 8 }, (_, i) => new Date().getFullYear() + i);
 const genders = ['boys', 'girls'] as const;
 const levels = ['Varsity', 'JV', 'Freshman'] as const;
@@ -69,10 +38,8 @@ const strengthsOptions = [
   'Passing', 'Dodging', 'Ground Balls', 'Faceoffs', 'Clearing', 'Riding'
 ];
 
-export default function OnboardingScreen({ navigation, route }: OnboardingExtendedScreenProps) {
-  const { user, updateUserProfile } = useAuthStore();
-  const { addXP, totalXP } = useGamificationStore();
-  const [loading, setLoading] = useState(false);
+export default function OnboardingScreen({ navigation, route }: any) {
+  const { addXP } = useGamificationStore();
   const [dataLoaded, setDataLoaded] = useState(false);
   const totalSteps = 7;
   
@@ -160,7 +127,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingExtend
     try {
       const savedData = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (savedData) {
-        const data: OnboardingData = JSON.parse(savedData);
+        const data = JSON.parse(savedData);
         
         // Restore all form state
         setCurrentStep(data.currentStep || 1);
@@ -201,7 +168,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingExtend
 
   const saveOnboardingData = async () => {
     try {
-      const data: OnboardingData = {
+      const data = {
         currentStep,
         firstName,
         gender,
@@ -506,7 +473,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingExtend
           <OnboardingStepper 
             currentStep={currentStep + 2} // +2 because name collection is step 1, path selection is step 2
             totalSteps={8}
-            currentXP={totalXP}
             stepTitle={getStepTitle()}
           />
 

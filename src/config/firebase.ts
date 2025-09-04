@@ -1,9 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getAuth, Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 
 // Firebase configuration - these should be filled in your .env file
 const firebaseConfig = {
@@ -19,8 +18,16 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth - Firebase will automatically use AsyncStorage for React Native
-const auth = getAuth(app);
+// Initialize Auth with AsyncStorage persistence for React Native
+let auth: Auth;
+try {
+  // Firebase Auth automatically uses AsyncStorage in React Native when available
+  // No explicit persistence configuration needed in v9+
+  auth = initializeAuth(app);
+} catch (error) {
+  // If already initialized, get the existing instance
+  auth = getAuth(app);
+}
 
 // Initialize Firestore
 export const db = getFirestore(app);

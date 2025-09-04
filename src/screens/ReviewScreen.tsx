@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Animated, Switch, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Switch, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@shared/theme';
 import { OnboardingStepper } from '../components/gamification';
-import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
-import { useGamificationStore } from '../stores/gamificationStore';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../shared/stores/authStore';
 
 interface ReviewScreenProps {
   navigation: any;
@@ -17,33 +15,40 @@ interface ReviewScreenProps {
       gender?: 'boys' | 'girls'; 
       position?: string; 
       graduationYear?: number;
+      height?: string;
+      sport?: string;
       schoolName?: string;
       city?: string;
       state?: string;
       level?: 'Varsity' | 'JV' | 'Freshman';
+      jerseyNumber?: string;
       clubEnabled?: boolean;
       clubOrgName?: string;
       clubTeamName?: string;
       clubCity?: string;
       clubState?: string;
-      goals?: any;
-      strengths?: string[];
-      growthAreas?: string[];
+      clubJerseyNumber?: string;
+      goals?: string[];
+      gpa?: string;
+      hasHonorsAP?: boolean | null;
+      satScore?: string;
+      actScore?: string;
+      academicInterest?: string;
+      academicAwards?: string;
     } 
   };
 }
 
 export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   const { 
-    firstName, lastName, gender, position, graduationYear, schoolName, city, state, level,
-    clubEnabled, clubOrgName, clubTeamName, clubCity, clubState,
-    goals, strengths, growthAreas
+    firstName, lastName, gender, position, graduationYear, height, sport,
+    schoolName, city, state, level, jerseyNumber,
+    clubEnabled, clubOrgName, clubTeamName, clubCity, clubState, clubJerseyNumber,
+    goals, gpa, hasHonorsAP, satScore, actScore, academicInterest, academicAwards
   } = route.params || {};
 
-  const { addXP } = useGamificationStore();
   const { createUserWithOnboardingData } = useAuthStore();
   const [commitment, setCommitment] = useState(true);
-  const [showXPReward, setShowXPReward] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -93,32 +98,33 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         gender,
         position,
         graduationYear,
+        height,
+        sport: sport || 'lacrosse',
         schoolName,
         city,
         state,
         level,
+        jerseyNumber,
         clubEnabled,
         clubOrgName,
         clubTeamName,
         clubCity,
         clubState,
+        clubJerseyNumber,
         goals,
-        strengths,
-        growthAreas,
-        sport: 'lacrosse',
+        gpa,
+        hasHonorsAP,
+        satScore,
+        actScore,
+        academicInterest,
+        academicAwards,
       };
       
       // Create user in Firebase with all onboarding data
       await createUserWithOnboardingData(onboardingData);
       
-      // Award completion XP
-      addXP(100, "Onboarding Complete! Welcome to your locker!");
-      setShowXPReward(true);
-      
-      setTimeout(() => {
-        setShowXPReward(false);
-        navigation.navigate('MainTabs');
-      }, 2000);
+      // Navigate to paywall screen before dashboard
+      navigation.navigate('Paywall');
     } catch (error: any) {
       alert(`Error creating account: ${error.message}`);
       setIsCreatingUser(false);
@@ -127,6 +133,58 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
 
   const handleBack = () => {
     navigation.goBack();
+  };
+
+  // Helper function to get goal title from goal ID
+  const getGoalTitle = (goalId: string): string => {
+    const goalTitles: { [key: string]: string } = {
+      'score_1_per_game': 'Score at least 1 goal per game',
+      'avg_2_assists': 'Average 2+ assists per game',
+      'shooting_60_percent': 'Maintain 60%+ shooting accuracy',
+      'ground_balls_3_plus': 'Record 3+ ground balls per game',
+      'limit_turnovers_2': 'Limit turnovers to under 2 per game',
+      'contribute_2_points': 'Contribute 2+ points per game',
+      'ground_balls_50_percent': 'Win 50%+ ground balls attempted',
+      'clear_80_percent': 'Clear ball successfully 80%+ of the time',
+      'score_assist_every_game': 'Score or assist in every game',
+      'cause_1_turnover': 'Record 1 caused turnover per game',
+      'hold_matchup_2_goals': 'Hold matchup to under 2 goals per game',
+      'ground_balls_70_percent': 'Win 70%+ ground balls attempted',
+      'cause_1_turnover_def': 'Cause at least 1 turnover per game',
+      'clear_80_percent_def': 'Clear successfully on 80%+ attempts',
+      'limit_penalties_2': 'Commit under 2 penalties per game',
+      'save_55_percent': 'Maintain at least 55% save percentage',
+      'goals_under_8': 'Keep opponents under 8 goals per game',
+      'clear_80_percent_goalie': 'Clear ball successfully 80%+ of the time',
+      'saves_10_plus_5_games': 'Record 10+ saves in at least 5 games',
+      'communicate_90_percent': 'Communicate on 90% of defensive possessions',
+      'faceoff_60_percent': 'Win 60%+ of face-offs',
+      'ground_balls_3_plus_fogo': 'Average 3+ ground balls per game',
+      'limit_faceoff_turnovers': 'Limit turnovers to under 1 per game',
+      'faceoff_streaks_3': 'Keep face-off win streaks of 3+ in a row',
+      // Girls lacrosse goals
+      'score_1_per_game_girls': 'Score at least 1 goal per game',
+      'avg_2_assists_girls': 'Average 2+ assists per game',
+      'shooting_55_percent_girls': 'Maintain 55%+ shooting accuracy',
+      'draw_ground_balls_3_girls': 'Record 3+ draw controls or ground balls per game',
+      'limit_turnovers_2_girls': 'Limit turnovers to under 2 per game',
+      'draw_controls_3_girls': 'Record 3+ draw controls per game',
+      'contribute_2_points_girls': 'Contribute 2+ points per game',
+      'ground_balls_50_percent_girls': 'Win 50%+ ground balls attempted',
+      'transition_80_percent_girls': 'Transition successfully on 80%+ clears',
+      'cause_1_turnover_girls': 'Record 1 caused turnover per game',
+      'hold_matchup_2_goals_girls': 'Hold matchup to under 2 goals per game',
+      'ground_balls_2_plus_girls': 'Record 2+ ground balls per game',
+      'cause_1_turnover_def_girls': 'Cause at least 1 turnover per game',
+      'transition_80_percent_def_girls': 'Transition successfully on 80%+ clears',
+      'limit_penalties_2_girls': 'Commit under 2 penalties per game',
+      'save_50_percent_girls': 'Maintain at least 50% save percentage',
+      'goals_under_10_girls': 'Keep opponents under 10 goals per game',
+      'saves_8_plus_5_games_girls': 'Record 8+ saves in at least 5 games',
+      'transition_75_percent_girls': 'Transition ball successfully on 75%+ clears',
+      'communicate_90_percent_girls': 'Communicate on 90% of defensive possessions',
+    };
+    return goalTitles[goalId] || goalId;
   };
 
   return (
@@ -152,9 +210,12 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>You're All Set!</Text>
+          <View style={styles.titleContainer}>
+            <Ionicons name="checkmark-circle" size={32} color={theme.colors.success} />
+            <Text style={styles.title}>Locker Check</Text>
+          </View>
           <Text style={styles.subtitle}>
-            Review your profile and make your commitment to start tracking
+            Here's your setup. Ready to step into your locker?
           </Text>
         </View>
 
@@ -179,57 +240,86 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
               </View>
             </View>
 
-            {/* Summary Sections */}
+            {/* High School Section */}
             <View style={styles.summarySection}>
-              <Text style={styles.sectionLabel}>High School</Text>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="school" size={20} color={theme.colors.primary} />
+                <Text style={styles.sectionLabel}>High School</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('HighSchool', route.params)}>
+                  <Text style={styles.editLink}>Edit</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.sectionValue}>
-                {schoolName} ({level}) • {city}, {state}
+                {schoolName} • {city}, {state}
+              </Text>
+              <Text style={styles.sectionSubValue}>
+                {level}{jerseyNumber ? ` • #${jerseyNumber}` : ''}
               </Text>
             </View>
 
+            {/* Club Team Section */}
             {clubEnabled && (
               <View style={styles.summarySection}>
-                <Text style={styles.sectionLabel}>Club Team</Text>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="trophy" size={20} color={theme.colors.primary} />
+                  <Text style={styles.sectionLabel}>Club Team</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('ClubTeam', route.params)}>
+                    <Text style={styles.editLink}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.sectionValue}>
-                  {clubOrgName} - {clubTeamName} • {clubCity}, {clubState}
+                  {clubOrgName} - {clubTeamName}
+                </Text>
+                <Text style={styles.sectionSubValue}>
+                  {clubCity}, {clubState}{clubJerseyNumber ? ` • #${clubJerseyNumber}` : ''}
                 </Text>
               </View>
             )}
 
+            {/* Season Goals Section */}
             <View style={styles.summarySection}>
-              <Text style={styles.sectionLabel}>Goals Set</Text>
-              <Text style={styles.sectionValue}>
-                {goals ? Object.keys(goals).length : 0} performance targets
-              </Text>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="golf" size={20} color={theme.colors.primary} />
+                <Text style={styles.sectionLabel}>Season Goals</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Goals', route.params)}>
+                  <Text style={styles.editLink}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+              {goals && goals.length > 0 ? (
+                <View style={styles.goalsContainer}>
+                  {goals.map((goalId: string, index: number) => (
+                    <View key={index} style={styles.goalItem}>
+                      <Ionicons name="checkmark" size={16} color={theme.colors.success} />
+                      <Text style={styles.goalText}>{getGoalTitle(goalId)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.sectionValue}>No goals selected</Text>
+              )}
             </View>
 
-            <View style={styles.summarySection}>
-              <Text style={styles.sectionLabel}>Strengths</Text>
-              <View style={styles.tagContainer}>
-                {strengths?.slice(0, 3).map((strength, index) => (
-                  <View key={index} style={styles.strengthTag}>
-                    <Text style={styles.tagText}>{strength}</Text>
-                  </View>
-                ))}
-                {strengths && strengths.length > 3 && (
-                  <Text style={styles.moreText}>+{strengths.length - 3} more</Text>
-                )}
+            {/* Academic Section (Optional) */}
+            {(gpa || satScore || actScore || academicInterest) && (
+              <View style={styles.summarySection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="school" size={20} color={theme.colors.primary} />
+                  <Text style={styles.sectionLabel}>Academic</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Academic', route.params)}>
+                    <Text style={styles.editLink}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.academicInfo}>
+                  {gpa && <Text style={styles.sectionValue}>GPA: {gpa}</Text>}
+                  {(satScore || actScore) && (
+                    <Text style={styles.sectionValue}>
+                      {satScore ? `SAT: ${satScore}` : ''}{satScore && actScore ? ' • ' : ''}{actScore ? `ACT: ${actScore}` : ''}
+                    </Text>
+                  )}
+                  {academicInterest && <Text style={styles.sectionValue}>Interest: {academicInterest}</Text>}
+                </View>
               </View>
-            </View>
-
-            <View style={styles.summarySection}>
-              <Text style={styles.sectionLabel}>Growth Areas</Text>
-              <View style={styles.tagContainer}>
-                {growthAreas?.slice(0, 2).map((area, index) => (
-                  <View key={index} style={styles.growthTag}>
-                    <Text style={styles.tagText}>{area}</Text>
-                  </View>
-                ))}
-                {growthAreas && growthAreas.length > 2 && (
-                  <Text style={styles.moreText}>+{growthAreas.length - 2} more</Text>
-                )}
-              </View>
-            </View>
+            )}
           </LinearGradient>
         </View>
 
@@ -290,23 +380,13 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
             style={styles.enterButtonGradient}
           >
             <Ionicons name="lock-open" size={20} color={theme.colors.white} />
-            <Text style={styles.enterButtonText}>Enter Your Locker</Text>
-            <Text style={styles.enterButtonSubtext}>+100 XP</Text>
+            <Text style={styles.enterButtonText}>Enter My Locker 🚀</Text>
           </LinearGradient>
         </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
       </Animated.ScrollView>
 
-      {/* XP Reward Animation */}
-      {showXPReward && (
-        <XPRewardAnimation
-          visible={showXPReward}
-          xpAmount={100}
-          message="Onboarding Complete! Welcome to your locker!"
-          onComplete={() => setShowXPReward(false)}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -324,11 +404,17 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 30,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 28,
     fontFamily: theme.fonts.jakarta.bold,
     color: theme.colors.textPrimary,
-    marginBottom: 8,
+    marginLeft: 12,
   },
   subtitle: {
     fontSize: 16,
@@ -386,21 +472,54 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   summarySection: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    color: theme.colors.textPrimary,
+    marginLeft: 8,
+    flex: 1,
+  },
+  editLink: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.primary,
   },
   sectionValue: {
     fontSize: 16,
     fontFamily: theme.fonts.jakarta.medium,
     color: theme.colors.textPrimary,
     lineHeight: 22,
+  },
+  sectionSubValue: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  goalsContainer: {
+    gap: 8,
+  },
+  goalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  goalText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  academicInfo: {
+    gap: 4,
   },
   tagContainer: {
     flexDirection: 'row',
@@ -512,12 +631,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: theme.fonts.jakarta.semiBold,
     color: theme.colors.white,
-  },
-  enterButtonSubtext: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.white,
-    opacity: 0.9,
   },
   bottomSpacer: {
     height: 40,

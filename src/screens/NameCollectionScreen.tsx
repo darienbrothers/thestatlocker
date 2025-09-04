@@ -1,28 +1,52 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
+  Animated,
+  Alert,
+  Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@shared/theme';
-import { OnboardingStepper } from '../components/gamification';
-import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
-import { useGamificationStore } from '../stores/gamificationStore';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { OnboardingStepper } from '@/components/gamification';
+import { colors, fonts, fontSizes } from '@/constants/theme';
 
-interface NameCollectionScreenProps {
-  navigation: any;
+// Define particle type outside component
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  opacity: number;
+  scale: number;
 }
 
-export default function NameCollectionScreen({ navigation }: NameCollectionScreenProps) {
+const NameCollectionScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  // State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [showXPReward, setShowXPReward] = useState(false);
-  const { totalXP, addXP } = useGamificationStore();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [particles] = useState<Particle[]>([]);
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
   const bounceAnim = useRef(new Animated.Value(1)).current;
-  const firstNameBounce = useRef(new Animated.Value(1)).current;
-  const lastNameBounce = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  // Computed values
+  const isFormValid = firstName.trim() && lastName.trim();
 
   useEffect(() => {
     // Entrance animation
@@ -37,57 +61,52 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
         duration: 600,
         useNativeDriver: true,
       }),
+      Animated.timing(progressAnim, {
+        toValue: 0.125, // 1/8 progress (step 1 of 8)
+        duration: 1000,
+        useNativeDriver: false,
+      }),
     ]).start();
+
+    // Subtle glow animation loop
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
-  const handleFirstNameChange = (text: string) => {
-    setFirstName(text);
-    if (text.trim() && !firstName.trim()) {
-      // First time entering name - bounce animation + XP
-      addXP(15, 'Started entering name');
-      Animated.sequence([
-        Animated.timing(firstNameBounce, {
-          toValue: 1.1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(firstNameBounce, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  };
 
-  const handleLastNameChange = (text: string) => {
-    setLastName(text);
-    if (text.trim() && !lastName.trim()) {
-      // First time entering last name - bounce animation + XP
-      addXP(10, 'Added last name');
+  // Button animation when form is valid
+  useEffect(() => {
+    if (isFormValid) {
       Animated.sequence([
-        Animated.timing(lastNameBounce, {
-          toValue: 1.1,
-          duration: 150,
+        Animated.timing(bounceAnim, {
+          toValue: 1.02,
+          duration: 300,
           useNativeDriver: true,
         }),
-        Animated.timing(lastNameBounce, {
+        Animated.timing(bounceAnim, {
           toValue: 1,
-          duration: 150,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start();
     }
-  };
+  }, [isFormValid]);
+
 
   const handleContinue = () => {
     if (firstName.trim() && lastName.trim()) {
-      // Add XP for completing the step
-      addXP(25, 'Name collection completed');
-      
-      // Show XP reward animation
-      setShowXPReward(true);
-      
       // Button press animation
       Animated.sequence([
         Animated.timing(bounceAnim, {
@@ -100,305 +119,342 @@ export default function NameCollectionScreen({ navigation }: NameCollectionScree
           duration: 100,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        // Navigate after animation completes
+        navigation.navigate('BasicInfo', { firstName: firstName.trim(), lastName: lastName.trim() });
+      });
     }
   };
 
-  const handleXPAnimationComplete = () => {
-    setShowXPReward(false);
-    // Navigate after XP animation completes
-    navigation.navigate('BasicInfo', { firstName, lastName });
+  const pickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to add a profile picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
   };
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
 
-  const isValid = firstName.trim().length > 0 && lastName.trim().length > 0;
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Enhanced Stepper with Back Button */}
+      {/* Stepper with Back Button */}
       <OnboardingStepper 
         currentStep={1}
         totalSteps={8}
-        stepTitle="Welcome"
+        stepTitle="Let's get to know you"
         showBackButton={true}
-        onBackPress={handleBack}
+        onBackPress={() => navigation.goBack()}
       />
+      
       
       <KeyboardAvoidingView 
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
       >
-        {/* XP Reward Animation */}
-        <XPRewardAnimation
-          visible={showXPReward}
-          xpAmount={25}
-          message="Great start to your journey!"
-          onComplete={handleXPAnimationComplete}
-        />
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
           <ScrollView 
-            style={styles.scrollView}
+            style={styles.mainContent}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
           >
-            <Animated.View 
-              style={[
-                styles.content,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }],
-                }
-              ]}
-            >
-              {/* Logo Section */}
-              <View style={styles.logoSection}>
-                <Image 
-                  source={require('../../assets/logos/logoBlack.png')} 
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              </View>
 
-              {/* Header Section */}
-              <View style={styles.headerSection}>
-                <Text style={styles.title}>Welcome to the squad!</Text>
-                <Text style={styles.subtitle}>
-                  What should we call you on the field?
-                </Text>
-              </View>
+          {/* Content */}
+          <Animated.View 
+            style={[
+              styles.content,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
+            {/* Header Section */}
+            <View style={styles.headerSection}>
+              <Text style={styles.title}>
+                Name Plate
+              </Text>
+              <Text style={styles.subtitle}>
+                Every locker starts with a name plate. Add yours to get started.
+              </Text>
+            </View>
 
-              {/* Input Section */}
-              <View style={styles.inputSection}>
-                <Animated.View 
-                  style={[
-                    styles.inputCard,
-                    { transform: [{ scale: firstNameBounce }] },
-                    !firstName.trim() && styles.inputCardRequired
-                  ]}
-                >
-                  <Text style={styles.inputLabel}>First Name *</Text>
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[
-                        styles.textInput,
-                        firstName.trim() && styles.textInputActive,
-                        !firstName.trim() && styles.textInputRequired
-                      ]}
-                      value={firstName}
-                      onChangeText={handleFirstNameChange}
-                      placeholder="Your first name"
-                      placeholderTextColor={theme.colors.textTertiary}
-                      autoCapitalize="words"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      autoFocus
-                    />
-                    {firstName.trim() && (
-                      <View style={styles.inputIcon}>
-                        <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
-                      </View>
-                    )}
+            {/* Profile Picture Section */}
+            <View style={styles.profileSection}>
+              <Text style={styles.sectionLabel}>Your Game Face</Text>
+              <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                ) : (
+                  <View style={styles.profileImagePlaceholder}>
+                    <Ionicons name="camera" size={32} color={colors.textSecondary} />
+                    <Text style={styles.profileImageText}>Add Photo</Text>
                   </View>
-                </Animated.View>
+                )}
+              </TouchableOpacity>
+            </View>
 
-                <Animated.View 
-                  style={[
-                    styles.inputCard,
-                    { transform: [{ scale: lastNameBounce }] },
-                    !lastName.trim() && styles.inputCardRequired
-                  ]}
-                >
-                  <Text style={styles.inputLabel}>Last Name *</Text>
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[
-                        styles.textInput,
-                        lastName.trim() && styles.textInputActive,
-                        !lastName.trim() && styles.textInputRequired
-                      ]}
-                      value={lastName}
-                      onChangeText={handleLastNameChange}
-                      placeholder="Your last name"
-                      placeholderTextColor={theme.colors.textTertiary}
-                      autoCapitalize="words"
-                      autoCorrect={false}
-                      returnKeyType="done"
-                      onSubmitEditing={handleContinue}
-                    />
-                    {lastName.trim() && (
-                      <View style={styles.inputIcon}>
-                        <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
-                      </View>
-                    )}
-                  </View>
-                </Animated.View>
+            <View style={styles.inputSection}>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>First Name</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.modernInput}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="Enter your first name"
+                    placeholderTextColor={colors.textSecondary}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                  />
+                  <Ionicons name="person-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                </View>
               </View>
 
-              {/* Continue Button */}
-              <View style={styles.buttonSection}>
-                <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
-                  <TouchableOpacity
-                    style={[styles.continueButton, !isValid && styles.disabledButton]}
-                    onPress={handleContinue}
-                    disabled={!isValid}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={isValid ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
-                      start={[0, 0]}
-                      end={[1, 1]}
-                      style={styles.buttonGradient}
-                    >
-                      <Text style={[styles.buttonText, !isValid && styles.disabledButtonText]}>
-                        Continue
-                      </Text>
-                      <Ionicons 
-                        name="arrow-forward" 
-                        size={20} 
-                        color={isValid ? theme.colors.white : theme.colors.textTertiary} 
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </Animated.View>
-                
-                <Text style={styles.helperText}>
-                  🏆 We'll personalize your championship journey
-                </Text>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Last Name</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.modernInput}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Enter your last name"
+                    placeholderTextColor={colors.textSecondary}
+                    autoCapitalize="words"
+                    returnKeyType="done"
+                    onSubmitEditing={handleContinue}
+                  />
+                  <Ionicons name="person-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                </View>
               </View>
-            </Animated.View>
+            </View>
+          </Animated.View>
+
+
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+        
+        {/* Continue Button - Fixed at bottom */}
+        <View style={styles.fixedButtonContainer}>
+        <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              !isFormValid && styles.continueButtonDisabled
+            ]}
+            onPress={handleContinue}
+            disabled={!isFormValid}
+          >
+            <LinearGradient
+              colors={isFormValid ? [colors.primary, colors.primaryDark] : [colors.neutral300, colors.neutral400]}
+              style={styles.buttonGradient}
+            >
+              <Animated.View style={[
+                styles.buttonContent,
+                {
+                  opacity: glowAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1],
+                  }),
+                }
+              ]}>
+                <Ionicons 
+                  name="rocket" 
+                  size={20} 
+                  color={isFormValid ? colors.white : colors.textTertiary} 
+                  style={styles.buttonIcon}
+                />
+                <Text style={[
+                  styles.continueButtonText,
+                  !isFormValid && styles.continueButtonTextDisabled
+                ]}>
+                  Next
+                </Text>
+              </Animated.View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+        
+      {/* Particle Burst Effects */}
+      {particles.map((particle, index) => (
+        <Animated.View 
+          key={index}
+          style={[
+            styles.particle,
+            {
+              left: particle.x,
+              opacity: particle.opacity,
+              transform: [{ scale: particle.scale }],
+            },
+          ]}
+        />
+      ))}
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.white,
   },
   keyboardView: {
     flex: 1,
   },
-  scrollView: {
+  mainContent: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 120,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingVertical: 16,
-    justifyContent: 'space-between',
-    minHeight: 500,
+    minHeight: 400,
   },
-  // Logo Section
-  logoSection: {
-    alignItems: 'center',
-    paddingTop: 20,
-  },
-  logo: {
-    width: 70,
-    height: 70,
-  },
-  // Header Section
   headerSection: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 28,
-    fontFamily: theme.fonts.anton,
-    color: theme.colors.textPrimary,
+    fontSize: fontSizes['2xl'],
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textSecondary,
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
-  // Input Section
-  inputSection: {
-    gap: 14,
-    paddingVertical: 16,
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
-  inputCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: theme.colors.black,
+  sectionLabel: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.semiBold,
+    color: colors.textPrimary,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.neutral100,
+    borderWidth: 3,
+    borderColor: colors.neutral200,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  profileImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileImageText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.textSecondary,
+    marginTop: 8,
+  },
+  inputSection: {
+    gap: 24,
+  },
+  fieldContainer: {
+    marginBottom: 4,
+  },
+  fieldLabel: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.semiBold,
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.neutral100,
+    borderColor: colors.neutral200,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  inputCardRequired: {
-    borderColor: theme.colors.error + '30',
-    backgroundColor: theme.colors.error + '05',
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-  },
-  inputContainer: {
-    position: 'relative',
-  },
-  textInput: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textPrimary,
-    paddingVertical: 8,
-    paddingRight: 32,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.colors.neutral200,
-    backgroundColor: 'transparent',
-  },
-  textInputActive: {
-    borderBottomColor: theme.colors.primary,
-  },
-  textInputRequired: {
-    borderBottomColor: theme.colors.error + '50',
+  modernInput: {
+    flex: 1,
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
+    paddingRight: 12,
   },
   inputIcon: {
-    position: 'absolute',
-    right: 4,
-    top: 8,
+    marginLeft: 8,
   },
-  // Button Section
-  buttonSection: {
-    gap: 12,
-    paddingBottom: 24,
-    paddingTop: 16,
+  fixedButtonContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 34,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral100,
   },
   continueButton: {
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: theme.colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 6,
   },
-  disabledButton: {
+  continueButtonDisabled: {
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -410,18 +466,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  buttonText: {
-    fontSize: 18,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.white,
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  disabledButtonText: {
-    color: theme.colors.textTertiary,
+  buttonIcon: {
+    marginRight: 8,
   },
-  helperText: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textTertiary,
-    textAlign: 'center',
+  continueButtonText: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.semiBold,
+    color: colors.white,
+  },
+  continueButtonTextDisabled: {
+    color: colors.textTertiary,
+  },
+  particle: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
   },
 });
+
+export default NameCollectionScreen;

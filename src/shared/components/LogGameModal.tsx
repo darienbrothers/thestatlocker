@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { tokens, COLORS, FONTS, fontSizes } from '@shared/theme';
+import { colors, fonts, fontSizes, spacing, borderRadius } from '@/constants/theme';
 import { GameStats } from '@/types';
 import { useGameStore } from '@shared/stores/gameStore';
 import { useAuthStore } from '@shared/stores/authStore';
@@ -25,9 +25,10 @@ interface LogGameModalProps {
   visible: boolean;
   onClose: () => void;
   userPosition?: string;
+  onGameLogged?: (gameData: any) => void;
 }
 
-const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosition = 'Attack' }) => {
+const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosition = 'Attack', onGameLogged }) => {
   const { user } = useAuthStore();
   const { logGame, isLoading } = useGameStore();
   const { addXP } = useGamificationStore();
@@ -91,19 +92,24 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
         userId: user.id,
         date: gameDate,
         opponent: opponent.trim(),
-        venue: venue.trim() || undefined,
+        venue: venue || '',
         seasonType,
         gameType: 'Regular Season' as const,
         isHome: true, // Default for now
-        teamScore: teamScore ? parseInt(teamScore) : undefined,
-        opponentScore: opponentScore ? parseInt(opponentScore) : undefined,
+        teamScore: teamScore ? parseInt(teamScore) : 0,
+        opponentScore: opponentScore ? parseInt(opponentScore) : 0,
         stats,
         position: userPosition,
-        notes: undefined,
+        notes: '',
       };
 
       await logGame(gameData);
       await addXP(25, 'Game Logged'); // Award XP for logging game
+      
+      // Call the gamification callback if provided
+      if (onGameLogged) {
+        await onGameLogged(gameData);
+      }
       
       Alert.alert('Success', 'Game logged successfully!', [
         { text: 'OK', onPress: onClose }
@@ -130,7 +136,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
     }
   };
 
-  const StatInput = ({ label, value, onChangeValue, color = COLORS.primary }: {
+  const StatInput = ({ label, value, onChangeValue, color = colors.primary }: {
     label: string;
     value: number;
     onChangeValue: (value: number) => void;
@@ -165,7 +171,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={COLORS.text} />
+            <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Log a New Game</Text>
           <View style={styles.headerSpacer} />
@@ -175,7 +181,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
           {/* Game Details Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar" size={20} color={COLORS.primary} />
+              <Ionicons name="calendar" size={20} color={colors.primary} />
               <Text style={styles.sectionTitle}>Game Details</Text>
             </View>
             <Text style={styles.sectionSubtitle}>Basic information about the game</Text>
@@ -187,7 +193,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 value={opponent}
                 onChangeText={setOpponent}
                 placeholder="Enter opponent name"
-                placeholderTextColor={COLORS.textSecondary}
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
 
@@ -200,7 +206,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 <Text style={styles.dateText}>
                   {gameDate.toLocaleDateString()}
                 </Text>
-                <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
 
@@ -252,13 +258,13 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 label="Goals"
                 value={stats.goals}
                 onChangeValue={(value) => updateStat('goals', value)}
-                color={COLORS.success}
+                color={colors.success}
               />
               <StatInput
                 label="Assists"
                 value={stats.assists}
                 onChangeValue={(value) => updateStat('assists', value)}
-                color={COLORS.primary}
+                color={colors.primary}
               />
               <StatInput
                 label="Shots"
@@ -274,7 +280,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 label="Turnovers"
                 value={stats.turnovers}
                 onChangeValue={(value) => updateStat('turnovers', value)}
-                color={COLORS.error}
+                color={colors.error}
               />
               <StatInput
                 label="Ground Balls"
@@ -285,13 +291,13 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 label="Caused Turnovers"
                 value={stats.causedTurnovers}
                 onChangeValue={(value) => updateStat('causedTurnovers', value)}
-                color={COLORS.success}
+                color={colors.success}
               />
               <StatInput
                 label="Fouls"
                 value={stats.fouls}
                 onChangeValue={(value) => updateStat('fouls', value)}
-                color={COLORS.warning}
+                color={colors.warning}
               />
 
               {/* Position-specific stats */}
@@ -301,13 +307,13 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                     label="Saves"
                     value={stats.saves || 0}
                     onChangeValue={(value) => updateStat('saves', value)}
-                    color={COLORS.success}
+                    color={colors.success}
                   />
                   <StatInput
                     label="Goals Against"
                     value={stats.goalsAgainst || 0}
                     onChangeValue={(value) => updateStat('goalsAgainst', value)}
-                    color={COLORS.error}
+                    color={colors.error}
                   />
                 </>
               )}
@@ -318,13 +324,13 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                     label="Faceoff Wins"
                     value={stats.faceoffWins || 0}
                     onChangeValue={(value) => updateStat('faceoffWins', value)}
-                    color={COLORS.success}
+                    color={colors.success}
                   />
                   <StatInput
                     label="Faceoff Losses"
                     value={stats.faceoffLosses || 0}
                     onChangeValue={(value) => updateStat('faceoffLosses', value)}
-                    color={COLORS.error}
+                    color={colors.error}
                   />
                 </>
               )}
@@ -334,7 +340,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
           {/* Live Calculations */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calculator" size={20} color={COLORS.primary} />
+              <Ionicons name="calculator" size={20} color={colors.primary} />
               <Text style={styles.sectionTitle}>Live Calculations</Text>
             </View>
             <Text style={styles.sectionSubtitle}>Auto-calculated stats as you type</Text>
@@ -370,7 +376,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
             disabled={isLoading}
           >
             <LinearGradient
-              colors={[COLORS.primary, COLORS.primaryDark]}
+              colors={[colors.primary, colors.primaryDark]}
               style={styles.saveButtonGradient}
             >
               <Text style={styles.saveButtonText}>
@@ -386,7 +392,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
             value={gameDate}
             mode="date"
             display="default"
-            onChange={(event, selectedDate) => {
+            onChange={(_, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
                 setGameDate(selectedDate);
@@ -402,24 +408,24 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: tokens.spacing.m,
+    padding: spacing.md,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   closeButton: {
-    padding: tokens.spacing.s,
+    padding: spacing.sm,
   },
   headerTitle: {
     fontSize: fontSizes.xl,
-    fontFamily: FONTS.heading,
-    color: COLORS.text,
+    fontFamily: fonts.heading,
+    color: colors.text,
   },
   headerSpacer: {
     width: 40,
@@ -428,92 +434,92 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    padding: tokens.spacing.m,
+    padding: spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: tokens.spacing.s,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
     fontSize: fontSizes.lg,
-    fontFamily: FONTS.heading,
-    color: COLORS.text,
-    marginLeft: tokens.spacing.s,
+    fontFamily: fonts.heading,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   sectionSubtitle: {
     fontSize: fontSizes.sm,
-    fontFamily: FONTS.body,
-    color: COLORS.textSecondary,
-    marginBottom: tokens.spacing.m,
-  },
-  positionBadge: {
-    fontSize: fontSizes.xs,
-    fontFamily: FONTS.body,
-    color: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: tokens.spacing.s,
-    paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.radius.s,
-    marginRight: tokens.spacing.s,
-  },
-  inputGroup: {
-    marginBottom: tokens.spacing.m,
+    fontFamily: fonts.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
   },
   inputLabel: {
     fontSize: fontSizes.sm,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
-    marginBottom: tokens.spacing.s,
+    fontFamily: fonts.body,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  inputGroup: {
+    marginBottom: spacing.md,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: tokens.radius.s,
-    padding: tokens.spacing.m,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    padding: spacing.md,
     fontSize: fontSizes.base,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
-    backgroundColor: COLORS.surface,
+    fontFamily: fonts.body,
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   dateButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: tokens.radius.s,
-    padding: tokens.spacing.m,
-    backgroundColor: COLORS.surface,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
   },
   dateText: {
     fontSize: fontSizes.base,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   segmentedControl: {
     flexDirection: 'row',
-    borderRadius: tokens.radius.s,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   segmentButton: {
     flex: 1,
-    padding: tokens.spacing.m,
+    padding: spacing.md,
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   segmentButtonActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   segmentText: {
     fontSize: fontSizes.sm,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   segmentTextActive: {
-    color: COLORS.surface,
+    color: colors.surface,
+  },
+  positionBadge: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.body,
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginRight: spacing.sm,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -522,13 +528,13 @@ const styles = StyleSheet.create({
   },
   statInputContainer: {
     width: '48%',
-    marginBottom: tokens.spacing.m,
+    marginBottom: spacing.md,
   },
   statLabel: {
     fontSize: fontSizes.sm,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
-    marginBottom: tokens.spacing.s,
+    fontFamily: fonts.body,
+    color: colors.text,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   statControls: {
@@ -539,16 +545,18 @@ const styles = StyleSheet.create({
   statButton: {
     width: 36,
     height: 36,
-    borderRadius: tokens.radius.full,
+    borderRadius: borderRadius.full,
     borderWidth: 1,
-    justifyContent: 'center',
+    borderColor: colors.border,
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
   },
   statValue: {
-    fontSize: fontSizes.xl,
-    fontFamily: FONTS.heading,
-    marginHorizontal: tokens.spacing.m,
+    fontSize: fontSizes.lg,
+    fontFamily: fonts.medium,
+    color: colors.text,
+    marginHorizontal: spacing.md,
     minWidth: 40,
     textAlign: 'center',
   },
@@ -559,48 +567,44 @@ const styles = StyleSheet.create({
   },
   calculationCard: {
     width: '48%',
-    padding: tokens.spacing.m,
-    backgroundColor: COLORS.surface,
-    borderRadius: tokens.radius.m,
+    padding: spacing.sm,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.sm,
     alignItems: 'center',
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   calculationValue: {
-    fontSize: fontSizes['2xl'],
-    fontFamily: FONTS.heading,
-    color: COLORS.primary,
-    marginBottom: tokens.spacing.xs,
+    fontSize: fontSizes.lg,
+    fontFamily: fonts.medium,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   calculationLabel: {
     fontSize: fontSizes.xs,
-    fontFamily: FONTS.body,
-    color: COLORS.textSecondary,
+    fontFamily: fonts.body,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   footer: {
-    padding: tokens.spacing.m,
-    paddingBottom: 40,
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   saveButton: {
-    borderRadius: tokens.radius.m,
+    borderRadius: borderRadius.md,
     overflow: 'hidden',
   },
   saveButtonDisabled: {
     opacity: 0.6,
   },
   saveButtonGradient: {
-    padding: tokens.spacing.m,
+    padding: spacing.md,
     alignItems: 'center',
   },
   saveButtonText: {
     fontSize: fontSizes.base,
-    fontFamily: FONTS.heading,
-    color: COLORS.surface,
+    fontFamily: fonts.heading,
+    color: colors.surface,
   },
 });
 

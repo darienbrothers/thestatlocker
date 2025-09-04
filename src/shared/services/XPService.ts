@@ -1,6 +1,6 @@
 import { doc, updateDoc, increment, serverTimestamp, collection, addDoc, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 
-import { db } from '@shared/config/firebase';
+import { db } from '../../config/firebase';
 
 export interface XPAction {
   type: XPActionType;
@@ -123,7 +123,7 @@ class XPService {
         return {
           success: false,
           xpAwarded: 0,
-          message: rateLimitCheck.reason,
+          message: rateLimitCheck.reason || 'Rate limit exceeded',
         };
       }
 

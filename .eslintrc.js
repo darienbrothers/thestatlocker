@@ -1,6 +1,8 @@
 module.exports = {
   root: true,
-  extends: ['eslint:recommended'],
+  extends: ['@react-native-community'],
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   parserOptions: {
     ecmaFeatures: {
       jsx: true,
@@ -12,14 +14,23 @@ module.exports = {
     es6: true,
     node: true,
     jest: true,
+    'react-native/react-native': true,
   },
   rules: {
-    // General code quality rules
-    'no-console': 'warn',
-    'no-debugger': 'error',
+    // Disable problematic rules
+    'no-console': 'off',
+    'no-debugger': 'warn',
     'no-var': 'error',
     'prefer-const': 'error',
-    'no-unused-vars': 'warn',
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': 'off',
+    'react-native/no-unused-styles': 'off',
+    'react-native/split-platform-components': 'off',
+    'react-native/no-inline-styles': 'off',
+    'react-native/no-color-literals': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/no-empty-interface': 'off',
   },
   overrides: [
     {

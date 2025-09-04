@@ -7,15 +7,12 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { theme, COLORS, FONTS } from '@shared/theme';
-
-const { width } = Dimensions.get('window');
 
 type PaywallScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Paywall'>;
 
@@ -119,7 +116,6 @@ export default function PaywallScreen({ navigation }: Props) {
 
   const renderPricingCard = (plan: PricingPlan) => {
     const isSelected = selectedPlan === plan.id;
-    const price = isAnnual ? plan.yearlyPrice : plan.monthlyPrice * 12;
     const monthlyPrice = isAnnual ? plan.yearlyPrice / 12 : plan.monthlyPrice;
     const savings = isAnnual ? Math.round(((plan.monthlyPrice * 12) - plan.yearlyPrice) / (plan.monthlyPrice * 12) * 100) : 0;
 
@@ -278,6 +274,14 @@ export default function PaywallScreen({ navigation }: Props) {
           onPress={() => setShowFAQ(true)}
         >
           <Text style={styles.faqLinkText}>Questions? View FAQ</Text>
+        </TouchableOpacity>
+
+        {/* Temporary Skip Button */}
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => navigation.navigate('MainTabs')}
+        >
+          <Text style={styles.skipButtonText}>Skip to Dashboard (Temporary)</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -527,5 +531,16 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 12,
     lineHeight: 20,
+  },
+  skipButton: {
+    alignItems: 'center',
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  skipButtonText: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
   },
 });

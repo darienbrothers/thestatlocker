@@ -1,6 +1,6 @@
 import { doc, updateDoc, collection, addDoc, query, where, getDocs, orderBy, limit, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
-import { db } from '@shared/config/firebase';
+import { db } from '../../config/firebase';
 import { xpService, type XPActionType } from './XPService';
 
 export interface Achievement {
@@ -253,7 +253,7 @@ class AchievementService {
    * Calculate progress for a specific achievement
    */
   private async calculateAchievementProgress(
-    userId: string,
+    _userId: string,
     achievement: Achievement,
     triggerData?: Record<string, any>
   ): Promise<{ current: number; max: number }> {
@@ -263,7 +263,7 @@ class AchievementService {
     for (const requirement of achievement.requirements) {
       maxProgress = Math.max(maxProgress, requirement.target);
       
-      const reqProgress = await this.calculateRequirementProgress(userId, requirement, triggerData);
+      const reqProgress = await this.calculateRequirementProgress(_userId, requirement, triggerData);
       currentProgress = Math.max(currentProgress, reqProgress);
     }
 
@@ -274,29 +274,29 @@ class AchievementService {
    * Calculate progress for a specific requirement
    */
   private async calculateRequirementProgress(
-    userId: string,
+    _userId: string,
     requirement: AchievementRequirement,
     triggerData?: Record<string, any>
   ): Promise<number> {
     try {
       switch (requirement.type) {
         case RequirementType.GAMES_LOGGED:
-          return await this.getGamesLoggedCount(userId, requirement.timeframe);
+          return await this.getGamesLoggedCount(_userId, requirement.timeframe);
         
         case RequirementType.TOTAL_XP:
-          return await this.getTotalXP(userId);
+          return await this.getTotalXP(_userId);
         
         case RequirementType.STREAK_DAYS:
-          return await this.getCurrentStreak(userId);
+          return await this.getCurrentStreak(_userId);
         
         case RequirementType.STAT_VALUE:
-          return await this.getStatValue(userId, requirement.metadata);
+          return await this.getStatValue(_userId, requirement.metadata);
         
         case RequirementType.SOCIAL_SHARES:
-          return await this.getSocialSharesCount(userId, requirement.timeframe);
+          return await this.getSocialSharesCount(_userId, requirement.timeframe);
         
         case RequirementType.CONSECUTIVE_GAMES:
-          return await this.getConsecutiveGamesCount(userId, requirement.timeframe);
+          return await this.getConsecutiveGamesCount(_userId, requirement.timeframe);
         
         default:
           return 0;
@@ -310,7 +310,7 @@ class AchievementService {
   /**
    * Get games logged count for timeframe
    */
-  private async getGamesLoggedCount(userId: string, timeframe?: string): Promise<number> {
+  private async getGamesLoggedCount(_userId: string, timeframe?: string): Promise<number> {
     try {
       let startDate = new Date(0); // Beginning of time
       
@@ -331,7 +331,7 @@ class AchievementService {
 
       const gamesQuery = query(
         collection(db, 'games'),
-        where('userId', '==', userId),
+        where('userId', '==', _userId),
         where('createdAt', '>=', startDate),
         orderBy('createdAt', 'desc')
       );
@@ -347,11 +347,11 @@ class AchievementService {
   /**
    * Get total XP for user
    */
-  private async getTotalXP(userId: string): Promise<number> {
+  private async getTotalXP(_userId: string): Promise<number> {
     try {
       const userQuery = query(
         collection(db, 'users'),
-        where('__name__', '==', userId),
+        where('__name__', '==', _userId),
         limit(1)
       );
       
@@ -369,7 +369,7 @@ class AchievementService {
   /**
    * Get current streak for user
    */
-  private async getCurrentStreak(userId: string): Promise<number> {
+  private async getCurrentStreak(_userId: string): Promise<number> {
     // This would integrate with your existing streak tracking logic
     // For now, return a placeholder
     return 0;
@@ -378,14 +378,14 @@ class AchievementService {
   /**
    * Get stat value based on metadata
    */
-  private async getStatValue(userId: string, metadata?: Record<string, any>): Promise<number> {
+  private async getStatValue(_userId: string, metadata?: Record<string, any>): Promise<number> {
     if (!metadata?.stat) return 0;
     
     try {
       // Get the user's best performance for the specified stat
       const gamesQuery = query(
         collection(db, 'games'),
-        where('userId', '==', userId),
+        where('userId', '==', _userId),
         orderBy('createdAt', 'desc'),
         limit(100) // Check recent games
       );
@@ -416,7 +416,7 @@ class AchievementService {
   /**
    * Get social shares count
    */
-  private async getSocialSharesCount(userId: string, timeframe?: string): Promise<number> {
+  private async getSocialSharesCount(_userId: string, _timeframe?: string): Promise<number> {
     // Placeholder - would integrate with actual social sharing tracking
     return 0;
   }
@@ -424,7 +424,7 @@ class AchievementService {
   /**
    * Get consecutive games count
    */
-  private async getConsecutiveGamesCount(userId: string, timeframe?: string): Promise<number> {
+  private async getConsecutiveGamesCount(_userId: string, _timeframe?: string): Promise<number> {
     // Placeholder - would implement consecutive games logic
     return 0;
   }
@@ -432,23 +432,23 @@ class AchievementService {
   /**
    * Unlock achievement for user
    */
-  private async unlockAchievement(userId: string, achievement: Achievement): Promise<void> {
+  private async unlockAchievement(_userId: string, achievement: Achievement): Promise<void> {
     try {
       // Award XP for achievement
-      await xpService.awardXP(userId, 'achievement_unlocked' as XPActionType, {
+      await xpService.awardXP(_userId, 'achievement_unlocked' as XPActionType, {
         achievementId: achievement.id,
         rarity: achievement.rarity,
       });
 
       // Add to user's unlocked achievements
-      await updateDoc(doc(db, 'users', userId), {
+      await updateDoc(doc(db, 'users', _userId), {
         unlockedAchievements: arrayUnion(achievement.id),
         lastAchievementUnlocked: serverTimestamp(),
       });
 
       // Log achievement unlock
       await addDoc(collection(db, 'achievement_unlocks'), {
-        userId,
+        userId: _userId,
         achievementId: achievement.id,
         unlockedAt: serverTimestamp(),
         xpAwarded: achievement.xpReward,
@@ -462,7 +462,7 @@ class AchievementService {
    * Update user achievement progress
    */
   private async updateUserAchievementProgress(
-    userId: string,
+    _userId: string,
     achievementId: string,
     current: number,
     max: number,
@@ -470,7 +470,7 @@ class AchievementService {
   ): Promise<void> {
     try {
       await addDoc(collection(db, 'user_achievement_progress'), {
-        userId,
+        userId: _userId,
         achievementId,
         progress: current,
         maxProgress: max,
@@ -485,11 +485,11 @@ class AchievementService {
   /**
    * Get user's achievements with progress
    */
-  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+  async getUserAchievements(_userId: string): Promise<UserAchievement[]> {
     try {
       const progressQuery = query(
         collection(db, 'user_achievement_progress'),
-        where('userId', '==', userId),
+        where('userId', '==', _userId),
         orderBy('lastUpdated', 'desc')
       );
 

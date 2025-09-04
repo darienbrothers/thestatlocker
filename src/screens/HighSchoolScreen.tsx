@@ -4,8 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@shared/theme';
 import { OnboardingStepper } from '../components/gamification';
-import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
-import { useGamificationStore } from '../stores/gamificationStore';
 
 interface HighSchoolScreenProps {
   navigation: any;
@@ -13,22 +11,25 @@ interface HighSchoolScreenProps {
     params?: { 
       firstName?: string; 
       lastName?: string; 
+      sport?: string;
       gender?: 'boys' | 'girls'; 
       position?: string; 
       graduationYear?: number;
+      height?: string;
     } 
   };
 }
 
 export default function HighSchoolScreen({ navigation, route }: HighSchoolScreenProps) {
-  const { firstName, lastName, gender, position, graduationYear } = route.params || {};
+  const { firstName, lastName, sport, gender, position, graduationYear, height } = route.params || {};
   const [schoolName, setSchoolName] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [level, setLevel] = useState<'Varsity' | 'JV' | 'Freshman' | ''>('');
-  const [showXPReward, setShowXPReward] = useState(false);
-  const [hasCompletedStep, setHasCompletedStep] = useState(false);
-  const { totalXP, addXP } = useGamificationStore();
+  const [jerseyNumber, setJerseyNumber] = useState('');
+  const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<{name: string, city: string, state: string} | null>(null);
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -55,17 +56,71 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
     setLevel(selectedLevel);
   };
 
+  // Mock school data - in production, this would come from an API
+  const mockSchoolData: {[key: string]: {name: string, city: string, state: string}[]} = {
+    'CA': [
+      {name: 'Mater Dei High School', city: 'Santa Ana', state: 'CA'},
+      {name: 'Harvard-Westlake School', city: 'Studio City', state: 'CA'},
+      {name: 'Loyola High School', city: 'Los Angeles', state: 'CA'},
+      {name: 'St. Francis High School', city: 'Mountain View', state: 'CA'},
+      {name: 'De La Salle High School', city: 'Concord', state: 'CA'}
+    ],
+    'NY': [
+      {name: 'Chaminade High School', city: 'Mineola', state: 'NY'},
+      {name: 'Iona Preparatory School', city: 'New Rochelle', state: 'NY'},
+      {name: 'St. Anthony\'s High School', city: 'Huntington', state: 'NY'},
+      {name: 'Fordham Preparatory School', city: 'Bronx', state: 'NY'}
+    ],
+    'MD': [
+      {name: 'Boys\' Latin School', city: 'Baltimore', state: 'MD'},
+      {name: 'Calvert Hall College High School', city: 'Baltimore', state: 'MD'},
+      {name: 'Loyola Blakefield', city: 'Towson', state: 'MD'},
+      {name: 'McDonogh School', city: 'Owings Mills', state: 'MD'}
+    ]
+  };
+
+  const handleSchoolNameChange = (text: string) => {
+    setSchoolName(text);
+    setSelectedSchool(null);
+    
+    if (text.length >= 2 && state.length === 2) {
+      const stateSchools = mockSchoolData[state.toUpperCase()] || [];
+      const filtered = stateSchools
+        .filter(school => school.name.toLowerCase().includes(text.toLowerCase()))
+        .map(school => school.name);
+      setSchoolSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setSchoolSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSchoolSelect = (schoolName: string) => {
+    const stateSchools = mockSchoolData[state.toUpperCase()] || [];
+    const school = stateSchools.find(s => s.name === schoolName);
+    
+    if (school) {
+      setSchoolName(school.name);
+      setCity(school.city);
+      setState(school.state);
+      setSelectedSchool(school);
+    }
+    
+    setShowSuggestions(false);
+    setSchoolSuggestions([]);
+  };
+
+  const handleManualEntry = () => {
+    setShowSuggestions(false);
+    setSchoolSuggestions([]);
+    setSelectedSchool(null);
+  };
+
   const handleContinue = () => {
-    if (schoolName.trim() && city.trim() && state.trim() && level && !hasCompletedStep) {
-      // Prevent duplicate XP rewards
-      setHasCompletedStep(true);
-      
-      // Add XP for completing the step
-      addXP(30, 'High school information completed');
-      
-      // Show XP reward animation
-      setShowXPReward(true);
-      
+    const isValid = schoolName.trim() && city.trim() && state.trim() && level;
+
+    if (isValid) {
       // Button press animation
       Animated.sequence([
         Animated.timing(bounceAnim, {
@@ -78,24 +133,24 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
           duration: 100,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        // Navigate after animation completes
+        navigation.navigate('ClubTeam', { 
+          firstName,
+          lastName,
+          sport,
+          gender,
+          position,
+          graduationYear,
+          height,
+          schoolName: schoolName.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          level,
+          jerseyNumber: jerseyNumber.trim()
+        });
+      });
     }
-  };
-
-  const handleXPAnimationComplete = () => {
-    setShowXPReward(false);
-    // Navigate after XP animation completes
-    navigation.navigate('ClubTeam', { 
-      firstName,
-      lastName,
-      gender,
-      position,
-      graduationYear,
-      schoolName: schoolName.trim(),
-      city: city.trim(),
-      state: state.trim(),
-      level
-    });
   };
 
   const handleBack = () => {
@@ -104,6 +159,7 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
+    setShowSuggestions(false);
   };
 
   const isValid = schoolName.trim() && city.trim() && state.trim() && level;
@@ -124,14 +180,6 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* XP Reward Animation */}
-        <XPRewardAnimation
-          visible={showXPReward}
-          xpAmount={30}
-          message="School spirit activated!"
-          onComplete={handleXPAnimationComplete}
-        />
-        
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
           <ScrollView 
             style={styles.scrollView}
@@ -148,13 +196,11 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
                 }
               ]}
             >
-              {/* Header Section */}
-              <View style={styles.headerSection}>
-                <Text style={styles.title}>
-                  Where do you play, {firstName}?
-                </Text>
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.title}>Home Turf</Text>
                 <Text style={styles.subtitle}>
-                  Tell us about your high school lacrosse program
+                  Every locker reps a school. Who are you suiting up for?
                 </Text>
               </View>
 
@@ -162,18 +208,72 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>School Information *</Text>
                 
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>School Name</Text>
+                {/* State Selection */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>State</Text>
                   <TextInput
                     style={styles.textInput}
-                    value={schoolName}
-                    onChangeText={setSchoolName}
-                    placeholder="Enter your high school name"
+                    value={state}
+                    onChangeText={setState}
+                    placeholder="Enter your state (e.g., CA, NY, TX)"
                     placeholderTextColor={theme.colors.textTertiary}
-                    autoCapitalize="words"
+                    autoCapitalize="characters"
+                    maxLength={2}
                     returnKeyType="next"
                   />
                 </View>
+
+                {/* School Name Input with Autocomplete */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>School Name</Text>
+                  <View style={styles.autocompleteContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      value={schoolName}
+                      onChangeText={handleSchoolNameChange}
+                      placeholder="Start typing your school name..."
+                      placeholderTextColor={theme.colors.textTertiary}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                      onFocus={() => setShowSuggestions(true)}
+                    />
+                    {showSuggestions && schoolSuggestions.length > 0 && (
+                      <View style={styles.suggestionsContainer}>
+                        {schoolSuggestions.slice(0, 5).map((suggestion, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.suggestionItem}
+                            onPress={() => handleSchoolSelect(suggestion)}
+                          >
+                            <Ionicons name="school-outline" size={16} color={theme.colors.primary} />
+                            <Text style={styles.suggestionText}>{suggestion}</Text>
+                          </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity
+                          style={styles.manualEntryItem}
+                          onPress={() => handleManualEntry()}
+                        >
+                          <Ionicons name="create-outline" size={16} color={theme.colors.textSecondary} />
+                          <Text style={styles.manualEntryText}>Enter manually</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* School Confirmation Card */}
+                {selectedSchool && (
+                  <View style={styles.confirmationCard}>
+                    <View style={styles.confirmationHeader}>
+                      <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+                      <Text style={styles.confirmationTitle}>School Found!</Text>
+                    </View>
+                    <View style={styles.confirmationDetails}>
+                      <Text style={styles.confirmationSchool}>{selectedSchool.name}</Text>
+                      <Text style={styles.confirmationLocation}>{selectedSchool.city}, {selectedSchool.state}</Text>
+                    </View>
+                  </View>
+                )}
 
                 <View style={styles.inputRow}>
                   <View style={[styles.inputContainer, { flex: 2 }]}>
@@ -206,33 +306,46 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
               </View>
 
               {/* Team Level Selection */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Team Level *</Text>
-                <View style={styles.levelGrid}>
-                  {(['Varsity', 'JV', 'Freshman'] as const).map((teamLevel) => (
+              <View style={styles.inputSection}>
+                <Text style={styles.inputLabel}>Team Level</Text>
+                <View style={styles.levelContainer}>
+                  {(['Varsity', 'JV', 'Freshman'] as const).map((levelOption) => (
                     <TouchableOpacity
-                      key={teamLevel}
+                      key={levelOption}
                       style={[
-                        styles.levelCard,
-                        level === teamLevel && styles.levelCardSelected
+                        styles.levelButton,
+                        level === levelOption && styles.selectedLevelButton
                       ]}
-                      onPress={() => handleLevelSelect(teamLevel)}
-                      activeOpacity={0.8}
+                      onPress={() => handleLevelSelect(levelOption)}
+                      activeOpacity={0.7}
                     >
                       <Text style={[
-                        styles.levelText,
-                        level === teamLevel && styles.levelTextSelected
+                        styles.levelButtonText,
+                        level === levelOption && styles.selectedLevelButtonText
                       ]}>
-                        {teamLevel}
+                        {levelOption}
                       </Text>
-                      {level === teamLevel && (
-                        <View style={styles.levelCheckmark}>
-                          <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
-                        </View>
-                      )}
                     </TouchableOpacity>
                   ))}
                 </View>
+              </View>
+
+              {/* Jersey Number (Optional) */}
+              <View style={styles.inputSection}>
+                <View style={styles.jerseyHeader}>
+                  <Ionicons name="shirt-outline" size={20} color={theme.colors.primary} />
+                  <Text style={styles.inputLabel}>Jersey Number (Optional)</Text>
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={jerseyNumber}
+                  onChangeText={setJerseyNumber}
+                  placeholder="Enter your jersey number"
+                  placeholderTextColor={theme.colors.textTertiary}
+                  keyboardType="numeric"
+                  maxLength={3}
+                  returnKeyType="done"
+                />
               </View>
 
               {/* Continue Button */}
@@ -241,29 +354,29 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
                   <TouchableOpacity
                     style={[styles.continueButton, !isValid && styles.disabledButton]}
                     onPress={handleContinue}
-                    disabled={!isValid || hasCompletedStep}
+                    disabled={!isValid}
                     activeOpacity={0.8}
                   >
                     <LinearGradient
-                      colors={isValid && !hasCompletedStep ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
+                      colors={isValid ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
                       start={[0, 0]}
                       end={[1, 1]}
                       style={styles.buttonGradient}
                     >
-                      <Text style={[styles.buttonText, (!isValid || hasCompletedStep) && styles.disabledButtonText]}>
+                      <Text style={[styles.buttonText, !isValid && styles.disabledButtonText]}>
                         Continue
                       </Text>
                       <Ionicons 
                         name="arrow-forward" 
                         size={20} 
-                        color={isValid && !hasCompletedStep ? theme.colors.white : theme.colors.textTertiary} 
+                        color={isValid ? theme.colors.white : theme.colors.textTertiary} 
                       />
                     </LinearGradient>
                   </TouchableOpacity>
                 </Animated.View>
                 
                 <Text style={styles.helperText}>
-                  🏫 Adding your school to your profile
+                  🏠 Claiming your home turf in the locker
                 </Text>
               </View>
             </Animated.View>
@@ -296,10 +409,11 @@ const styles = StyleSheet.create({
     minHeight: 600,
   },
   // Header Section
-  headerSection: {
+  header: {
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,
@@ -326,6 +440,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   // Input Styles
+  inputSection: {
+    marginBottom: 16,
+  },
   inputContainer: {
     marginBottom: 16,
   },
@@ -353,6 +470,124 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
+  },
+  // Level Selection
+  levelContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  levelButton: {
+    flex: 1,
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral200,
+    alignItems: 'center',
+  },
+  selectedLevelButton: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '10',
+  },
+  levelButtonText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textPrimary,
+  },
+  selectedLevelButtonText: {
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.jakarta.semiBold,
+  },
+  // Jersey Number
+  jerseyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  // Autocomplete Styles
+  autocompleteContainer: {
+    position: 'relative',
+    zIndex: 1000,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.neutral200,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    maxHeight: 200,
+    zIndex: 1001,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.neutral100,
+    gap: 8,
+  },
+  suggestionText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  manualEntryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral200,
+  },
+  manualEntryText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  // School Confirmation Card
+  confirmationCard: {
+    backgroundColor: theme.colors.success + '10',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.success + '30',
+    marginBottom: 16,
+  },
+  confirmationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  confirmationTitle: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.success,
+  },
+  confirmationDetails: {
+    paddingLeft: 28,
+  },
+  confirmationSchool: {
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  confirmationLocation: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
   },
   // Level Grid
   levelGrid: {

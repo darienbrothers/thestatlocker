@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState } from 'react-native';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
@@ -15,11 +14,13 @@ import NameCollectionScreen from './src/screens/NameCollectionScreen';
 import BasicInfoScreen from './src/screens/BasicInfoScreen';
 import HighSchoolScreen from './src/screens/HighSchoolScreen';
 import ClubTeamScreen from './src/screens/ClubTeamScreen';
+import AcademicScreen from './src/screens/AcademicScreen';
 import GoalsScreen from './src/screens/GoalsScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
 import OnboardingExtendedScreen from './src/screens/OnboardingExtendedScreen';
+import PaywallScreen from './src/screens/PaywallScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
-import { useAuthStore } from './src/stores/authStore';
+import { useAuthStore } from './src/shared/stores/authStore';
 import { RootStackParamList } from './src/types';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -86,7 +87,7 @@ export default function App() {
     if (!isAuthenticated) {
       return 'Welcome';
     }
-    if (!user?.onboarding_completed) {
+    if (!user?.hasCompletedOnboarding) {
       return 'NameCollection';
     }
     return 'MainTabs';
@@ -123,8 +124,10 @@ export default function App() {
             <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
             <Stack.Screen name="HighSchool" component={HighSchoolScreen} />
             <Stack.Screen name="ClubTeam" component={ClubTeamScreen} />
+            <Stack.Screen name="Academic" component={AcademicScreen} />
             <Stack.Screen name="Goals" component={GoalsScreen} />
             <Stack.Screen name="Review" component={ReviewScreen} />
+            <Stack.Screen name="Paywall" component={PaywallScreen} />
             <Stack.Screen name="Onboarding" component={OnboardingExtendedScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
           </Stack.Navigator>

@@ -9,7 +9,7 @@ import {
   OAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/config/firebase';
+import { auth, db } from '../../config/firebase';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 export interface User {
@@ -81,6 +81,8 @@ interface AuthState {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   error: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   
   // Actions
   signUp: (email: string, password: string, userData?: Partial<User>) => Promise<void>;
@@ -91,6 +93,8 @@ interface AuthState {
   fetchUser: (uid: string) => Promise<void>;
   clearError: () => void;
   initializeAuth: () => void;
+  initialize: () => void;
+  createUserWithOnboardingData: (onboardingData: any) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -98,6 +102,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   firebaseUser: null,
   loading: false,
   error: null,
+  isAuthenticated: false,
+  isLoading: false,
 
   signUp: async (email: string, password: string, userData = {}) => {
     set({ loading: true, error: null });
@@ -264,19 +270,110 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initializeAuth: () => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      set({ isLoading: true });
       if (firebaseUser) {
         try {
           await get().fetchUser(firebaseUser.uid);
-          set({ firebaseUser });
+          set({ firebaseUser, isAuthenticated: true, isLoading: false });
         } catch (error) {
           console.error('Error fetching user data:', error);
-          set({ firebaseUser, user: null });
+          set({ firebaseUser, user: null, isAuthenticated: true, isLoading: false });
         }
       } else {
-        set({ firebaseUser: null, user: null });
+        set({ firebaseUser: null, user: null, isAuthenticated: false, isLoading: false });
       }
     });
 
     return unsubscribe;
+  },
+
+  initialize: () => {
+    return get().initializeAuth();
+  },
+
+  createUserWithOnboardingData: async (onboardingData: any) => {
+    set({ loading: true, error: null });
+    try {
+      const { email, password, ...userData } = onboardingData;
+      
+      // Create Firebase user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Create complete user document with onboarding data
+      const newUser: User = {
+        id: firebaseUser.uid,
+        uid: firebaseUser.uid,
+        email: firebaseUser.email!,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        position: userData.position,
+        graduationYear: userData.graduationYear,
+        
+        // High School Info
+        highSchool: {
+          name: userData.schoolName,
+          city: userData.city,
+          state: userData.state,
+          coach: null,
+          coachEmail: null,
+          jerseyNumber: null,
+        },
+        
+        // Club Info (if enabled)
+        club: userData.clubEnabled ? {
+          name: userData.clubOrgName || null,
+          city: userData.clubCity || null,
+          state: userData.clubState || null,
+          coach: null,
+          coachEmail: null,
+          jerseyNumber: null,
+        } : {
+          name: null,
+          city: null,
+          state: null,
+          coach: null,
+          coachEmail: null,
+          jerseyNumber: null,
+        },
+        
+        // Goals and onboarding completion
+        goals: userData.goals,
+        strengths: userData.strengths,
+        weaknesses: userData.growthAreas,
+        hasCompletedOnboarding: true,
+        onboardingType: 'extended',
+        
+        // Profile completion tracking
+        profileCompletion: {
+          basicInfo: true,
+          schoolInfo: true,
+          clubInfo: userData.clubEnabled || false,
+          goals: true,
+          strengths: true,
+        },
+        
+        // Timestamps
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      
+      // Save to Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+      
+      // Update store state
+      set({ 
+        user: newUser, 
+        firebaseUser, 
+        isAuthenticated: true,
+        loading: false 
+      });
+      
+      console.log('User created successfully with onboarding data:', newUser);
+    } catch (error: any) {
+      console.error('Error creating user with onboarding data:', error);
+      set({ error: error.message, loading: false });
+      throw error;
+    }
   },
 }));

@@ -4,8 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@shared/theme';
 import { OnboardingStepper } from '../components/gamification';
-import { XPRewardAnimation } from '../components/gamification/XPRewardAnimation';
-import { useGamificationStore } from '../stores/gamificationStore';
 
 interface ClubTeamScreenProps {
   navigation: any;
@@ -13,9 +11,11 @@ interface ClubTeamScreenProps {
     params?: { 
       firstName?: string; 
       lastName?: string; 
+      sport?: string;
       gender?: 'boys' | 'girls'; 
       position?: string; 
       graduationYear?: number;
+      height?: string;
       schoolName?: string;
       city?: string;
       state?: string;
@@ -25,15 +25,13 @@ interface ClubTeamScreenProps {
 }
 
 export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProps) {
-  const { firstName, lastName, gender, position, graduationYear, schoolName, city, state, level } = route.params || {};
+  const { firstName, lastName, sport, gender, position, graduationYear, height, schoolName, city, state, level } = route.params || {};
   const [clubEnabled, setClubEnabled] = useState<boolean | null>(null);
   const [clubOrgName, setClubOrgName] = useState('');
   const [clubTeamName, setClubTeamName] = useState('');
   const [clubCity, setClubCity] = useState('');
   const [clubState, setClubState] = useState('');
-  const [showXPReward, setShowXPReward] = useState(false);
-  const [hasCompletedStep, setHasCompletedStep] = useState(false);
-  const { totalXP, addXP } = useGamificationStore();
+  const [clubJerseyNumber, setClubJerseyNumber] = useState('');
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -70,7 +68,7 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
     }
   }, [clubEnabled]);
 
-  const handleClubSelection = (enabled: boolean) => {
+  const handleClubToggle = (enabled: boolean) => {
     setClubEnabled(enabled);
     if (!enabled) {
       // Clear club fields if disabled
@@ -82,57 +80,39 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
   };
 
   const handleContinue = () => {
-    const isValid = clubEnabled !== null && (
-      clubEnabled === false || 
-      (clubOrgName.trim() && clubTeamName.trim() && clubCity.trim() && clubState.trim())
-    );
-
-    if (isValid && !hasCompletedStep) {
-      // Prevent duplicate XP rewards
-      setHasCompletedStep(true);
-      
-      // Add XP for completing the step
-      const xpAmount = clubEnabled ? 40 : 25; // More XP if they filled out club info
-      const message = clubEnabled ? 'Club lacrosse player!' : 'High school focus!';
-      addXP(xpAmount, 'Club team information completed');
-      
-      // Show XP reward animation
-      setShowXPReward(true);
-      
-      // Button press animation
-      Animated.sequence([
-        Animated.timing(bounceAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bounceAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  };
-
-  const handleXPAnimationComplete = () => {
-    setShowXPReward(false);
-    // Navigate after XP animation completes
-    navigation.navigate('Goals', { 
-      firstName,
-      lastName,
-      gender,
-      position,
-      graduationYear,
-      schoolName,
-      city,
-      state,
-      level,
-      clubEnabled,
-      clubOrgName: clubEnabled ? clubOrgName.trim() : undefined,
-      clubTeamName: clubEnabled ? clubTeamName.trim() : undefined,
-      clubCity: clubEnabled ? clubCity.trim() : undefined,
-      clubState: clubEnabled ? clubState.trim() : undefined,
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(bounceAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Navigate after animation completes
+      navigation.navigate('Academic', { 
+        firstName,
+        lastName,
+        sport,
+        gender,
+        position,
+        graduationYear,
+        height,
+        schoolName,
+        city,
+        state,
+        level,
+        clubEnabled,
+        clubOrgName: clubEnabled ? clubOrgName : '',
+        clubTeamName: clubEnabled ? clubTeamName : '',
+        clubCity: clubEnabled ? clubCity : '',
+        clubState: clubEnabled ? clubState : '',
+        clubJerseyNumber: clubEnabled ? clubJerseyNumber.trim() : ''
+      });
     });
   };
 
@@ -144,13 +124,6 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
     Keyboard.dismiss();
   };
 
-  const isValid = clubEnabled !== null && (
-    clubEnabled === false || 
-    (clubOrgName.trim() && clubTeamName.trim() && clubCity.trim() && clubState.trim())
-  );
-
-  const xpAmount = clubEnabled ? 40 : 25;
-  const xpMessage = clubEnabled ? 'Club lacrosse player!' : 'High school focus!';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,7 +131,7 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
       <OnboardingStepper 
         currentStep={4}
         totalSteps={8}
-        stepTitle="Club Team"
+        stepTitle="Club Colors"
         showBackButton={true}
         onBackPress={handleBack}
       />
@@ -168,14 +141,6 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* XP Reward Animation */}
-        <XPRewardAnimation
-          visible={showXPReward}
-          xpAmount={xpAmount}
-          message={xpMessage}
-          onComplete={handleXPAnimationComplete}
-        />
-        
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
           <ScrollView 
             style={styles.scrollView}
@@ -192,81 +157,59 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
                 }
               ]}
             >
-              {/* Header Section */}
+              {/* Header */}
               <View style={styles.headerSection}>
-                <Text style={styles.title}>
-                  Do you play club lacrosse, {firstName}?
-                </Text>
+                <Text style={styles.title}>Club Colors</Text>
                 <Text style={styles.subtitle}>
-                  Many players compete for both their school and a club team
+                  Your locker isn't complete without your club team. Who do you rep outside of school?
                 </Text>
               </View>
 
-              {/* Club Team Selection */}
+              {/* Club Participation Toggle */}
               <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Club Team Participation *</Text>
-                <View style={styles.optionsContainer}>
+                <Text style={styles.sectionTitle}>Club Participation</Text>
+                <View style={styles.toggleContainer}>
                   <TouchableOpacity
                     style={[
-                      styles.optionCard,
-                      clubEnabled === true && styles.optionCardSelected
+                      styles.toggleOption,
+                      clubEnabled === true && styles.selectedToggleOption
                     ]}
-                    onPress={() => handleClubSelection(true)}
-                    activeOpacity={0.8}
+                    onPress={() => handleClubToggle(true)}
+                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionContent}>
-                      <Text style={styles.optionEmoji}>🏆</Text>
-                      <View style={styles.optionTextContainer}>
-                        <Text style={[
-                          styles.optionText,
-                          clubEnabled === true && styles.optionTextSelected
-                        ]}>
-                          Yes, I play club lacrosse
-                        </Text>
-                        <Text style={[
-                          styles.optionSubtext,
-                          clubEnabled === true && styles.optionSubtextSelected
-                        ]}>
-                          Travel team, tournaments, showcases
-                        </Text>
-                      </View>
-                      {clubEnabled === true && (
-                        <View style={styles.checkmark}>
-                          <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-                        </View>
-                      )}
+                    <View style={styles.toggleContent}>
+                      <Ionicons name="trophy" size={20} color={clubEnabled === true ? theme.colors.white : theme.colors.primary} />
+                      <Text style={[
+                        styles.toggleText,
+                        clubEnabled === true && styles.selectedToggleText
+                      ]}>
+                        Yes, I play club ball
+                      </Text>
                     </View>
+                    <Text style={[
+                      styles.toggleSubtext,
+                      clubEnabled === true && styles.selectedToggleSubtext
+                    ]}>
+                      Tournaments, showcases, travel team
+                    </Text>
                   </TouchableOpacity>
-
+                  
                   <TouchableOpacity
                     style={[
-                      styles.optionCard,
-                      clubEnabled === false && styles.optionCardSelected
+                      styles.toggleOption,
+                      clubEnabled === false && styles.selectedToggleOption
                     ]}
-                    onPress={() => handleClubSelection(false)}
-                    activeOpacity={0.8}
+                    onPress={() => handleClubToggle(false)}
+                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionContent}>
-                      <Text style={styles.optionEmoji}>🏫</Text>
-                      <View style={styles.optionTextContainer}>
-                        <Text style={[
-                          styles.optionText,
-                          clubEnabled === false && styles.optionTextSelected
-                        ]}>
-                          No, just high school
-                        </Text>
-                        <Text style={[
-                          styles.optionSubtext,
-                          clubEnabled === false && styles.optionSubtextSelected
-                        ]}>
-                          Focused on school team only
-                        </Text>
-                      </View>
-                      {clubEnabled === false && (
-                        <View style={styles.checkmark}>
-                          <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-                        </View>
-                      )}
+                    <View style={styles.toggleContent}>
+                      <Ionicons name="school" size={20} color={clubEnabled === false ? theme.colors.white : theme.colors.textSecondary} />
+                      <Text style={[
+                        styles.toggleText,
+                        clubEnabled === false && styles.selectedToggleText
+                      ]}>
+                        No, just high school for now
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -288,7 +231,7 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
                       style={styles.textInput}
                       value={clubOrgName}
                       onChangeText={setClubOrgName}
-                      placeholder="e.g., Elite Lacrosse Club, Hawks LC"
+                      placeholder="e.g., Hawks LC, 3d Lacrosse, Elite LC"
                       placeholderTextColor={theme.colors.textTertiary}
                       autoCapitalize="words"
                       returnKeyType="next"
@@ -336,6 +279,24 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
                       />
                     </View>
                   </View>
+
+                  {/* Club Jersey Number */}
+                  <View style={styles.inputContainer}>
+                    <View style={styles.jerseyHeader}>
+                      <Ionicons name="shirt-outline" size={20} color={theme.colors.primary} />
+                      <Text style={styles.inputLabel}>Jersey Number (Optional)</Text>
+                    </View>
+                    <TextInput
+                      style={styles.textInput}
+                      value={clubJerseyNumber}
+                      onChangeText={setClubJerseyNumber}
+                      placeholder="What number do you rep for your club?"
+                      placeholderTextColor={theme.colors.textTertiary}
+                      keyboardType="numeric"
+                      maxLength={3}
+                      returnKeyType="done"
+                    />
+                  </View>
                 </Animated.View>
               )}
 
@@ -343,31 +304,31 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
               <View style={styles.buttonSection}>
                 <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
                   <TouchableOpacity
-                    style={[styles.continueButton, !isValid && styles.disabledButton]}
+                    style={[styles.continueButton]}
                     onPress={handleContinue}
-                    disabled={!isValid || hasCompletedStep}
+                    disabled={false}
                     activeOpacity={0.8}
                   >
                     <LinearGradient
-                      colors={isValid && !hasCompletedStep ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
+                      colors={[theme.colors.primary, theme.colors.primary + 'DD']}
                       start={[0, 0]}
                       end={[1, 1]}
                       style={styles.buttonGradient}
                     >
-                      <Text style={[styles.buttonText, (!isValid || hasCompletedStep) && styles.disabledButtonText]}>
-                        Continue
+                      <Text style={styles.buttonText}>
+                        {clubEnabled === true ? 'Add My Club Colors' : clubEnabled === false ? 'Lock In My School' : 'Continue'}
                       </Text>
                       <Ionicons 
                         name="arrow-forward" 
                         size={20} 
-                        color={isValid && !hasCompletedStep ? theme.colors.white : theme.colors.textTertiary} 
+                        color={theme.colors.white} 
                       />
                     </LinearGradient>
                   </TouchableOpacity>
                 </Animated.View>
                 
                 <Text style={styles.helperText}>
-                  🥍 {clubEnabled === true ? 'Adding club team to your profile' : clubEnabled === false ? 'Focusing on high school lacrosse' : 'Choose your lacrosse path'}
+                  {clubEnabled === true ? '🎽 Repping your club colors in the locker' : clubEnabled === false ? '🏫 High school pride locked in' : '🥍 Choose your lacrosse path'}
                 </Text>
               </View>
             </Animated.View>
@@ -552,5 +513,57 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textTertiary,
     textAlign: 'center',
+  },
+  // Toggle Styles
+  toggleContainer: {
+    gap: 12,
+  },
+  toggleOption: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral200,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  selectedToggleOption: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.25,
+  },
+  toggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  toggleText: {
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.textPrimary,
+    marginLeft: 12,
+    flex: 1,
+  },
+  selectedToggleText: {
+    color: theme.colors.white,
+  },
+  toggleSubtext: {
+    fontSize: 13,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textTertiary,
+    lineHeight: 18,
+  },
+  selectedToggleSubtext: {
+    color: theme.colors.white + 'CC',
+  },
+  // Jersey Header
+  jerseyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
 });

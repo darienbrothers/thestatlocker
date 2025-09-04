@@ -16,11 +16,12 @@ interface DrawerMenuProps {
   visible: boolean;
   onClose: () => void;
   onNavigate: (screen: string) => void;
+  onSignOut?: () => void;
 }
 
 const { width } = Dimensions.get('window');
 
-const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate }) => {
+const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate, onSignOut }) => {
   const menuItems = [
     { id: 'ai-insights', title: 'AI Insights', icon: 'sparkles', description: 'Get personalized insights' },
     { id: 'skills', title: 'Skills', icon: 'fitness', description: 'Track your development' },
@@ -85,6 +86,30 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate })
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Sign Out Button */}
+            {onSignOut && (
+              <TouchableOpacity
+                style={styles.signOutButton}
+                onPress={() => {
+                  onSignOut();
+                  onClose();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.signOutIconContainer}>
+                  <Ionicons 
+                    name="log-out-outline" 
+                    size={24} 
+                    color={theme.colors.error} 
+                  />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.signOutTitle}>Sign Out</Text>
+                  <Text style={styles.menuDescription}>Return to welcome screen</Text>
+                </View>
+              </TouchableOpacity>
+            )}
 
             {/* Footer */}
             <View style={styles.footer}>
@@ -179,6 +204,30 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral200,
+    marginTop: 'auto',
+  },
+  signOutIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  signOutTitle: {
+    fontSize: theme.fontSizes.base,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.error,
+    marginBottom: 2,
   },
 });
 
