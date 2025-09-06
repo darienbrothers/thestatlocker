@@ -9,7 +9,7 @@ import {
   OAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../../config/firebase';
+import { auth, db } from '@/config/firebase';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 export interface User {
@@ -22,6 +22,14 @@ export interface User {
   graduationYear?: number | null;
   profilePicture?: string | null;
   photoURL?: string | null; // Firebase photoURL
+  
+  // Onboarding data
+  sport?: string | null;
+  height?: string | null;
+  gender?: string | null;
+  gpa?: string | null;
+  level?: string | null;
+  jerseyNumber?: string | null;
   
   // High School Info
   highSchool?: {
@@ -216,7 +224,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await signOut(auth);
-      set({ user: null, firebaseUser: null, loading: false });
+      set({ 
+        user: null, 
+        firebaseUser: null, 
+        isAuthenticated: false,
+        loading: false 
+      });
     } catch (error: any) {
       set({ error: error.message, loading: false });
       throw error;
@@ -296,9 +309,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { email, password, ...userData } = onboardingData;
       
-      // Create Firebase user
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Check if user already exists
+      let firebaseUser;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        firebaseUser = userCredential.user;
+      } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+          // Sign in existing user instead
+          const signInCredential = await signInWithEmailAndPassword(auth, email, password);
+          firebaseUser = signInCredential.user;
+          
+          // Check if user document exists
+          const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (existingUserDoc.exists()) {
+            const existingUser = existingUserDoc.data() as User;
+            set({ 
+              user: existingUser, 
+              firebaseUser, 
+              isAuthenticated: true,
+              loading: false 
+            });
+            return;
+          }
+        } else {
+          throw error;
+        }
+      }
       
       // Create complete user document with onboarding data
       const newUser: User = {
@@ -307,17 +344,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: firebaseUser.email!,
         firstName: userData.firstName,
         lastName: userData.lastName,
+        profilePicture: userData.profileImage,
+        photoURL: userData.profileImage,
         position: userData.position,
         graduationYear: userData.graduationYear,
+        sport: userData.sport || 'lacrosse',
+        height: userData.height,
+        gender: userData.gender,
+        gpa: userData.gpa,
+        level: userData.level,
+        jerseyNumber: userData.jerseyNumber,
         
         // High School Info
         highSchool: {
-          name: userData.schoolName,
-          city: userData.city,
-          state: userData.state,
+          name: userData.schoolName || null,
+          city: userData.city || null,
+          state: userData.state || null,
           coach: null,
           coachEmail: null,
-          jerseyNumber: null,
+          jerseyNumber: userData.jerseyNumber || null,
         },
         
         // Club Info (if enabled)
@@ -337,10 +382,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           jerseyNumber: null,
         },
         
-        // Goals and onboarding completion
-        goals: userData.goals,
-        strengths: userData.strengths,
-        weaknesses: userData.growthAreas,
+        // Goals and onboarding completion  
+        goals: Array.isArray(userData.goals) ? userData.goals : [],
+        strengths: Array.isArray(userData.strengths) ? userData.strengths : [],
+        weaknesses: Array.isArray(userData.growthAreas) ? userData.growthAreas : [],
         hasCompletedOnboarding: true,
         onboardingType: 'extended',
         
@@ -350,7 +395,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           schoolInfo: true,
           clubInfo: userData.clubEnabled || false,
           goals: true,
-          strengths: true,
+          strengths: false,
         },
         
         // Timestamps
@@ -368,6 +413,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         loading: false 
       });
+      
+      // Force a refresh of user data to ensure it's properly loaded
+      await get().fetchUser(firebaseUser.uid);
       
       console.log('User created successfully with onboarding data:', newUser);
     } catch (error: any) {

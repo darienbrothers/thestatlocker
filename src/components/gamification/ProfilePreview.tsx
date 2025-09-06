@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
-import { User } from '../../stores/authStore';
+import { User } from '@/shared/stores/authStore';
 import XPStrip from './XPStrip';
 
 interface ProfilePreviewProps {
@@ -23,9 +23,7 @@ export default function ProfilePreview({ user, currentXP, isSticky = false }: Pr
       user.position,
       user.graduationYear,
       user.highSchool?.name,
-      user.strengths?.length,
-      user.growth?.length,
-      user.training_days_per_week,
+      user.goals && Array.isArray(user.goals) && user.goals.length > 0 ? 1 : 0,
     ];
     const completed = fields.filter(field => field && field !== 0).length;
     return Math.round((completed / fields.length) * 100);
@@ -40,7 +38,7 @@ export default function ProfilePreview({ user, currentXP, isSticky = false }: Pr
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
-                {getInitials(user.firstName, user.lastName)}
+                {getInitials(user.firstName || undefined, user.lastName || undefined)}
               </Text>
             </View>
           )}

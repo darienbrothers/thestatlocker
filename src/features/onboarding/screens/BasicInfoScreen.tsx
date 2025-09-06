@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@shared/theme';
-import { OnboardingStepper } from '../components/gamification';
+import { theme } from '@/constants/theme';
+import { OnboardingStepper } from '@/components/gamification';
 
 interface BasicInfoScreenProps {
   navigation: any;
-  route: { params?: { firstName?: string; lastName?: string } };
+  route: { params?: { firstName?: string; lastName?: string; profileImage?: string | null } };
 }
 
 const BOYS_POSITIONS = [
@@ -31,7 +31,7 @@ const GRADUATION_YEARS = [
 ];
 
 export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenProps) {
-  const { firstName, lastName } = route.params || {};
+  const { firstName, lastName, profileImage } = route.params || {};
   const [sport, setSport] = useState<string>('');
   const [gender, setGender] = useState<'boys' | 'girls' | ''>('');
   const [position, setPosition] = useState<string>('');
@@ -134,6 +134,7 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
         navigation.navigate('HighSchool', { 
           firstName,
           lastName,
+          profileImage,
           sport,
           gender,
           position,
@@ -159,7 +160,7 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
     <SafeAreaView style={styles.container}>
       {/* Stepper with Back Button */}
       <OnboardingStepper 
-        currentStep={2}
+        currentStep={3}
         totalSteps={8}
         stepTitle="Basic Information"
         showBackButton={true}

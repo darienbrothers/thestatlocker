@@ -1,10 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@shared/theme';
-
-const { width } = Dimensions.get('window');
 
 interface OnboardingStepperProps {
   currentStep: number;
@@ -57,7 +54,15 @@ export function OnboardingStepper({
                   index < currentStep && styles.progressDotCompleted,
                   index === currentStep - 1 && styles.progressDotCurrent,
                 ]}
-              />
+              >
+                {index < currentStep - 1 && (
+                  <Ionicons 
+                    name="checkmark" 
+                    size={12} 
+                    color={theme.colors.white} 
+                  />
+                )}
+              </View>
             ))}
           </View>
         </View>

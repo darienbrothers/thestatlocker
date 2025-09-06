@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@shared/theme';
-import { OnboardingStepper } from '../components/gamification';
+import { theme } from '@/constants/theme';
+import { OnboardingStepper } from '@/components/gamification';
 
 interface ClubTeamScreenProps {
   navigation: any;
@@ -11,6 +11,7 @@ interface ClubTeamScreenProps {
     params?: { 
       firstName?: string; 
       lastName?: string; 
+      profileImage?: string | null;
       sport?: string;
       gender?: 'boys' | 'girls'; 
       position?: string; 
@@ -25,7 +26,7 @@ interface ClubTeamScreenProps {
 }
 
 export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProps) {
-  const { firstName, lastName, sport, gender, position, graduationYear, height, schoolName, city, state, level } = route.params || {};
+  const { firstName, lastName, profileImage, sport, gender, position, graduationYear, height, schoolName, city, state, level } = route.params || {};
   const [clubEnabled, setClubEnabled] = useState<boolean | null>(null);
   const [clubOrgName, setClubOrgName] = useState('');
   const [clubTeamName, setClubTeamName] = useState('');
@@ -97,6 +98,7 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
       navigation.navigate('Academic', { 
         firstName,
         lastName,
+        profileImage,
         sport,
         gender,
         position,
@@ -129,7 +131,7 @@ export default function ClubTeamScreen({ navigation, route }: ClubTeamScreenProp
     <SafeAreaView style={styles.container}>
       {/* Stepper with Back Button */}
       <OnboardingStepper 
-        currentStep={4}
+        currentStep={5}
         totalSteps={8}
         stepTitle="Club Colors"
         showBackButton={true}

@@ -1,31 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
+  SafeAreaView,
   Image,
   Alert,
-  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-
-import { tokens, colors, fonts, fontSizes } from '@/constants/theme';
+import { useNavigation } from '@react-navigation/native';
+import { colors, fontSizes, fonts, tokens, borderRadius } from '@shared/theme';
 import { useAuthStore } from '@shared/stores/authStore';
 import { useGameStore } from '@shared/stores/gameStore';
 import LogGameModal from '@shared/components/LogGameModal';
 import DrawerMenu from '@shared/components/DrawerMenu';
 
 const LockerHomeScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { user } = useAuthStore();
   const { games, initializeChecklists, fetchUserGames } = useGameStore();
 
   const [showLogGameModal, setShowLogGameModal] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<'school' | 'club'>('school');
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(user?.photoURL || user?.profilePicture || null);
   const [showDrawerMenu, setShowDrawerMenu] = useState(false);
 
   useEffect(() => {
@@ -148,7 +149,7 @@ const LockerHomeScreen: React.FC = () => {
             }
             
             let result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              mediaTypes: ['images'],
               allowsEditing: true,
               aspect: [1, 1],
               quality: 0.8,
@@ -170,7 +171,7 @@ const LockerHomeScreen: React.FC = () => {
             }
             
             let result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              mediaTypes: ['images'],
               allowsEditing: true,
               aspect: [1, 1],
               quality: 0.8,
@@ -198,10 +199,18 @@ const LockerHomeScreen: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await useAuthStore.getState().signOut();
-      // Navigation will be handled automatically by auth state change
+      console.log('LockerHomeScreen - Starting sign out process');
+      const { signOut } = useAuthStore.getState();
+      await signOut();
+      console.log('LockerHomeScreen - Sign out successful');
+      
+      // Navigate to Welcome screen after successful sign out
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Welcome' as never }],
+      });
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('LockerHomeScreen - Sign out error:', error);
       Alert.alert('Error', 'Failed to sign out. Please try again.');
     }
   };
@@ -239,17 +248,17 @@ const LockerHomeScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.topNavBar}>
         <TouchableOpacity style={styles.hamburgerMenu} onPress={() => setShowDrawerMenu(true)}>
-          <Ionicons name="menu" size={24} color={colors.text} />
+          <Ionicons name="menu" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
           <Text style={styles.tabTitle}>Home</Text>
         </View>
         <View style={styles.rightIcons}>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="calendar-outline" size={24} color={colors.text} />
+            <Ionicons name="calendar-outline" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={24} color={colors.text} />
+            <Ionicons name="notifications-outline" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -268,10 +277,10 @@ const LockerHomeScreen: React.FC = () => {
         <View style={styles.playerCard}>
           <View style={styles.playerHeader}>
             <TouchableOpacity style={styles.profilePictureContainer} onPress={pickImage}>
-              {image ? (
+              {(image || user?.photoURL || user?.profilePicture) ? (
                 <Image 
-                  source={{ uri: image }} 
-                  style={styles.profilePicture}
+                  source={{ uri: (image || user?.photoURL || user?.profilePicture)! }} 
+                  style={styles.profilePicture as any}
                 />
               ) : (
                 <View style={styles.profilePicturePlaceholder}>
@@ -287,21 +296,21 @@ const LockerHomeScreen: React.FC = () => {
                    user?.email ? user.email.split('@')[0] : "Player Name"}
                 </Text>
                 <View style={styles.sportBadge}>
-                  <Text style={styles.sportBadgeText}>Lacrosse</Text>
+                  <Text style={styles.sportBadgeText}>{user?.sport || 'Lacrosse'}</Text>
                 </View>
               </View>
               <Text style={styles.playerDetails}>
-                {user?.graduationYear || '2027'} • {user?.position || 'Position'}
+                {user?.graduationYear ? `Class of ${user.graduationYear}` : 'Class of 2027'} • {user?.position || 'Position'}
               </Text>
               
               {/* Stats Row */}
               <View style={styles.playerStatsRow}>
                 <View style={styles.playerStatItem}>
-                  <Text style={styles.playerStatValue}>{(user as any)?.height || "5' 11\""}</Text>
+                  <Text style={styles.playerStatValue}>{user?.height || "5' 11\""}</Text>
                   <Text style={styles.playerStatLabel}>HT</Text>
                 </View>
                 <View style={styles.playerStatItem}>
-                  <Text style={styles.playerStatValue}>{(user as any)?.gpa || '3.85'} / 4.00</Text>
+                  <Text style={styles.playerStatValue}>{user?.gpa || '3.85'} / 4.00</Text>
                   <Text style={styles.playerStatLabel}>GPA</Text>
                 </View>
               </View>
@@ -315,7 +324,7 @@ const LockerHomeScreen: React.FC = () => {
                       user?.club?.name || 'Club Team'
                     }
                   </Text>
-                  <Text style={styles.playerLocationLabel}>CLUB</Text>
+                  <Text style={styles.playerLocationLabel}>{selectedSeason === 'school' ? 'SCHOOL' : 'CLUB'}</Text>
                 </View>
                 <View style={styles.playerLocationItem}>
                   <Text style={styles.playerLocationValue}>
@@ -598,16 +607,16 @@ const LockerHomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.colors.background,
+    backgroundColor: colors.background,
   },
   topNavBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: tokens.spacing.s,
-    backgroundColor: tokens.colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 0.5,
-    borderBottomColor: tokens.colors.border,
+    borderBottomColor: colors.neutral200,
   },
   hamburgerMenu: {
     padding: tokens.spacing.s,
@@ -619,8 +628,8 @@ const styles = StyleSheet.create({
   },
   tabTitle: {
     fontSize: tokens.typography.h1.size,
-    fontFamily: fonts.heading,
-    color: tokens.colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
   },
   rightIcons: {
     flexDirection: 'row',
@@ -637,8 +646,8 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.m,
   },
   athleteCard: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radius.m,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     padding: tokens.spacing.m,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -669,7 +678,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: tokens.colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -678,14 +687,14 @@ const styles = StyleSheet.create({
   },
   athleteName: {
     fontSize: tokens.typography.h2.size,
-    fontFamily: fonts.heading,
-    color: tokens.colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
   athleteClass: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
     marginBottom: tokens.spacing.s,
   },
   playerTags: {
@@ -695,19 +704,19 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
-    color: tokens.colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
   },
   tagSeparator: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
     marginHorizontal: tokens.spacing.s,
   },
   // New Dashboard Styles
   playerCard: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -727,19 +736,19 @@ const styles = StyleSheet.create({
   },
   playerName: {
     fontSize: fontSizes.xl,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   playerDetails: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginTop: 2,
   },
   playerLocation: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -754,11 +763,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: tokens.spacing.s,
     paddingVertical: tokens.spacing.xs / 2,
-    borderRadius: tokens.borderRadius.sm,
+    borderRadius: borderRadius.sm,
   },
   sportBadgeText: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.white,
     fontWeight: '600',
   },
@@ -773,14 +782,14 @@ const styles = StyleSheet.create({
   },
   playerStatValue: {
     fontSize: fontSizes.lg,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
     lineHeight: 24,
   },
   playerStatLabel: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 2,
@@ -795,14 +804,14 @@ const styles = StyleSheet.create({
   },
   playerLocationValue: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '500',
     lineHeight: 20,
   },
   playerLocationLabel: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     fontWeight: '500',
     marginTop: 2,
@@ -819,9 +828,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: tokens.spacing.m,
     paddingVertical: tokens.spacing.s,
-    borderRadius: tokens.borderRadius.m,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.neutral200,
   },
   seasonButtonActive: {
     backgroundColor: colors.primary,
@@ -829,7 +838,7 @@ const styles = StyleSheet.create({
   },
   seasonButtonText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
   },
   seasonButtonTextActive: {
@@ -839,11 +848,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     paddingHorizontal: tokens.spacing.m,
     paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.borderRadius.m,
+    borderRadius: borderRadius.md,
   },
   gamesPlayedText: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.primary,
     fontWeight: '500',
   },
@@ -855,7 +864,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     width: '48%',
     minHeight: 80,
@@ -873,33 +882,33 @@ const styles = StyleSheet.create({
   },
   statPercentage: {
     fontSize: fontSizes['3xl'],
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   statValue: {
     fontSize: fontSizes.xl,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: tokens.spacing.xs,
     textAlign: 'center',
   },
   statLabel: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
   },
   statChange: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginTop: 2,
   },
   statChangePositive: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.success,
     marginTop: 2,
   },
@@ -911,7 +920,7 @@ const styles = StyleSheet.create({
   secondaryStatItem: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.m,
     alignItems: 'center',
     shadowColor: '#000',
@@ -926,28 +935,28 @@ const styles = StyleSheet.create({
   },
   secondaryStatLabel: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 2,
   },
   secondaryStatValue: {
     fontSize: fontSizes.lg,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
     textAlign: 'center',
   },
   secondaryStatSubtext: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
   },
   averagesSection: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -958,14 +967,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSizes.lg,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: tokens.spacing.xs,
   },
   sectionSubtitle: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginBottom: tokens.spacing.m,
   },
@@ -978,20 +987,20 @@ const styles = StyleSheet.create({
   },
   averageValue: {
     fontSize: fontSizes.xl,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   averageLabel: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
   },
   goalsSection: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -1011,18 +1020,18 @@ const styles = StyleSheet.create({
   },
   goalLabel: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   goalProgress: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
   },
   goalProgressBar: {
     height: 6,
-    backgroundColor: colors.border,
+    backgroundColor: colors.neutral200,
     borderRadius: 3,
     marginBottom: tokens.spacing.xs,
   },
@@ -1033,12 +1042,12 @@ const styles = StyleSheet.create({
   },
   goalSubtext: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
   },
   insightsSection: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -1068,8 +1077,8 @@ const styles = StyleSheet.create({
   },
   insightText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     lineHeight: 20,
   },
   // Locked Insight Styles
@@ -1078,9 +1087,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: tokens.spacing.m,
     backgroundColor: colors.background,
-    borderRadius: tokens.borderRadius.m,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.neutral200,
   },
   lockIcon: {
     width: 40,
@@ -1099,21 +1108,21 @@ const styles = StyleSheet.create({
   },
   lockedTitle: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: 4,
   },
   lockedSubtext: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     lineHeight: 16,
   },
   // Events Section Styles
   eventsSection: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -1127,7 +1136,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: tokens.spacing.m,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.neutral200,
   },
   eventDate: {
     width: 50,
@@ -1136,14 +1145,14 @@ const styles = StyleSheet.create({
   },
   eventMonth: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   eventDay: {
     fontSize: fontSizes.lg,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   eventDetails: {
@@ -1151,31 +1160,31 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '500',
     marginBottom: 2,
   },
   eventSubtitle: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginBottom: 2,
   },
   eventLocation: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
   },
   eventType: {
     backgroundColor: colors.primaryLight,
     paddingHorizontal: tokens.spacing.s,
     paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.borderRadius.sm,
+    borderRadius: borderRadius.sm,
   },
   eventTypeText: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.primary,
     fontWeight: '600',
   },
@@ -1189,15 +1198,15 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.m,
   },
   noEventsTitle: {
-    fontSize: fontSizes.md,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: tokens.spacing.s,
   },
   noEventsSubtext: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -1205,7 +1214,7 @@ const styles = StyleSheet.create({
   // Recent Games Section Styles
   recentGamesSection: {
     backgroundColor: colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: borderRadius.lg,
     padding: tokens.spacing.l,
     marginBottom: tokens.spacing.m,
     shadowColor: '#000',
@@ -1217,7 +1226,7 @@ const styles = StyleSheet.create({
   recentGameItem: {
     paddingVertical: tokens.spacing.m,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.neutral200,
   },
   gameHeader: {
     flexDirection: 'row',
@@ -1230,13 +1239,13 @@ const styles = StyleSheet.create({
   },
   opponentName: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   gameDate: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -1245,13 +1254,13 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   resultText: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -1271,13 +1280,13 @@ const styles = StyleSheet.create({
   },
   gameStatValue: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.heading,
-    color: colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   gameStatLabel: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -1287,13 +1296,13 @@ const styles = StyleSheet.create({
   },
   noGamesText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     marginBottom: tokens.spacing.xs,
   },
   noGamesSubtext: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
+    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
   },
   schoolInfo: {
@@ -1302,32 +1311,32 @@ const styles = StyleSheet.create({
   },
   schoolText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
   },
   toggle: {
-    backgroundColor: tokens.colors.background,
+    backgroundColor: colors.background,
     paddingHorizontal: tokens.spacing.m,
     paddingVertical: tokens.spacing.s,
-    borderRadius: tokens.radius.m,
-    borderColor: tokens.colors.border,
+    borderRadius: borderRadius.md,
+    borderColor: colors.neutral200,
     borderWidth: 1,
   },
   selectedToggle: {
-    backgroundColor: tokens.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: tokens.spacing.m,
     paddingVertical: tokens.spacing.s,
-    borderRadius: tokens.radius.m,
+    borderRadius: borderRadius.md,
   },
   toggleText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
   },
   selectedToggleText: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: tokens.colors.text,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textPrimary,
   },
   statsRow: {
     flexDirection: 'row',
@@ -1349,19 +1358,19 @@ const styles = StyleSheet.create({
   },
   getStartedTitle: {
     fontSize: tokens.typography.h2.size,
-    fontFamily: fonts.heading,
-    color: tokens.colors.text,
+    fontFamily: fonts.anton,
+    color: colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
   getStartedSubtitle: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
   },
   taskCard: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radius.m,
-    padding: tokens.spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: tokens.spacing.m,
     marginBottom: tokens.spacing.s,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1378,28 +1387,28 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: tokens.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: tokens.spacing.m,
   },
   taskEmoji: {
     fontSize: 24,
-    color: tokens.colors.text,
+    color: colors.textPrimary,
   },
   taskDetails: {
     flex: 1,
   },
   taskTitle: {
-    fontSize: fontSizes.md,
-    fontFamily: fonts.medium,
-    color: tokens.colors.text,
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
   taskDescription: {
     fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
   },
   taskProgress: {
     flexDirection: 'row',
@@ -1411,17 +1420,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 4,
     borderRadius: 2,
-    backgroundColor: tokens.colors.background,
+    backgroundColor: colors.background,
   },
   taskProgressFill: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: tokens.colors.primary,
+    backgroundColor: colors.primary,
   },
   taskStatus: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
-    color: tokens.colors.textSecondary,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
   },
   taskReward: {
     flexDirection: 'row',
@@ -1430,12 +1439,12 @@ const styles = StyleSheet.create({
   xpBadgeGradient: {
     paddingHorizontal: tokens.spacing.s,
     paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.radius.s,
+    borderRadius: borderRadius.sm,
   },
   xpBadgeText: {
     fontSize: fontSizes.xs,
-    fontFamily: fonts.medium,
-    color: tokens.colors.surface,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.surface,
   },
   fab: {
     position: 'absolute',

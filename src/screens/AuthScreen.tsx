@@ -6,28 +6,26 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
   Image,
   SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
-import { useAuthStore } from '../stores/authStore';
-import { RootStackParamList } from '../types';
-import { colors, fonts, fontSizes, spacing, borderRadius, COLORS, FONTS } from '@shared/theme';
+import { useAuthStore } from '@/shared/stores/authStore';
+import { RootStackParamList } from '@/types';
+import { colors, COLORS, FONTS } from '@shared/theme';
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
 type Mode = 'signIn' | 'signUp';
 
 export default function AuthScreen({ navigation }: { navigation: AuthScreenNavigationProp }) {
-  const { signIn, appleSignIn, resetPassword } = useAuthStore();
+  const { signIn } = useAuthStore();
   
   const [mode, setMode] = useState<Mode>('signUp');
   const [firstName, setFirstName] = useState('');
@@ -104,11 +102,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
     try {
       if (mode === 'signUp') {
         // For new users, go directly to onboarding with basic info
-        navigation.navigate('OnboardingStart', { 
-          firstName: firstName.trim(), 
-          lastName: lastName.trim(),
-          email: email.trim()
-        });
+        navigation.navigate('NameCollection');
       } else {
         // Existing users sign in normally
         await signIn(email, password);
@@ -134,8 +128,8 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
       });
       
       if (credential.identityToken) {
-        await appleSignIn(credential.identityToken, credential.authorizationCode);
-        navigation.navigate('OnboardingStart');
+        // Handle Apple sign in - for now just go to onboarding
+        navigation.navigate('NameCollection');
       } else {
         throw new Error('No identity token received');
       }
@@ -158,18 +152,14 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
     }
   };
 
-  const handlePasswordReset = async () => {
+  const handleResetPassword = async () => {
     if (!email.trim()) {
-      setErrorMsg('Enter your email to reset password');
+      setErrorMsg('Please enter your email address');
       return;
     }
     
-    try {
-      await resetPassword(email);
-      setErrorMsg('Password reset email sent!');
-    } catch (error: any) {
-      setErrorMsg(error.message);
-    }
+    // TODO: Implement password reset functionality
+    setErrorMsg('Password reset functionality not implemented yet');
   };
 
   const toggleMode = () => {
@@ -326,7 +316,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                   </Text>
                 </TouchableOpacity>
                 {mode === 'signIn' && (
-                  <TouchableOpacity onPress={handlePasswordReset}>
+                  <TouchableOpacity onPress={handleResetPassword}>
                     <Text style={styles.linkTextSecondary}>
                       Forgot Password?
                     </Text>

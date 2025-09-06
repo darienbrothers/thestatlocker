@@ -21,8 +21,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Auth with AsyncStorage persistence for React Native
 let auth: Auth;
 try {
-  // Firebase Auth automatically uses AsyncStorage in React Native when available
-  // No explicit persistence configuration needed in v9+
+  // For React Native, Firebase v9+ automatically uses AsyncStorage when available
   auth = initializeAuth(app);
 } catch (error) {
   // If already initialized, get the existing instance

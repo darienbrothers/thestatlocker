@@ -10,14 +10,16 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import CustomSplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import AuthScreen from './src/screens/AuthScreen';
-import NameCollectionScreen from './src/screens/NameCollectionScreen';
-import BasicInfoScreen from './src/screens/BasicInfoScreen';
-import HighSchoolScreen from './src/screens/HighSchoolScreen';
-import ClubTeamScreen from './src/screens/ClubTeamScreen';
-import AcademicScreen from './src/screens/AcademicScreen';
-import GoalsScreen from './src/screens/GoalsScreen';
-import ReviewScreen from './src/screens/ReviewScreen';
-import OnboardingExtendedScreen from './src/screens/OnboardingExtendedScreen';
+import {
+  NameEntryScreen,
+  ProfileImageScreen,
+  BasicInfoScreen,
+  HighSchoolScreen,
+  ClubTeamScreen,
+  AcademicScreen,
+  GoalsScreen,
+  ReviewScreen
+} from './src/features/onboarding';
 import PaywallScreen from './src/screens/PaywallScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import { useAuthStore } from './src/shared/stores/authStore';
@@ -88,7 +90,7 @@ export default function App() {
       return 'Welcome';
     }
     if (!user?.hasCompletedOnboarding) {
-      return 'NameCollection';
+      return 'NameEntry';
     }
     return 'MainTabs';
   };
@@ -120,15 +122,15 @@ export default function App() {
           >
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Auth" component={AuthScreen} />
-            <Stack.Screen name="NameCollection" component={NameCollectionScreen} />
-            <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
-            <Stack.Screen name="HighSchool" component={HighSchoolScreen} />
-            <Stack.Screen name="ClubTeam" component={ClubTeamScreen} />
+            <Stack.Screen name="NameEntry" component={NameEntryScreen} />
+            <Stack.Screen name="ProfileImage" component={ProfileImageScreen} />
+            <Stack.Screen name="BasicInfo" component={BasicInfoScreen as any} />
+            <Stack.Screen name="HighSchool" component={HighSchoolScreen as any} />
+            <Stack.Screen name="ClubTeam" component={ClubTeamScreen as any} />
             <Stack.Screen name="Academic" component={AcademicScreen} />
             <Stack.Screen name="Goals" component={GoalsScreen} />
             <Stack.Screen name="Review" component={ReviewScreen} />
             <Stack.Screen name="Paywall" component={PaywallScreen} />
-            <Stack.Screen name="Onboarding" component={OnboardingExtendedScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
           </Stack.Navigator>
         </NavigationContainer>

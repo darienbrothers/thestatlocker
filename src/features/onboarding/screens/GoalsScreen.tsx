@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@shared/theme';
-import { OnboardingStepper } from '../components/gamification';
+import { theme } from '@/constants/theme';
+import { OnboardingStepper } from '@/components/gamification';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
+import { RootStackParamList } from '@/types';
 
 type GoalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Goals'>;
 type GoalsScreenRouteProp = RouteProp<RootStackParamList, 'Goals'>;
@@ -40,23 +40,6 @@ interface GenderPositions {
   girls: PositionGoals;
 }
 
-interface PositionStrengthsData {
-  [key: string]: string[];
-}
-
-interface GenderStrengths {
-  boys: PositionStrengthsData;
-  girls: PositionStrengthsData;
-}
-
-interface PositionGrowthAreasData {
-  [key: string]: string[];
-}
-
-interface GenderGrowthAreas {
-  boys: PositionGrowthAreasData;
-  girls: PositionGrowthAreasData;
-}
 
 // Master Goals Library - Position-specific season goals
 const SEASON_GOALS: GenderPositions = {
@@ -67,6 +50,8 @@ const SEASON_GOALS: GenderPositions = {
       { id: 'shooting_60_percent', title: 'Maintain 60%+ shooting accuracy', description: 'Make every shot count', icon: 'target', category: 'accuracy' },
       { id: 'ground_balls_3_plus', title: 'Record 3+ ground balls per game', description: 'Win the 50/50 battles', icon: 'basketball', category: 'ground_balls' },
       { id: 'limit_turnovers_2', title: 'Limit turnovers to under 2 per game', description: 'Protect possession and be smart with the ball', icon: 'shield-checkmark', category: 'turnovers' },
+      { id: 'dodge_success_70', title: 'Maintain 70%+ dodge success rate', description: 'Beat your defender consistently', icon: 'flash', category: 'accuracy' },
+      { id: 'man_up_goals_3', title: 'Score 3+ man-up goals this season', description: 'Capitalize on extra-man opportunities', icon: 'trophy', category: 'scoring' },
     ],
     Midfield: [
       { id: 'contribute_2_points', title: 'Contribute 2+ points per game', description: 'Goals + assists combined impact', icon: 'trophy', category: 'scoring' },
@@ -74,6 +59,8 @@ const SEASON_GOALS: GenderPositions = {
       { id: 'clear_80_percent', title: 'Clear ball successfully 80%+ of the time', description: 'Transition defense to offense', icon: 'arrow-forward', category: 'defense' },
       { id: 'score_assist_every_game', title: 'Score or assist in every game', description: 'Make an offensive impact consistently', icon: 'flash', category: 'scoring' },
       { id: 'cause_1_turnover', title: 'Record 1 caused turnover per game', description: 'Create extra possessions for your team', icon: 'hand-left', category: 'turnovers' },
+      { id: 'transition_goals_5', title: 'Score 5+ transition goals this season', description: 'Push the pace and score in transition', icon: 'arrow-forward', category: 'scoring' },
+      { id: 'faceoff_wins_40', title: 'Win 40%+ of face-offs taken', description: 'Help control possession at the X', icon: 'refresh', category: 'faceoffs' },
     ],
     Defense: [
       { id: 'hold_matchup_2_goals', title: 'Hold matchup to under 2 goals per game', description: 'Shut down your assignment', icon: 'shield', category: 'defense' },
@@ -81,6 +68,8 @@ const SEASON_GOALS: GenderPositions = {
       { id: 'cause_1_turnover_def', title: 'Cause at least 1 turnover per game', description: 'Force mistakes and create opportunities', icon: 'hand-left', category: 'turnovers' },
       { id: 'clear_80_percent_def', title: 'Clear successfully on 80%+ attempts', description: 'Start the transition game', icon: 'arrow-forward', category: 'defense' },
       { id: 'limit_penalties_2', title: 'Commit under 2 penalties per game', description: 'Play aggressive but smart defense', icon: 'warning', category: 'defense' },
+      { id: 'slides_help_80', title: 'Make successful slides 80%+ of the time', description: 'Provide effective help defense', icon: 'people', category: 'defense' },
+      { id: 'takeaways_2_per_game', title: 'Record 2+ takeaways per game', description: 'Strip the ball and create turnovers', icon: 'hand-left', category: 'turnovers' },
     ],
     Goalie: [
       { id: 'save_55_percent', title: 'Maintain at least 55% save percentage', description: 'Stop more than half the shots you face', icon: 'hand-right', category: 'saves' },
@@ -88,12 +77,16 @@ const SEASON_GOALS: GenderPositions = {
       { id: 'clear_80_percent_goalie', title: 'Clear ball successfully 80%+ of the time', description: 'Start fast breaks with accurate outlets', icon: 'arrow-forward', category: 'defense' },
       { id: 'saves_10_plus_5_games', title: 'Record 10+ saves in at least 5 games', description: 'Have multiple standout performances', icon: 'trophy', category: 'saves' },
       { id: 'communicate_90_percent', title: 'Communicate on 90% of defensive possessions', description: 'Be the quarterback of your defense', icon: 'megaphone', category: 'defense' },
+      { id: 'shutout_games_2', title: 'Record 2+ shutout games this season', description: 'Completely shut down opposing offense', icon: 'shield-checkmark', category: 'saves' },
+      { id: 'outlet_accuracy_85', title: 'Maintain 85%+ outlet pass accuracy', description: 'Start fast breaks with precision', icon: 'arrow-forward', category: 'accuracy' },
     ],
     FOGO: [
       { id: 'faceoff_60_percent', title: 'Win 60%+ of face-offs', description: 'Control possession from the X', icon: 'refresh', category: 'faceoffs' },
       { id: 'ground_balls_3_plus_fogo', title: 'Average 3+ ground balls per game', description: 'Clean up loose balls around the X', icon: 'basketball', category: 'ground_balls' },
       { id: 'limit_faceoff_turnovers', title: 'Limit turnovers to under 1 per game', description: 'Win clean and maintain possession', icon: 'checkmark-circle', category: 'turnovers' },
       { id: 'faceoff_streaks_3', title: 'Keep face-off win streaks of 3+ in a row', description: 'Build momentum with consecutive wins', icon: 'flame', category: 'faceoffs' },
+      { id: 'wing_play_success_70', title: 'Win 70%+ of wing battles', description: 'Dominate the wings on face-offs', icon: 'trending-up', category: 'faceoffs' },
+      { id: 'fast_break_goals_8', title: 'Score 8+ fast break goals this season', description: 'Turn face-off wins into quick scores', icon: 'flash', category: 'scoring' },
     ],
   },
   girls: {
@@ -128,40 +121,6 @@ const SEASON_GOALS: GenderPositions = {
   },
 };
 
-// Position-specific strengths and growth areas
-const POSITION_STRENGTHS: GenderStrengths = {
-  boys: {
-    Attack: ['Shooting Accuracy', 'Dodging', 'Stick Protection', 'Field Vision', 'Finishing', 'Quick Release'],
-    Midfield: ['Ground Balls', 'Transition', 'Faceoffs', 'Two-Way Play', 'Conditioning', 'Field Vision'],
-    Defense: ['Defensive Positioning', 'Physicality', 'Communication', 'Stick Checks', 'Clearing', 'Sliding'],
-    Goalie: ['Reaction Time', 'Positioning', 'Communication', 'Clearing', 'Mental Toughness', 'Hand-Eye Coordination'],
-    LSM: ['Defensive Positioning', 'Transition Defense', 'Stick Checks', 'Ground Balls', 'Communication', 'Athleticism'],
-    FOGO: ['Faceoff Technique', 'Quick Hands', 'Ground Balls', 'Wing Play', 'Conditioning', 'Mental Focus'],
-  },
-  girls: {
-    Attack: ['Shooting Accuracy', 'Dodging', 'Stick Skills', 'Field Vision', 'Finishing', 'Free Position'],
-    Midfield: ['Transition', 'Draw Controls', 'Two-Way Play', 'Conditioning', 'Field Vision', 'Passing'],
-    Defense: ['Defensive Positioning', 'Interceptions', 'Communication', 'Marking', 'Clearing', 'Footwork'],
-    Goalie: ['Reaction Time', 'Positioning', 'Communication', 'Clearing', 'Mental Toughness', 'Arc Movement'],
-  },
-};
-
-const POSITION_GROWTH_AREAS: GenderGrowthAreas = {
-  boys: {
-    Attack: ['Off-Hand Development', 'Shooting Consistency', 'Decision Making', 'Physicality', 'Defensive Awareness'],
-    Midfield: ['Faceoff Consistency', 'Defensive Positioning', 'Conditioning', 'Stick Protection', 'Leadership'],
-    Defense: ['Footwork', 'Stick Skills', 'Communication', 'Clearing Under Pressure', 'Body Positioning'],
-    Goalie: ['Arc Movement', 'Outlet Passing', 'Confidence', 'Reading Plays', 'Vocal Leadership'],
-    LSM: ['Offensive Skills', 'Transition Offense', 'Stick Skills', 'Conditioning', 'Decision Making'],
-    FOGO: ['Wing Play', 'Defensive Skills', 'Transition', 'Stick Skills', 'Game Awareness'],
-  },
-  girls: {
-    Attack: ['Off-Hand Development', 'Decision Making', 'Physicality', 'Defensive Awareness', 'Free Position Conversion'],
-    Midfield: ['Draw Control Consistency', 'Defensive Positioning', 'Conditioning', 'Stick Protection', 'Leadership'],
-    Defense: ['Footwork', 'Stick Skills', 'Communication', 'Marking Consistency', 'Transition Offense'],
-    Goalie: ['Arc Movement', 'Outlet Passing', 'Confidence', 'Reading Plays', 'Vocal Leadership'],
-  },
-};
 
 export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
   const { 
@@ -169,8 +128,6 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
   } = route.params || {};
 
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const [selectedStrengths, setSelectedStrengths] = useState<string[]>([]);
-  const [selectedGrowthAreas, setSelectedGrowthAreas] = useState<string[]>([]);
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -182,8 +139,6 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
   const positionKey = position as keyof PositionGoals;
   
   const positionGoals = SEASON_GOALS[genderKey]?.[positionKey] || [];
-  const positionStrengths = POSITION_STRENGTHS[genderKey]?.[positionKey] || [];
-  const positionGrowthAreas = POSITION_GROWTH_AREAS[genderKey]?.[positionKey] || [];
 
   const handleGoalToggle = (goalId: string) => {
     setSelectedGoals(prev => {
@@ -245,21 +200,6 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
     });
   }, [selectedGoals]);
 
-  const handleStrengthToggle = (strength: string) => {
-    setSelectedStrengths(prev => 
-      prev.includes(strength) 
-        ? prev.filter(s => s !== strength)
-        : prev.length < 5 ? [...prev, strength] : prev
-    );
-  };
-
-  const handleGrowthAreaToggle = (area: string) => {
-    setSelectedGrowthAreas(prev => 
-      prev.includes(area) 
-        ? prev.filter(a => a !== area)
-        : prev.length < 3 ? [...prev, area] : prev
-    );
-  };
 
   const handleContinue = () => {
     if (!isComplete) return;
@@ -278,12 +218,10 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
       }),
     ]).start();
 
-    // Navigate to next screen with all data
+    // Navigate to next screen with goals data
     navigation.navigate('Review', {
       ...route.params,
       goals: selectedGoals,
-      strengths: selectedStrengths,
-      growthAreas: selectedGrowthAreas,
     });
   };
 
@@ -298,9 +236,9 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <OnboardingStepper 
-        currentStep={5}
+        currentStep={7}
         totalSteps={8}
-        stepTitle="Goals & Development"
+        stepTitle="Season Goals"
         showBackButton={true}
         onBackPress={handleBack}
       />
@@ -405,91 +343,6 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
                 </View>
               </View>
 
-              {/* Strengths Section */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="star" size={24} color={theme.colors.primary} />
-                  <Text style={styles.sectionTitle}>Your Strengths</Text>
-                </View>
-                <Text style={styles.sectionSubtitle}>
-                  Select 2-5 areas where you excel (Selected: {selectedStrengths.length}/5)
-                </Text>
-                
-                <View style={styles.tagsContainer}>
-                  {positionStrengths.map((strength: string) => (
-                    <TouchableOpacity
-                      key={strength}
-                      style={[
-                        styles.tagButton,
-                        selectedStrengths.includes(strength) && styles.tagButtonSelected
-                      ]}
-                      onPress={() => handleStrengthToggle(strength)}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={selectedStrengths.includes(strength) 
-                          ? [theme.colors.primary, theme.colors.primary + 'DD']
-                          : [theme.colors.white, theme.colors.neutral50]
-                        }
-                        style={styles.tagGradient}
-                      >
-                        <Text style={[
-                          styles.tagText,
-                          selectedStrengths.includes(strength) && styles.tagTextSelected
-                        ]}>
-                          {strength}
-                        </Text>
-                        {selectedStrengths.includes(strength) && (
-                          <Ionicons name="checkmark" size={16} color={theme.colors.white} />
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Growth Areas Section */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="trending-up" size={24} color={theme.colors.primary} />
-                  <Text style={styles.sectionTitle}>Growth Areas</Text>
-                </View>
-                <Text style={styles.sectionSubtitle}>
-                  Select 1-3 areas you want to improve (Selected: {selectedGrowthAreas.length}/3)
-                </Text>
-                
-                <View style={styles.tagsContainer}>
-                  {positionGrowthAreas.map((area: string) => (
-                    <TouchableOpacity
-                      key={area}
-                      style={[
-                        styles.tagButton,
-                        selectedGrowthAreas.includes(area) && styles.tagButtonSelected
-                      ]}
-                      onPress={() => handleGrowthAreaToggle(area)}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={selectedGrowthAreas.includes(area) 
-                          ? [theme.colors.primary, theme.colors.primary + 'DD']
-                          : [theme.colors.white, theme.colors.neutral50]
-                        }
-                        style={styles.tagGradient}
-                      >
-                        <Text style={[
-                          styles.tagText,
-                          selectedGrowthAreas.includes(area) && styles.tagTextSelected
-                        ]}>
-                          {area}
-                        </Text>
-                        {selectedGrowthAreas.includes(area) && (
-                          <Ionicons name="checkmark" size={16} color={theme.colors.white} />
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
 
               {/* Continue Button */}
               <TouchableOpacity

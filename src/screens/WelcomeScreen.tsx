@@ -14,11 +14,11 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
-import { RootStackParamList } from '../types';
+import { RootStackParamList } from '@/types';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const slides = [
   {
@@ -235,7 +235,7 @@ export default function WelcomeScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.navigate('NameCollection')}
+            onPress={() => navigation.navigate('NameEntry')}
           >
             <LinearGradient
               colors={[colors.primary, colors.primary + 'DD']}

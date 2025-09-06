@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@shared/theme';
-import { OnboardingStepper } from '../components/gamification';
+import { theme } from '@/constants/theme';
+import { OnboardingStepper } from '@/components/gamification';
 
 interface HighSchoolScreenProps {
   navigation: any;
@@ -11,6 +11,7 @@ interface HighSchoolScreenProps {
     params?: { 
       firstName?: string; 
       lastName?: string; 
+      profileImage?: string | null;
       sport?: string;
       gender?: 'boys' | 'girls'; 
       position?: string; 
@@ -21,7 +22,7 @@ interface HighSchoolScreenProps {
 }
 
 export default function HighSchoolScreen({ navigation, route }: HighSchoolScreenProps) {
-  const { firstName, lastName, sport, gender, position, graduationYear, height } = route.params || {};
+  const { firstName, lastName, profileImage, sport, gender, position, graduationYear, height } = route.params || {};
   const [schoolName, setSchoolName] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -56,8 +57,37 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
     setLevel(selectedLevel);
   };
 
-  // Mock school data - in production, this would come from an API
+  // School database with South Shore MA schools
   const mockSchoolData: {[key: string]: {name: string, city: string, state: string}[]} = {
+    'MA': [
+      // South Shore MA Schools
+      {name: 'Duxbury High School', city: 'Duxbury', state: 'MA'},
+      {name: 'Marshfield High School', city: 'Marshfield', state: 'MA'},
+      {name: 'Hingham High School', city: 'Hingham', state: 'MA'},
+      {name: 'Scituate High School', city: 'Scituate', state: 'MA'},
+      {name: 'Cohasset High School', city: 'Cohasset', state: 'MA'},
+      {name: 'Hull High School', city: 'Hull', state: 'MA'},
+      {name: 'Hanover High School', city: 'Hanover', state: 'MA'},
+      {name: 'Norwell High School', city: 'Norwell', state: 'MA'},
+      {name: 'Rockland High School', city: 'Rockland', state: 'MA'},
+      {name: 'Abington High School', city: 'Abington', state: 'MA'},
+      {name: 'Whitman-Hanson Regional High School', city: 'Whitman', state: 'MA'},
+      {name: 'Plymouth North High School', city: 'Plymouth', state: 'MA'},
+      {name: 'Plymouth South High School', city: 'Plymouth', state: 'MA'},
+      {name: 'Silver Lake Regional High School', city: 'Kingston', state: 'MA'},
+      {name: 'Pembroke High School', city: 'Pembroke', state: 'MA'},
+      {name: 'North Quincy High School', city: 'North Quincy', state: 'MA'},
+      {name: 'Quincy High School', city: 'Quincy', state: 'MA'},
+      {name: 'Weymouth High School', city: 'Weymouth', state: 'MA'},
+      {name: 'Braintree High School', city: 'Braintree', state: 'MA'},
+      {name: 'Milton High School', city: 'Milton', state: 'MA'},
+      // Boston Area
+      {name: 'Boston Latin School', city: 'Boston', state: 'MA'},
+      {name: 'Boston College High School', city: 'Boston', state: 'MA'},
+      {name: 'Xaverian Brothers High School', city: 'Westwood', state: 'MA'},
+      {name: 'Malden Catholic High School', city: 'Malden', state: 'MA'},
+      {name: 'Archbishop Williams High School', city: 'Braintree', state: 'MA'}
+    ],
     'CA': [
       {name: 'Mater Dei High School', city: 'Santa Ana', state: 'CA'},
       {name: 'Harvard-Westlake School', city: 'Studio City', state: 'CA'},
@@ -76,6 +106,12 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
       {name: 'Calvert Hall College High School', city: 'Baltimore', state: 'MD'},
       {name: 'Loyola Blakefield', city: 'Towson', state: 'MD'},
       {name: 'McDonogh School', city: 'Owings Mills', state: 'MD'}
+    ],
+    'CT': [
+      {name: 'Brunswick School', city: 'Greenwich', state: 'CT'},
+      {name: 'Fairfield College Preparatory School', city: 'Fairfield', state: 'CT'},
+      {name: 'Darien High School', city: 'Darien', state: 'CT'},
+      {name: 'New Canaan High School', city: 'New Canaan', state: 'CT'}
     ]
   };
 
@@ -138,6 +174,7 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
         navigation.navigate('ClubTeam', { 
           firstName,
           lastName,
+          profileImage,
           sport,
           gender,
           position,
@@ -168,7 +205,7 @@ export default function HighSchoolScreen({ navigation, route }: HighSchoolScreen
     <SafeAreaView style={styles.container}>
       {/* Stepper with Back Button */}
       <OnboardingStepper 
-        currentStep={3}
+        currentStep={4}
         totalSteps={8}
         stepTitle="High School"
         showBackButton={true}

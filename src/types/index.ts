@@ -186,12 +186,14 @@ export interface AnalyticsEvent {
 export type RootStackParamList = {
   Welcome: undefined;
   Auth: undefined;
-  NameCollection: undefined;
-  BasicInfo: { firstName?: string; lastName?: string };
-  HighSchool: { firstName?: string; lastName?: string; gender?: 'boys' | 'girls'; position?: string; graduationYear?: number };
+  NameEntry: undefined;
+  ProfileImage: { firstName: string; lastName: string };
+  BasicInfo: { firstName?: string; lastName?: string; profileImage?: string | null | undefined };
+  HighSchool: { firstName?: string; lastName?: string; profileImage?: string | null | undefined; gender?: 'boys' | 'girls'; position?: string; graduationYear?: number };
   ClubTeam: { 
     firstName?: string; 
     lastName?: string; 
+    profileImage?: string | null | undefined;
     gender?: 'boys' | 'girls'; 
     position?: string; 
     graduationYear?: number;
@@ -203,6 +205,7 @@ export type RootStackParamList = {
   Academic: { 
     firstName: string; 
     lastName: string; 
+    profileImage?: string | null | undefined;
     sport: string;
     gender: 'boys' | 'girls'; 
     position: string; 
@@ -223,6 +226,7 @@ export type RootStackParamList = {
   Goals: { 
     firstName: string; 
     lastName: string; 
+    profileImage?: string | null | undefined;
     sport: string;
     gender: 'boys' | 'girls'; 
     position: string; 
@@ -250,6 +254,7 @@ export type RootStackParamList = {
   Review: { 
     firstName?: string; 
     lastName?: string; 
+    profileImage?: string | null | undefined;
     gender?: 'boys' | 'girls'; 
     position?: string; 
     graduationYear?: number;
@@ -266,7 +271,6 @@ export type RootStackParamList = {
     strengths?: string[];
     growthAreas?: string[];
   };
-  Onboarding: undefined;
   Paywall: undefined;
   MainTabs: undefined;
 };

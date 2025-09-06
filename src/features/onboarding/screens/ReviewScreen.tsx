@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Switch, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@shared/theme';
-import { OnboardingStepper } from '../components/gamification';
-import { useAuthStore } from '../shared/stores/authStore';
+import { theme } from '@/constants/theme';
+import { OnboardingStepper } from '@/components/gamification';
+import { useAuthStore } from '@/shared/stores/authStore';
 
 interface ReviewScreenProps {
   navigation: any;
@@ -12,6 +12,7 @@ interface ReviewScreenProps {
     params?: { 
       firstName?: string; 
       lastName?: string; 
+      profileImage?: string | null | undefined;
       gender?: 'boys' | 'girls'; 
       position?: string; 
       graduationYear?: number;
@@ -41,7 +42,7 @@ interface ReviewScreenProps {
 
 export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   const { 
-    firstName, lastName, gender, position, graduationYear, height, sport,
+    firstName, lastName, profileImage, gender, position, graduationYear, height, sport,
     schoolName, city, state, level, jerseyNumber,
     clubEnabled, clubOrgName, clubTeamName, clubCity, clubState, clubJerseyNumber,
     goals, gpa, hasHonorsAP, satScore, actScore, academicInterest, academicAwards
@@ -93,6 +94,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
       const onboardingData = {
         firstName,
         lastName,
+        profileImage,
         email,
         password,
         gender,
@@ -132,7 +134,11 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   };
 
   const handleBack = () => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Goals', route.params);
+    }
   };
 
   // Helper function to get goal title from goal ID
@@ -191,8 +197,8 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
     <SafeAreaView style={styles.container}>
       {/* Stepper */}
       <OnboardingStepper 
-        currentStep={7}
-        totalSteps={7}
+        currentStep={8}
+        totalSteps={8}
         stepTitle="Review & Commit"
         onBackPress={handleBack}
         showBackButton={true}
@@ -210,12 +216,14 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Ionicons name="checkmark-circle" size={32} color={theme.colors.success} />
-            <Text style={styles.title}>Locker Check</Text>
+          <View style={styles.checkmarkContainer}>
+            <View style={styles.checkmarkCircle}>
+              <Ionicons name="checkmark" size={24} color={theme.colors.white} />
+            </View>
           </View>
+          <Text style={styles.title}>Almost There!</Text>
           <Text style={styles.subtitle}>
-            Here's your setup. Ready to step into your locker?
+            Review your profile information
           </Text>
         </View>
 
@@ -234,27 +242,44 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{firstName} {lastName}</Text>
-                <Text style={styles.profileDetails}>
-                  {position} • Class of {graduationYear}
-                </Text>
+                <Text style={styles.profileEmail}>athlete@example.com</Text>
               </View>
             </View>
 
-            {/* High School Section */}
+            {/* Sport Information */}
+            <View style={styles.summarySection}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="trophy" size={20} color={theme.colors.primary} />
+                <Text style={styles.sectionLabel}>Sport Information</Text>
+              </View>
+              <Text style={styles.sectionValue}>
+                {sport ? sport.charAt(0).toUpperCase() + sport.slice(1) : 'Sport'} - {gender === 'boys' ? 'Boys' : 'Girls'}
+              </Text>
+              <Text style={styles.sectionSubValue}>
+                Position: {position}
+              </Text>
+            </View>
+
+            {/* School Details */}
             <View style={styles.summarySection}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="school" size={20} color={theme.colors.primary} />
-                <Text style={styles.sectionLabel}>High School</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('HighSchool', route.params)}>
-                  <Text style={styles.editLink}>Edit</Text>
-                </TouchableOpacity>
+                <Text style={styles.sectionLabel}>School Details</Text>
               </View>
               <Text style={styles.sectionValue}>
-                {schoolName} • {city}, {state}
+                {schoolName}
               </Text>
               <Text style={styles.sectionSubValue}>
-                {level}{jerseyNumber ? ` • #${jerseyNumber}` : ''}
+                {city}, {state}
               </Text>
+              <View style={styles.badgeContainer}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Jersey #{jerseyNumber || '23'}</Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Class of {graduationYear}</Text>
+                </View>
+              </View>
             </View>
 
             {/* Club Team Section */}
@@ -279,11 +304,8 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
             {/* Season Goals Section */}
             <View style={styles.summarySection}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="golf" size={20} color={theme.colors.primary} />
+                <Ionicons name="flag" size={20} color={theme.colors.primary} />
                 <Text style={styles.sectionLabel}>Season Goals</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Goals', route.params)}>
-                  <Text style={styles.editLink}>Edit</Text>
-                </TouchableOpacity>
               </View>
               {goals && goals.length > 0 ? (
                 <View style={styles.goalsContainer}>
@@ -295,7 +317,20 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
                   ))}
                 </View>
               ) : (
-                <Text style={styles.sectionValue}>No goals selected</Text>
+                <View style={styles.goalsContainer}>
+                  <View style={styles.goalItem}>
+                    <Ionicons name="checkmark" size={16} color={theme.colors.success} />
+                    <Text style={styles.goalText}>Score at least 1 goal per game</Text>
+                  </View>
+                  <View style={styles.goalItem}>
+                    <Ionicons name="checkmark" size={16} color={theme.colors.success} />
+                    <Text style={styles.goalText}>Average 2 assists per game</Text>
+                  </View>
+                  <View style={styles.goalItem}>
+                    <Ionicons name="checkmark" size={16} color={theme.colors.success} />
+                    <Text style={styles.goalText}>Maintain 70% ground ball success</Text>
+                  </View>
+                </View>
               )}
             </View>
 
@@ -369,7 +404,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
           </View>
         </View>
 
-        {/* Enter Locker Button */}
+        {/* Continue Button */}
         <TouchableOpacity 
           style={[styles.enterButton, !commitment && styles.enterButtonDisabled]}
           onPress={handleEnterLocker}
@@ -379,9 +414,14 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
             colors={commitment ? [theme.colors.primary, theme.colors.primaryDark] : [theme.colors.neutral300, theme.colors.neutral400]}
             style={styles.enterButtonGradient}
           >
-            <Ionicons name="lock-open" size={20} color={theme.colors.white} />
-            <Text style={styles.enterButtonText}>Enter My Locker 🚀</Text>
+            <Text style={styles.enterButtonText}>Continue to StatLocker</Text>
+            <Ionicons name="arrow-forward" size={20} color={theme.colors.white} />
           </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Edit Profile Link */}
+        <TouchableOpacity style={styles.editProfileButton}>
+          <Text style={styles.editProfileText}>Edit Profile</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
@@ -410,11 +450,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+  checkmarkContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  checkmarkCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     fontSize: 28,
     fontFamily: theme.fonts.jakarta.bold,
     color: theme.colors.textPrimary,
-    marginLeft: 12,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
@@ -631,6 +684,39 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: theme.fonts.jakarta.semiBold,
     color: theme.colors.white,
+  },
+  profileEmail: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  badge: {
+    backgroundColor: theme.colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  badgeText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.primary,
+  },
+  editProfileButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  editProfileText: {
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textSecondary,
+    textDecorationLine: 'underline',
   },
   bottomSpacer: {
     height: 40,

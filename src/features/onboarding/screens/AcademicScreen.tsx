@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { OnboardingStepper } from '../components/gamification';
-import { theme } from '../constants/theme';
+import { OnboardingStepper } from '@/components/gamification';
+import { theme } from '@/constants/theme';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
+import { RootStackParamList } from '@/types';
 
 type AcademicScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Academic'>;
 type AcademicScreenRouteProp = RouteProp<RootStackParamList, 'Academic'>;
@@ -48,7 +48,7 @@ const ACADEMIC_INTERESTS = [
 
 export default function AcademicScreen({ navigation, route }: AcademicScreenProps) {
   const { 
-    firstName, lastName, sport, gender, position, graduationYear, height, 
+    firstName, lastName, profileImage, sport, gender, position, graduationYear, height, 
     schoolName, city, state, level, jerseyNumber,
     clubEnabled, clubOrgName, clubTeamName, clubCity, clubState, clubJerseyNumber 
   } = route.params;
@@ -100,6 +100,7 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
       navigation.navigate('Goals', {
         firstName,
         lastName,
+        profileImage,
         sport,
         gender,
         position,
@@ -131,6 +132,7 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
     navigation.navigate('Goals', {
       firstName,
       lastName,
+      profileImage,
       sport,
       gender,
       position,
@@ -191,7 +193,7 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
     <SafeAreaView style={styles.container}>
       {/* Stepper with Back Button */}
       <OnboardingStepper 
-        currentStep={5}
+        currentStep={6}
         totalSteps={8}
         stepTitle="Academics"
         showBackButton={true}
