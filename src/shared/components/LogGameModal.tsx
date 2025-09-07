@@ -28,10 +28,13 @@ interface LogGameModalProps {
   onGameLogged?: (gameData: any) => void;
 }
 
-const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosition = 'Attack', onGameLogged }) => {
+const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosition, onGameLogged }) => {
   const { user } = useAuthStore();
   const { logGame, isLoading } = useGameStore();
   const { addXP } = useGamificationStore();
+  
+  // Use user's actual position from auth store, fallback to prop, then default
+  const actualPosition = user?.position || userPosition || 'Attack';
 
   // Game Details
   const [opponent, setOpponent] = useState('');
@@ -57,18 +60,18 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
 
   // Position-specific stats
   useEffect(() => {
-    if (userPosition === 'Goalie') {
+    if (actualPosition === 'Goalie') {
       setStats(prev => ({ ...prev, saves: 0, goalsAgainst: 0 }));
-    } else if (userPosition === 'FOGO') {
+    } else if (actualPosition === 'FOGO') {
       setStats(prev => ({ ...prev, faceoffWins: 0, faceoffLosses: 0 }));
     }
-  }, [userPosition]);
+  }, [actualPosition]);
 
   // Live Calculations
   const shootingPercentage = stats.shots > 0 ? ((stats.goals / stats.shots) * 100).toFixed(1) : '0.0';
   const shotsOnGoalPercentage = stats.shots > 0 ? ((stats.shotsOnGoal / stats.shots) * 100).toFixed(1) : '0.0';
   const totalPoints = stats.goals + stats.assists;
-  const savePercentage = userPosition === 'Goalie' && (stats.saves || 0) + (stats.goalsAgainst || 0) > 0 
+  const savePercentage = actualPosition === 'Goalie' && (stats.saves || 0) + (stats.goalsAgainst || 0) > 0 
     ? (((stats.saves || 0) / ((stats.saves || 0) + (stats.goalsAgainst || 0))) * 100).toFixed(1) 
     : '0.0';
 
@@ -99,7 +102,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
         teamScore: teamScore ? parseInt(teamScore) : 0,
         opponentScore: opponentScore ? parseInt(opponentScore) : 0,
         stats,
-        position: userPosition,
+        position: actualPosition as string,
         notes: '',
       };
 
@@ -248,8 +251,8 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
           {/* Stats Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.positionBadge}>Position: {userPosition}</Text>
-              <Text style={styles.sectionTitle}>Your Stats ({userPosition})</Text>
+              <Text style={styles.positionBadge}>Position: {actualPosition}</Text>
+              <Text style={styles.sectionTitle}>Your Stats ({actualPosition})</Text>
             </View>
             <Text style={styles.sectionSubtitle}>Enter your performance statistics for this game</Text>
 
@@ -301,7 +304,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
               />
 
               {/* Position-specific stats */}
-              {userPosition === 'Goalie' && (
+              {actualPosition === 'Goalie' && (
                 <>
                   <StatInput
                     label="Saves"
@@ -318,7 +321,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 </>
               )}
 
-              {userPosition === 'FOGO' && (
+              {actualPosition === 'FOGO' && (
                 <>
                   <StatInput
                     label="Faceoff Wins"
@@ -358,7 +361,7 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 <Text style={styles.calculationValue}>{totalPoints}</Text>
                 <Text style={styles.calculationLabel}>Total Points</Text>
               </View>
-              {userPosition === 'Goalie' && (
+              {actualPosition === 'Goalie' && (
                 <View style={styles.calculationCard}>
                   <Text style={styles.calculationValue}>{savePercentage}%</Text>
                   <Text style={styles.calculationLabel}>Save %</Text>
