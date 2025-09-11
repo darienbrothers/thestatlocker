@@ -11,15 +11,15 @@ interface OnboardingStepperProps {
   showBackButton?: boolean;
 }
 
-export function OnboardingStepper({ 
-  currentStep, 
-  totalSteps, 
+export function OnboardingStepper({
+  currentStep,
+  totalSteps,
   stepTitle,
   onBackPress,
-  showBackButton = false
+  showBackButton = false,
 }: OnboardingStepperProps) {
   const progress = currentStep / totalSteps;
-  
+
   return (
     <View style={styles.container}>
       {/* Inline Back Button and Progress Bar */}
@@ -27,23 +27,24 @@ export function OnboardingStepper({
         {/* Back Button */}
         {showBackButton && onBackPress ? (
           <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-            <Ionicons name="chevron-back" size={24} color={theme.colors.textPrimary} />
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
         ) : (
           <View style={styles.backButtonPlaceholder} />
         )}
-        
+
         {/* Progress Bar Container */}
         <View style={styles.progressContainer}>
           <View style={styles.progressTrack}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${progress * 100}%` }
-              ]} 
+            <View
+              style={[styles.progressFill, { width: `${progress * 100}%` }]}
             />
           </View>
-          
+
           {/* Progress Dots */}
           <View style={styles.dotsContainer}>
             {Array.from({ length: totalSteps }, (_, index) => (
@@ -56,21 +57,21 @@ export function OnboardingStepper({
                 ]}
               >
                 {index < currentStep - 1 && (
-                  <Ionicons 
-                    name="checkmark" 
-                    size={12} 
-                    color={theme.colors.white} 
+                  <Ionicons
+                    name="checkmark"
+                    size={12}
+                    color={theme.colors.white}
                   />
                 )}
               </View>
             ))}
           </View>
         </View>
-        
+
         {/* Right spacer for balance */}
         <View style={styles.rightSpacer} />
       </View>
-      
+
       {/* Centered Step Title */}
       {stepTitle && (
         <View style={styles.titleContainer}>

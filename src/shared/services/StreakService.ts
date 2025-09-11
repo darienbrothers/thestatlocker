@@ -1,4 +1,16 @@
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { db } from '../../config/firebase';
 
 export interface StreakData {
@@ -27,7 +39,12 @@ class StreakService {
   /**
    * Log a skills/drills activity and update streaks
    */
-  async logActivity(userId: string, type: StreakType, duration?: number, notes?: string): Promise<StreakData> {
+  async logActivity(
+    userId: string,
+    type: StreakType,
+    duration?: number,
+    notes?: string,
+  ): Promise<StreakData> {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -38,7 +55,7 @@ class StreakService {
         where('userId', '==', userId),
         where('type', '==', type),
         where('date', '>=', today),
-        limit(1)
+        limit(1),
       );
 
       const todaySnapshot = await getDocs(todayQuery);
@@ -109,7 +126,7 @@ class StreakService {
   async getAllStreaks(userId: string): Promise<Record<StreakType, StreakData>> {
     try {
       const streaks: Record<StreakType, StreakData> = {} as any;
-      
+
       for (const type of Object.values(StreakType)) {
         streaks[type] = await this.getStreak(userId, type);
       }
@@ -124,14 +141,17 @@ class StreakService {
   /**
    * Calculate streak based on activity history
    */
-  private async calculateStreak(userId: string, type: StreakType): Promise<StreakData> {
+  private async calculateStreak(
+    userId: string,
+    type: StreakType,
+  ): Promise<StreakData> {
     try {
       const activitiesQuery = query(
         collection(db, 'streak_activities'),
         where('userId', '==', userId),
         where('type', '==', type),
         orderBy('date', 'desc'),
-        limit(365) // Check up to a year of activities
+        limit(365), // Check up to a year of activities
       );
 
       const snapshot = await getDocs(activitiesQuery);
@@ -139,7 +159,7 @@ class StreakService {
         const data = doc.data();
         return {
           date: data.date?.toDate() || new Date(),
-          ...data
+          ...data,
         };
       });
 
@@ -157,7 +177,9 @@ class StreakService {
 
       for (let i = 0; i < activities.length; i++) {
         const activity = activities[i];
-        if (!activity?.date) continue;
+        if (!activity?.date) {
+          continue;
+        }
         const activityDate = new Date(activity.date);
         activityDate.setHours(0, 0, 0, 0);
 
@@ -165,15 +187,17 @@ class StreakService {
           // First activity (most recent)
           tempStreak = 1;
           lastDate = activityDate;
-          
+
           // Check if this is today or yesterday to determine if streak is current
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const yesterday = new Date(today);
           yesterday.setDate(yesterday.getDate() - 1);
 
-          if (activityDate.getTime() === today.getTime() || 
-              activityDate.getTime() === yesterday.getTime()) {
+          if (
+            activityDate.getTime() === today.getTime() ||
+            activityDate.getTime() === yesterday.getTime()
+          ) {
             currentStreak = 1;
           }
         } else {
@@ -192,7 +216,7 @@ class StreakService {
             tempStreak = 1;
             currentStreak = 0; // Current streak is broken
           }
-          
+
           lastDate = activityDate;
         }
       }
@@ -216,7 +240,11 @@ class StreakService {
   /**
    * Update user's streak data in Firestore
    */
-  private async updateUserStreak(userId: string, type: StreakType, streakData: StreakData): Promise<void> {
+  private async updateUserStreak(
+    userId: string,
+    type: StreakType,
+    streakData: StreakData,
+  ): Promise<void> {
     try {
       const userRef = doc(db, 'users', userId);
       const updateData = {
@@ -225,7 +253,7 @@ class StreakService {
           longest: streakData.longest,
           lastActivityDate: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        }
+        },
       };
 
       await updateDoc(userRef, updateData);
@@ -239,11 +267,13 @@ class StreakService {
    * Check if a streak is still active based on last activity date
    */
   private isStreakActive(lastActivityDate: Date | null): boolean {
-    if (!lastActivityDate) return false;
+    if (!lastActivityDate) {
+      return false;
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
@@ -251,8 +281,10 @@ class StreakService {
     lastActivity.setHours(0, 0, 0, 0);
 
     // Streak is active if last activity was today or yesterday
-    return lastActivity.getTime() === today.getTime() || 
-           lastActivity.getTime() === yesterday.getTime();
+    return (
+      lastActivity.getTime() === today.getTime() ||
+      lastActivity.getTime() === yesterday.getTime()
+    );
   }
 
   /**
@@ -275,7 +307,7 @@ class StreakService {
     if (streakData.current === 0) {
       return 'Start your streak!';
     }
-    
+
     const days = streakData.current === 1 ? 'day' : 'days';
     return `🔥 ${streakData.current} ${days}`;
   }
@@ -283,14 +315,18 @@ class StreakService {
   /**
    * Get activity history for a user and type
    */
-  async getActivityHistory(userId: string, type: StreakType, limitCount = 30): Promise<StreakActivity[]> {
+  async getActivityHistory(
+    userId: string,
+    type: StreakType,
+    limitCount = 30,
+  ): Promise<StreakActivity[]> {
     try {
       const activitiesQuery = query(
         collection(db, 'streak_activities'),
         where('userId', '==', userId),
         where('type', '==', type),
         orderBy('date', 'desc'),
-        limit(limitCount)
+        limit(limitCount),
       );
 
       const snapshot = await getDocs(activitiesQuery);

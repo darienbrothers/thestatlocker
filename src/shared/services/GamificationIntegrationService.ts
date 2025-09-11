@@ -9,27 +9,34 @@ class GamificationIntegrationService {
   /**
    * Handle when a game is logged - check for badges and update progress
    */
-  async onGameLogged(userId: string, gameData: any): Promise<{
+  async onGameLogged(
+    userId: string,
+    gameData: any,
+  ): Promise<{
     newBadges: any[];
     progressUpdates: any;
     notifications: string[];
   }> {
     try {
       const notifications: string[] = [];
-      
+
       // Check for newly earned badges
-      const newBadges = await badgeService.checkBadgesAfterGame(userId, gameData);
-      
+      const newBadges = await badgeService.checkBadgesAfterGame(
+        userId,
+        gameData,
+      );
+
       // Get updated progress
-      const progressUpdates = await progressService.getSeasonGoalProgress(userId);
-      
+      const progressUpdates =
+        await progressService.getSeasonGoalProgress(userId);
+
       // Add notifications for new achievements
       if (newBadges.length > 0) {
         newBadges.forEach(badge => {
           notifications.push(`🏆 New badge earned: ${badge.badge.title}!`);
         });
       }
-      
+
       // Check for completed season goals
       progressUpdates.seasonGoals.forEach(goal => {
         if (goal.isCompleted && goal.percentage === 100) {
@@ -56,30 +63,38 @@ class GamificationIntegrationService {
    * Handle when a skills/drills activity is logged
    */
   async onSkillsActivityLogged(
-    userId: string, 
-    activityType: StreakType, 
-    duration?: number
+    userId: string,
+    activityType: StreakType,
+    duration?: number,
   ): Promise<{
     streakData: any;
     notifications: string[];
   }> {
     try {
       const notifications: string[] = [];
-      
+
       // Update streak
-      const streakData = await streakService.logActivity(userId, activityType, duration);
-      
+      const streakData = await streakService.logActivity(
+        userId,
+        activityType,
+        duration,
+      );
+
       // Add streak notifications
       if (streakData.current === 1) {
-        notifications.push(`🔥 Started a new ${this.getActivityName(activityType)} streak!`);
+        notifications.push(
+          `🔥 Started a new ${this.getActivityName(activityType)} streak!`,
+        );
       } else if (streakData.current > 1) {
-        notifications.push(`🔥 ${streakData.current} day ${this.getActivityName(activityType)} streak!`);
-        
+        notifications.push(
+          `🔥 ${streakData.current} day ${this.getActivityName(activityType)} streak!`,
+        );
+
         // Special milestone notifications
         if (streakData.current === 7) {
-          notifications.push(`🎉 One week streak! Keep it up!`);
+          notifications.push('🎉 One week streak! Keep it up!');
         } else if (streakData.current === 30) {
-          notifications.push(`🏆 30-day streak! You're on fire!`);
+          notifications.push("🏆 30-day streak! You're on fire!");
         }
       }
 
@@ -113,12 +128,14 @@ class GamificationIntegrationService {
       ]);
 
       const activeStreaks = Object.values(streaks).filter(
-        (streak: any) => streak.isActive
+        (streak: any) => streak.isActive,
       ).length;
 
       // Get recent badges (last 7 days)
       const recentAchievements = badges.filter(badge => {
-        if (!badge.unlockedAt) return false;
+        if (!badge.unlockedAt) {
+          return false;
+        }
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         return badge.unlockedAt > weekAgo;
@@ -155,4 +172,5 @@ class GamificationIntegrationService {
   }
 }
 
-export const gamificationIntegrationService = new GamificationIntegrationService();
+export const gamificationIntegrationService =
+  new GamificationIntegrationService();

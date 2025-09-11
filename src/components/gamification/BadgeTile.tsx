@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
 import { Badge, ANIMATION_DURATIONS } from '../../utils/gamification';
@@ -11,14 +17,16 @@ interface BadgeTileProps {
   onPress?: () => void;
 }
 
-export default function BadgeTile({ 
-  badge, 
-  size = 'medium', 
+export default function BadgeTile({
+  badge,
+  size = 'medium',
   showUnlockAnimation = false,
-  onPress 
+  onPress,
 }: BadgeTileProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(badge.isUnlocked ? 1 : 0.4)).current;
+  const opacityAnim = useRef(
+    new Animated.Value(badge.isUnlocked ? 1 : 0.4),
+  ).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -92,12 +100,10 @@ export default function BadgeTile({
         </LinearGradient>
       ) : (
         <View style={styles.lockedBackground}>
-          <Text style={[styles.lockedIcon, { fontSize: config.icon }]}>
-            🔒
-          </Text>
+          <Text style={[styles.lockedIcon, { fontSize: config.icon }]}>🔒</Text>
         </View>
       )}
-      
+
       {/* Glow effect for unlock animation */}
       <Animated.View
         style={[

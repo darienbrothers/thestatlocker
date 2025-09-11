@@ -1,4 +1,16 @@
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, orderBy, limit, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  arrayUnion,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { db } from '../../config/firebase';
 
 export interface Badge {
@@ -52,8 +64,12 @@ class BadgeService {
       category: BadgeCategory.MILESTONES,
       position: 'goalie',
       requirements: [
-        { type: RequirementType.STAT_SINGLE_GAME, value: 0, metadata: { stat: 'goalsAllowed' } }
-      ]
+        {
+          type: RequirementType.STAT_SINGLE_GAME,
+          value: 0,
+          metadata: { stat: 'goalsAllowed' },
+        },
+      ],
     },
     {
       id: 'century_saves',
@@ -63,8 +79,13 @@ class BadgeService {
       category: BadgeCategory.MILESTONES,
       position: 'goalie',
       requirements: [
-        { type: RequirementType.STAT_TOTAL, value: 100, timeframe: 'season', metadata: { stat: 'saves' } }
-      ]
+        {
+          type: RequirementType.STAT_TOTAL,
+          value: 100,
+          timeframe: 'season',
+          metadata: { stat: 'saves' },
+        },
+      ],
     },
     {
       id: 'elite_save_percentage',
@@ -74,8 +95,13 @@ class BadgeService {
       category: BadgeCategory.PERFORMANCE,
       position: 'goalie',
       requirements: [
-        { type: RequirementType.STAT_PERCENTAGE, value: 70, timeframe: 'season', metadata: { stat: 'savePercentage' } }
-      ]
+        {
+          type: RequirementType.STAT_PERCENTAGE,
+          value: 70,
+          timeframe: 'season',
+          metadata: { stat: 'savePercentage' },
+        },
+      ],
     },
     {
       id: 'wall_of_saves',
@@ -85,8 +111,12 @@ class BadgeService {
       category: BadgeCategory.PERFORMANCE,
       position: 'goalie',
       requirements: [
-        { type: RequirementType.STAT_SINGLE_GAME, value: 20, metadata: { stat: 'saves' } }
-      ]
+        {
+          type: RequirementType.STAT_SINGLE_GAME,
+          value: 20,
+          metadata: { stat: 'saves' },
+        },
+      ],
     },
 
     // Field Player Badges
@@ -98,8 +128,12 @@ class BadgeService {
       category: BadgeCategory.MILESTONES,
       position: 'all',
       requirements: [
-        { type: RequirementType.STAT_SINGLE_GAME, value: 3, metadata: { stat: 'goals' } }
-      ]
+        {
+          type: RequirementType.STAT_SINGLE_GAME,
+          value: 3,
+          metadata: { stat: 'goals' },
+        },
+      ],
     },
     {
       id: 'ground_ball_machine',
@@ -109,8 +143,13 @@ class BadgeService {
       category: BadgeCategory.MILESTONES,
       position: 'all',
       requirements: [
-        { type: RequirementType.STAT_TOTAL, value: 50, timeframe: 'season', metadata: { stat: 'groundBalls' } }
-      ]
+        {
+          type: RequirementType.STAT_TOTAL,
+          value: 50,
+          timeframe: 'season',
+          metadata: { stat: 'groundBalls' },
+        },
+      ],
     },
     {
       id: 'playmaker',
@@ -120,8 +159,13 @@ class BadgeService {
       category: BadgeCategory.PERFORMANCE,
       position: 'all',
       requirements: [
-        { type: RequirementType.STAT_TOTAL, value: 25, timeframe: 'season', metadata: { stat: 'assists' } }
-      ]
+        {
+          type: RequirementType.STAT_TOTAL,
+          value: 25,
+          timeframe: 'season',
+          metadata: { stat: 'assists' },
+        },
+      ],
     },
     {
       id: 'scorer',
@@ -131,8 +175,13 @@ class BadgeService {
       category: BadgeCategory.PERFORMANCE,
       position: 'all',
       requirements: [
-        { type: RequirementType.STAT_TOTAL, value: 30, timeframe: 'season', metadata: { stat: 'goals' } }
-      ]
+        {
+          type: RequirementType.STAT_TOTAL,
+          value: 30,
+          timeframe: 'season',
+          metadata: { stat: 'goals' },
+        },
+      ],
     },
     {
       id: 'point_machine',
@@ -142,8 +191,13 @@ class BadgeService {
       category: BadgeCategory.PERFORMANCE,
       position: 'all',
       requirements: [
-        { type: RequirementType.STAT_TOTAL, value: 50, timeframe: 'season', metadata: { stat: 'points' } }
-      ]
+        {
+          type: RequirementType.STAT_TOTAL,
+          value: 50,
+          timeframe: 'season',
+          metadata: { stat: 'points' },
+        },
+      ],
     },
 
     // Consistency Badges
@@ -154,9 +208,7 @@ class BadgeService {
       iconName: 'calendar-check',
       category: BadgeCategory.CONSISTENCY,
       position: 'all',
-      requirements: [
-        { type: RequirementType.CONSECUTIVE_GAMES, value: 15 }
-      ]
+      requirements: [{ type: RequirementType.CONSECUTIVE_GAMES, value: 15 }],
     },
     {
       id: 'goal_achiever',
@@ -166,30 +218,41 @@ class BadgeService {
       category: BadgeCategory.SPECIAL,
       position: 'all',
       requirements: [
-        { type: RequirementType.SEASON_GOALS_COMPLETED, value: 3 }
-      ]
-    }
+        { type: RequirementType.SEASON_GOALS_COMPLETED, value: 3 },
+      ],
+    },
   ];
 
   /**
    * Check for newly earned badges after a game is logged
    */
-  async checkBadgesAfterGame(userId: string, gameData: any): Promise<UserBadge[]> {
+  async checkBadgesAfterGame(
+    userId: string,
+    gameData: any,
+  ): Promise<UserBadge[]> {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
-      if (!userDoc.exists()) return [];
+      if (!userDoc.exists()) {
+        return [];
+      }
 
       const userData = userDoc.data();
       const userPosition = userData.position || 'midfielder';
       const unlockedBadgeIds = userData.unlockedBadges || [];
-      
+
       const newBadges: UserBadge[] = [];
       const eligibleBadges = this.getBadgesForPosition(userPosition);
 
       for (const badge of eligibleBadges) {
-        if (unlockedBadgeIds.includes(badge.id)) continue;
+        if (unlockedBadgeIds.includes(badge.id)) {
+          continue;
+        }
 
-        const isEarned = await this.checkBadgeRequirements(userId, badge, gameData);
+        const isEarned = await this.checkBadgeRequirements(
+          userId,
+          badge,
+          gameData,
+        );
         if (isEarned) {
           const userBadge: UserBadge = {
             badgeId: badge.id,
@@ -218,19 +281,29 @@ class BadgeService {
    * Get badges available for a specific position
    */
   private getBadgesForPosition(position: string): Badge[] {
-    return this.BADGES.filter(badge => 
-      badge.position === 'all' || badge.position === position
+    return this.BADGES.filter(
+      badge => badge.position === 'all' || badge.position === position,
     );
   }
 
   /**
    * Check if badge requirements are met
    */
-  private async checkBadgeRequirements(userId: string, badge: Badge, gameData?: any): Promise<boolean> {
+  private async checkBadgeRequirements(
+    userId: string,
+    badge: Badge,
+    gameData?: any,
+  ): Promise<boolean> {
     try {
       for (const requirement of badge.requirements) {
-        const isMet = await this.checkSingleRequirement(userId, requirement, gameData);
-        if (!isMet) return false;
+        const isMet = await this.checkSingleRequirement(
+          userId,
+          requirement,
+          gameData,
+        );
+        if (!isMet) {
+          return false;
+        }
       }
       return true;
     } catch (error) {
@@ -243,23 +316,34 @@ class BadgeService {
    * Check a single badge requirement
    */
   private async checkSingleRequirement(
-    userId: string, 
-    requirement: BadgeRequirement, 
-    gameData?: any
+    userId: string,
+    requirement: BadgeRequirement,
+    gameData?: any,
   ): Promise<boolean> {
     try {
       switch (requirement.type) {
         case RequirementType.STAT_SINGLE_GAME:
-          if (!gameData) return false;
-          const statValue = this.getStatFromGame(gameData, requirement.metadata?.stat);
+          if (!gameData) {
+            return false;
+          }
+          const statValue = this.getStatFromGame(
+            gameData,
+            requirement.metadata?.stat,
+          );
           return statValue >= requirement.value;
 
         case RequirementType.STAT_TOTAL:
-          const totalValue = await this.getSeasonStatTotal(userId, requirement.metadata?.stat);
+          const totalValue = await this.getSeasonStatTotal(
+            userId,
+            requirement.metadata?.stat,
+          );
           return totalValue >= requirement.value;
 
         case RequirementType.STAT_PERCENTAGE:
-          const percentage = await this.getSeasonStatPercentage(userId, requirement.metadata?.stat);
+          const percentage = await this.getSeasonStatPercentage(
+            userId,
+            requirement.metadata?.stat,
+          );
           return percentage >= requirement.value;
 
         case RequirementType.CONSECUTIVE_GAMES:
@@ -267,7 +351,8 @@ class BadgeService {
           return consecutiveGames >= requirement.value;
 
         case RequirementType.SEASON_GOALS_COMPLETED:
-          const completedGoals = await this.getCompletedSeasonGoalsCount(userId);
+          const completedGoals =
+            await this.getCompletedSeasonGoalsCount(userId);
           return completedGoals >= requirement.value;
 
         default:
@@ -284,7 +369,7 @@ class BadgeService {
    */
   private getStatFromGame(gameData: any, statType: string): number {
     const stats = gameData.stats || {};
-    
+
     switch (statType) {
       case 'goalsAllowed':
         return stats.goalsAllowed || 0;
@@ -306,13 +391,16 @@ class BadgeService {
   /**
    * Get season total for a stat
    */
-  private async getSeasonStatTotal(userId: string, statType: string): Promise<number> {
+  private async getSeasonStatTotal(
+    userId: string,
+    statType: string,
+  ): Promise<number> {
     try {
       const gamesQuery = query(
         collection(db, 'games'),
         where('userId', '==', userId),
         orderBy('createdAt', 'desc'),
-        limit(50)
+        limit(50),
       );
 
       const snapshot = await getDocs(gamesQuery);
@@ -333,15 +421,20 @@ class BadgeService {
   /**
    * Get season percentage for a stat (like save percentage)
    */
-  private async getSeasonStatPercentage(userId: string, statType: string): Promise<number> {
+  private async getSeasonStatPercentage(
+    userId: string,
+    statType: string,
+  ): Promise<number> {
     try {
-      if (statType !== 'savePercentage') return 0;
+      if (statType !== 'savePercentage') {
+        return 0;
+      }
 
       const gamesQuery = query(
         collection(db, 'games'),
         where('userId', '==', userId),
         orderBy('createdAt', 'desc'),
-        limit(50)
+        limit(50),
       );
 
       const snapshot = await getDocs(gamesQuery);
@@ -371,7 +464,7 @@ class BadgeService {
         collection(db, 'games'),
         where('userId', '==', userId),
         orderBy('createdAt', 'desc'),
-        limit(20)
+        limit(20),
       );
 
       const snapshot = await getDocs(gamesQuery);
@@ -388,14 +481,19 @@ class BadgeService {
   private async getCompletedSeasonGoalsCount(userId: string): Promise<number> {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
-      if (!userDoc.exists()) return 0;
+      if (!userDoc.exists()) {
+        return 0;
+      }
 
       const userData = userDoc.data();
       const seasonGoals = userData.seasonGoals || [];
       let completedCount = 0;
 
       for (const goal of seasonGoals) {
-        const currentValue = await this.getSeasonStatTotal(userId, goal.statType);
+        const currentValue = await this.getSeasonStatTotal(
+          userId,
+          goal.statType,
+        );
         if (currentValue >= goal.target) {
           completedCount++;
         }
@@ -414,13 +512,15 @@ class BadgeService {
   async getUserBadges(userId: string): Promise<UserBadge[]> {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
-      if (!userDoc.exists()) return [];
+      if (!userDoc.exists()) {
+        return [];
+      }
 
       const userData = userDoc.data();
       const unlockedBadgeIds = userData.unlockedBadges || [];
-      
+
       const userBadges: UserBadge[] = [];
-      
+
       for (const badgeId of unlockedBadgeIds) {
         const badge = this.BADGES.find(b => b.id === badgeId);
         if (badge) {
@@ -443,8 +543,8 @@ class BadgeService {
    * Get all available badges for a position
    */
   getAvailableBadges(position: string, includeSecret = false): Badge[] {
-    return this.getBadgesForPosition(position).filter(badge => 
-      includeSecret || !badge.isSecret
+    return this.getBadgesForPosition(position).filter(
+      badge => includeSecret || !badge.isSecret,
     );
   }
 

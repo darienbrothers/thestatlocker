@@ -1,4 +1,8 @@
-import { openAIService, type LacrosseInsightRequest, type OpenAIResponse } from './OpenAIService';
+import {
+  openAIService,
+  type LacrosseInsightRequest,
+  type OpenAIResponse,
+} from './OpenAIService';
 
 export interface LacrossePlayerStats {
   position: 'Attack' | 'Midfield' | 'Defense' | 'LSM' | 'Goalie';
@@ -22,7 +26,11 @@ export interface LacrossePlayerStats {
 
 export interface LacrosseInsight {
   id: string;
-  type: 'performance_analysis' | 'improvement_suggestions' | 'trend_analysis' | 'goal_prediction';
+  type:
+    | 'performance_analysis'
+    | 'improvement_suggestions'
+    | 'trend_analysis'
+    | 'goal_prediction';
   title: string;
   content: string;
   priority: 'high' | 'medium' | 'low';
@@ -38,23 +46,29 @@ export interface SeasonProjection {
   assists: { current: number; projected: number; confidence: number };
   groundBalls: { current: number; projected: number; confidence: number };
   saves?: { current: number; projected: number; confidence: number };
-  faceoffWinPercentage?: { current: number; projected: number; confidence: number };
+  faceoffWinPercentage?: {
+    current: number;
+    projected: number;
+    confidence: number;
+  };
 }
 
 class LacrosseAIService {
   /**
    * Generate comprehensive AI insights for a lacrosse player
    */
-  async generatePlayerInsights(playerStats: LacrossePlayerStats): Promise<LacrosseInsight[]> {
+  async generatePlayerInsights(
+    playerStats: LacrossePlayerStats,
+  ): Promise<LacrosseInsight[]> {
     const insights: LacrosseInsight[] = [];
-    
+
     try {
       // Generate different types of insights
       const insightTypes: Array<LacrosseInsightRequest['insightType']> = [
         'performance_analysis',
         'improvement_suggestions',
         'trend_analysis',
-        'goal_prediction'
+        'goal_prediction',
       ];
 
       const seasonStats = this.calculateSeasonStats(playerStats);
@@ -69,9 +83,15 @@ class LacrosseAIService {
         };
 
         const aiResponse = await openAIService.generateLacrosseInsight(request);
-        
+
         if (aiResponse.success) {
-          insights.push(this.createInsightFromResponse(aiResponse, insightType, playerStats.position));
+          insights.push(
+            this.createInsightFromResponse(
+              aiResponse,
+              insightType,
+              playerStats.position,
+            ),
+          );
         }
       }
 
@@ -87,7 +107,7 @@ class LacrosseAIService {
    */
   async generateSpecificInsight(
     playerStats: LacrossePlayerStats,
-    insightType: LacrosseInsightRequest['insightType']
+    insightType: LacrosseInsightRequest['insightType'],
   ): Promise<LacrosseInsight | null> {
     try {
       const seasonStats = this.calculateSeasonStats(playerStats);
@@ -101,9 +121,13 @@ class LacrosseAIService {
       };
 
       const aiResponse = await openAIService.generateLacrosseInsight(request);
-      
+
       if (aiResponse.success) {
-        return this.createInsightFromResponse(aiResponse, insightType, playerStats.position);
+        return this.createInsightFromResponse(
+          aiResponse,
+          insightType,
+          playerStats.position,
+        );
       }
 
       return null;
@@ -116,10 +140,13 @@ class LacrosseAIService {
   /**
    * Calculate season projections
    */
-  calculateSeasonProjections(playerStats: LacrossePlayerStats, totalSeasonGames: number = 20): Promise<SeasonProjection> {
+  async calculateSeasonProjections(
+    playerStats: LacrossePlayerStats,
+    totalSeasonGames: number = 20,
+  ): Promise<SeasonProjection> {
     const seasonStats = this.calculateSeasonStats(playerStats);
     const gamesPlayed = seasonStats.totalGames;
-    const remainingGames = Math.max(0, totalSeasonGames - gamesPlayed);
+    // const remainingGames = Math.max(0, totalSeasonGames - gamesPlayed);
 
     if (gamesPlayed === 0) {
       return Promise.resolve({
@@ -136,22 +163,28 @@ class LacrosseAIService {
 
     // Apply trend analysis for more accurate projections
     const recentTrend = this.calculateRecentTrend(playerStats.games);
-    const trendMultiplier = 1 + (recentTrend * 0.1); // Adjust projection based on trend
+    const trendMultiplier = 1 + recentTrend * 0.1; // Adjust projection based on trend
 
     const projection: SeasonProjection = {
       goals: {
         current: seasonStats.totalGoals,
-        projected: Math.round((goalsPerGame * trendMultiplier) * totalSeasonGames),
+        projected: Math.round(
+          goalsPerGame * trendMultiplier * totalSeasonGames,
+        ),
         confidence: Math.min(gamesPlayed / 10, 1), // Higher confidence with more games
       },
       assists: {
         current: seasonStats.totalAssists,
-        projected: Math.round((assistsPerGame * trendMultiplier) * totalSeasonGames),
+        projected: Math.round(
+          assistsPerGame * trendMultiplier * totalSeasonGames,
+        ),
         confidence: Math.min(gamesPlayed / 10, 1),
       },
       groundBalls: {
         current: seasonStats.totalGroundBalls,
-        projected: Math.round((groundBallsPerGame * trendMultiplier) * totalSeasonGames),
+        projected: Math.round(
+          groundBallsPerGame * trendMultiplier * totalSeasonGames,
+        ),
         confidence: Math.min(gamesPlayed / 10, 1),
       },
     };
@@ -181,7 +214,9 @@ class LacrosseAIService {
   /**
    * Get position-specific performance benchmarks
    */
-  getPositionBenchmarks(position: string): Record<string, { excellent: number; good: number; average: number }> {
+  getPositionBenchmarks(
+    position: string,
+  ): Record<string, { excellent: number; good: number; average: number }> {
     const benchmarks = {
       Attack: {
         goalsPerGame: { excellent: 3.0, good: 2.0, average: 1.2 },
@@ -221,16 +256,24 @@ class LacrosseAIService {
   private calculateSeasonStats(playerStats: LacrossePlayerStats) {
     const games = playerStats.games;
     
-    return {
+    const stats: any = {
       totalGames: games.length,
       totalGoals: games.reduce((sum, game) => sum + game.goals, 0),
       totalAssists: games.reduce((sum, game) => sum + game.assists, 0),
       totalGroundBalls: games.reduce((sum, game) => sum + game.groundBalls, 0),
       totalShots: games.reduce((sum, game) => sum + game.shots, 0),
-      totalSaves: games.reduce((sum, game) => sum + (game.saves || 0), 0) || undefined,
-      totalFaceoffWins: games.reduce((sum, game) => sum + (game.faceoffWins || 0), 0) || undefined,
-      totalCausedTurnovers: games.reduce((sum, game) => sum + (game.causedTurnovers || 0), 0) || undefined,
     };
+    
+    const totalSaves = games.reduce((sum, game) => sum + (game.saves || 0), 0);
+    if (totalSaves > 0) stats.totalSaves = totalSaves;
+    
+    const totalFaceoffWins = games.reduce((sum, game) => sum + (game.faceoffWins || 0), 0);
+    if (totalFaceoffWins > 0) stats.totalFaceoffWins = totalFaceoffWins;
+    
+    const totalCausedTurnovers = games.reduce((sum, game) => sum + (game.causedTurnovers || 0), 0);
+    if (totalCausedTurnovers > 0) stats.totalCausedTurnovers = totalCausedTurnovers;
+    
+    return stats;
   }
 
   /**
@@ -239,33 +282,46 @@ class LacrosseAIService {
   private getRecentGamesData(games: LacrossePlayerStats['games']) {
     return games
       .slice(-5) // Last 5 games
-      .map(game => ({
-        date: game.date,
-        goals: game.goals,
-        assists: game.assists,
-        groundBalls: game.groundBalls,
-        shots: game.shots,
-        saves: game.saves,
-        faceoffWins: game.faceoffWins,
-        causedTurnovers: game.causedTurnovers,
-      }));
+      .map(game => {
+        const gameData: any = {
+          date: game.date,
+          goals: game.goals,
+          assists: game.assists,
+          groundBalls: game.groundBalls,
+          shots: game.shots,
+        };
+        if (game.saves !== undefined) gameData.saves = game.saves;
+        if (game.faceoffWins !== undefined) gameData.faceoffWins = game.faceoffWins;
+        if (game.causedTurnovers !== undefined) gameData.causedTurnovers = game.causedTurnovers;
+        return gameData;
+      });
   }
 
   /**
    * Calculate recent performance trend
    */
   private calculateRecentTrend(games: LacrossePlayerStats['games']): number {
-    if (games.length < 4) return 0;
+    if (games.length < 4) {
+      return 0;
+    }
 
     const recentGames = games.slice(-4);
     const olderGames = games.slice(-8, -4);
 
-    if (olderGames.length === 0) return 0;
+    if (olderGames.length === 0) {
+      return 0;
+    }
 
-    const recentAvg = recentGames.reduce((sum, game) => sum + game.goals + game.assists, 0) / recentGames.length;
-    const olderAvg = olderGames.reduce((sum, game) => sum + game.goals + game.assists, 0) / olderGames.length;
+    const recentAvg =
+      recentGames.reduce((sum, game) => sum + game.goals + game.assists, 0) /
+      recentGames.length;
+    const olderAvg =
+      olderGames.reduce((sum, game) => sum + game.goals + game.assists, 0) /
+      olderGames.length;
 
-    if (olderAvg === 0) return 0;
+    if (olderAvg === 0) {
+      return 0;
+    }
 
     return (recentAvg - olderAvg) / olderAvg; // Percentage change
   }
@@ -276,7 +332,7 @@ class LacrosseAIService {
   private createInsightFromResponse(
     aiResponse: OpenAIResponse,
     insightType: LacrosseInsightRequest['insightType'],
-    position: string
+    position: string,
   ): LacrosseInsight {
     const insightConfig = {
       performance_analysis: {
@@ -330,7 +386,8 @@ class LacrosseAIService {
           id: 'fallback-attack-1',
           type: 'improvement_suggestions' as const,
           title: 'Training Focus',
-          content: 'Focus on developing your weak-hand shooting and off-ball movement to create better scoring opportunities.',
+          content:
+            'Focus on developing your weak-hand shooting and off-ball movement to create better scoring opportunities.',
           priority: 'high' as const,
           category: 'Development',
           generatedAt: new Date(),
@@ -343,7 +400,8 @@ class LacrosseAIService {
           id: 'fallback-midfield-1',
           type: 'improvement_suggestions' as const,
           title: 'Training Focus',
-          content: 'Work on your transition game and face-off skills to add more value in critical situations.',
+          content:
+            'Work on your transition game and face-off skills to add more value in critical situations.',
           priority: 'high' as const,
           category: 'Development',
           generatedAt: new Date(),
@@ -356,7 +414,8 @@ class LacrosseAIService {
           id: 'fallback-defense-1',
           type: 'improvement_suggestions' as const,
           title: 'Training Focus',
-          content: 'Focus on your footwork and stick checks to improve your ability to force turnovers.',
+          content:
+            'Focus on your footwork and stick checks to improve your ability to force turnovers.',
           priority: 'high' as const,
           category: 'Development',
           generatedAt: new Date(),

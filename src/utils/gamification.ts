@@ -92,13 +92,18 @@ export const BADGES: Badge[] = [
 
 // Utility Functions
 export const calculateLevel = (totalXP: number): Level => {
-  return LEVELS.find(level => totalXP >= level.minXP && totalXP <= level.maxXP) || LEVELS[0];
+  return (
+    LEVELS.find(level => totalXP >= level.minXP && totalXP <= level.maxXP) ||
+    LEVELS[0]
+  );
 };
 
 export const calculateLevelProgress = (totalXP: number): number => {
   const currentLevel = calculateLevel(totalXP);
-  if (currentLevel.maxXP === Infinity) return 1; // Captain level is maxed
-  
+  if (currentLevel.maxXP === Infinity) {
+    return 1;
+  } // Captain level is maxed
+
   const progressInLevel = totalXP - currentLevel.minXP;
   const levelRange = currentLevel.maxXP - currentLevel.minXP;
   return Math.min(progressInLevel / levelRange, 1);
@@ -115,7 +120,11 @@ export const getXPToNextLevel = (totalXP: number): number => {
   return nextLevel ? Math.max(0, nextLevel.minXP - totalXP) : 0;
 };
 
-export const awardXP = (currentXP: number, reward: number, reason: string): XPReward => {
+export const awardXP = (
+  currentXP: number,
+  reward: number,
+  reason: string,
+): XPReward => {
   return {
     amount: reward,
     reason,
@@ -123,7 +132,10 @@ export const awardXP = (currentXP: number, reward: number, reason: string): XPRe
   };
 };
 
-export const checkBadgeUnlock = (badges: Badge[], condition: string): Badge[] => {
+export const checkBadgeUnlock = (
+  badges: Badge[],
+  condition: string,
+): Badge[] => {
   return badges.map(badge => ({
     ...badge,
     isUnlocked: badge.unlockCondition === condition || badge.isUnlocked,

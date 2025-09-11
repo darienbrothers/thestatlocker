@@ -15,7 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { colors, fonts, fontSizes, spacing, borderRadius } from '@/constants/theme';
+import {
+  colors,
+  fonts,
+  fontSizes,
+  spacing,
+  borderRadius,
+} from '@/constants/theme';
 import { GameStats } from '@/types';
 import { useGameStore } from '@shared/stores/gameStore';
 import { useAuthStore } from '@shared/stores/authStore';
@@ -28,11 +34,16 @@ interface LogGameModalProps {
   onGameLogged?: (gameData: any) => void;
 }
 
-const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosition, onGameLogged }) => {
+const LogGameModal: React.FC<LogGameModalProps> = ({
+  visible,
+  onClose,
+  userPosition,
+  onGameLogged,
+}) => {
   const { user } = useAuthStore();
   const { logGame, isLoading } = useGameStore();
   const { addXP } = useGamificationStore();
-  
+
   // Use user's actual position from auth store, fallback to prop, then default
   const actualPosition = user?.position || userPosition || 'Attack';
 
@@ -40,40 +51,63 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
   const [opponent, setOpponent] = useState('');
   const [gameDate, setGameDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [seasonType, setSeasonType] = useState<'School Season' | 'Club Season'>('School Season');
+  const [seasonType, setSeasonType] = useState<'School Season' | 'Club Season'>(
+    'School Season',
+  );
   const [venue, setVenue] = useState('');
   const [teamScore, setTeamScore] = useState('');
   const [opponentScore, setOpponentScore] = useState('');
 
-  // Stats
-  const [stats, setStats] = useState<GameStats>({
-    goals: 0,
-    assists: 0,
-    shots: 0,
-    shotsOnGoal: 0,
-    turnovers: 0,
-    groundBalls: 0,
-    causedTurnovers: 0,
-    fouls: 0,
-    penalties: 0,
-  });
+  // Initialize stats with position-specific fields
+  const getInitialStats = (): GameStats => {
+    const baseStats: GameStats = {
+      goals: 0,
+      assists: 0,
+      shots: 0,
+      shotsOnGoal: 0,
+      turnovers: 0,
+      groundBalls: 0,
+      causedTurnovers: 0,
+      fouls: 0,
+      penalties: 0,
+    };
 
-  // Position-specific stats
-  useEffect(() => {
+    // Add position-specific stats
     if (actualPosition === 'Goalie') {
-      setStats(prev => ({ ...prev, saves: 0, goalsAgainst: 0 }));
+      baseStats.saves = 0;
+      baseStats.goalsAgainst = 0;
     } else if (actualPosition === 'FOGO') {
-      setStats(prev => ({ ...prev, faceoffWins: 0, faceoffLosses: 0 }));
+      baseStats.faceoffWins = 0;
+      baseStats.faceoffLosses = 0;
     }
+
+    return baseStats;
+  };
+
+  const [stats, setStats] = useState<GameStats>(getInitialStats());
+
+  // Update stats when position changes
+  useEffect(() => {
+    setStats(getInitialStats());
   }, [actualPosition]);
 
   // Live Calculations
-  const shootingPercentage = stats.shots > 0 ? ((stats.goals / stats.shots) * 100).toFixed(1) : '0.0';
-  const shotsOnGoalPercentage = stats.shots > 0 ? ((stats.shotsOnGoal / stats.shots) * 100).toFixed(1) : '0.0';
+  const shootingPercentage =
+    stats.shots > 0 ? ((stats.goals / stats.shots) * 100).toFixed(1) : '0.0';
+  const shotsOnGoalPercentage =
+    stats.shots > 0
+      ? ((stats.shotsOnGoal / stats.shots) * 100).toFixed(1)
+      : '0.0';
   const totalPoints = stats.goals + stats.assists;
-  const savePercentage = actualPosition === 'Goalie' && (stats.saves || 0) + (stats.goalsAgainst || 0) > 0 
-    ? (((stats.saves || 0) / ((stats.saves || 0) + (stats.goalsAgainst || 0))) * 100).toFixed(1) 
-    : '0.0';
+  const savePercentage =
+    actualPosition === 'Goalie' &&
+    (stats.saves || 0) + (stats.goalsAgainst || 0) > 0
+      ? (
+          ((stats.saves || 0) /
+            ((stats.saves || 0) + (stats.goalsAgainst || 0))) *
+          100
+        ).toFixed(1)
+      : '0.0';
 
   const updateStat = (key: keyof GameStats, value: number) => {
     setStats(prev => ({ ...prev, [key]: Math.max(0, value) }));
@@ -108,38 +142,35 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
 
       await logGame(gameData);
       await addXP(25, 'Game Logged'); // Award XP for logging game
-      
+
       // Call the gamification callback if provided
       if (onGameLogged) {
         await onGameLogged(gameData);
       }
-      
+
       Alert.alert('Success', 'Game logged successfully!', [
-        { text: 'OK', onPress: onClose }
+        { text: 'OK', onPress: onClose },
       ]);
-      
+
       // Reset form
       setOpponent('');
       setVenue('');
       setTeamScore('');
       setOpponentScore('');
-      setStats({
-        goals: 0,
-        assists: 0,
-        shots: 0,
-        shotsOnGoal: 0,
-        turnovers: 0,
-        groundBalls: 0,
-        causedTurnovers: 0,
-        fouls: 0,
-        penalties: 0,
-      });
+
+      // Reset stats using the same initialization logic
+      setStats(getInitialStats());
     } catch (error) {
       Alert.alert('Error', 'Failed to log game. Please try again.');
     }
   };
 
-  const StatInput = ({ label, value, onChangeValue, color = colors.primary }: {
+  const StatInput = ({
+    label,
+    value,
+    onChangeValue,
+    color = colors.primary,
+  }: {
     label: string;
     value: number;
     onChangeValue: (value: number) => void;
@@ -166,8 +197,12 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
   );
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <KeyboardAvoidingView 
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -187,7 +222,9 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
               <Ionicons name="calendar" size={20} color={colors.primary} />
               <Text style={styles.sectionTitle}>Game Details</Text>
             </View>
-            <Text style={styles.sectionSubtitle}>Basic information about the game</Text>
+            <Text style={styles.sectionSubtitle}>
+              Basic information about the game
+            </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Opponent</Text>
@@ -202,14 +239,18 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Game Date</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text style={styles.dateText}>
                   {gameDate.toLocaleDateString()}
                 </Text>
-                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.primary}
+                />
               </TouchableOpacity>
             </View>
 
@@ -219,28 +260,34 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                 <TouchableOpacity
                   style={[
                     styles.segmentButton,
-                    seasonType === 'School Season' && styles.segmentButtonActive
+                    seasonType === 'School Season' &&
+                      styles.segmentButtonActive,
                   ]}
                   onPress={() => setSeasonType('School Season')}
                 >
-                  <Text style={[
-                    styles.segmentText,
-                    seasonType === 'School Season' && styles.segmentTextActive
-                  ]}>
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      seasonType === 'School Season' &&
+                        styles.segmentTextActive,
+                    ]}
+                  >
                     School Season
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
                     styles.segmentButton,
-                    seasonType === 'Club Season' && styles.segmentButtonActive
+                    seasonType === 'Club Season' && styles.segmentButtonActive,
                   ]}
                   onPress={() => setSeasonType('Club Season')}
                 >
-                  <Text style={[
-                    styles.segmentText,
-                    seasonType === 'Club Season' && styles.segmentTextActive
-                  ]}>
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      seasonType === 'Club Season' && styles.segmentTextActive,
+                    ]}
+                  >
                     Club Season
                   </Text>
                 </TouchableOpacity>
@@ -251,55 +298,61 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
           {/* Stats Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.positionBadge}>Position: {actualPosition}</Text>
-              <Text style={styles.sectionTitle}>Your Stats ({actualPosition})</Text>
+              <Text style={styles.positionBadge}>
+                Position: {actualPosition}
+              </Text>
+              <Text style={styles.sectionTitle}>
+                Your Stats ({actualPosition})
+              </Text>
             </View>
-            <Text style={styles.sectionSubtitle}>Enter your performance statistics for this game</Text>
+            <Text style={styles.sectionSubtitle}>
+              Enter your performance statistics for this game
+            </Text>
 
             <View style={styles.statsGrid}>
               <StatInput
                 label="Goals"
                 value={stats.goals}
-                onChangeValue={(value) => updateStat('goals', value)}
+                onChangeValue={value => updateStat('goals', value)}
                 color={colors.success}
               />
               <StatInput
                 label="Assists"
                 value={stats.assists}
-                onChangeValue={(value) => updateStat('assists', value)}
+                onChangeValue={value => updateStat('assists', value)}
                 color={colors.primary}
               />
               <StatInput
                 label="Shots"
                 value={stats.shots}
-                onChangeValue={(value) => updateStat('shots', value)}
+                onChangeValue={value => updateStat('shots', value)}
               />
               <StatInput
                 label="Shots on Goal"
                 value={stats.shotsOnGoal}
-                onChangeValue={(value) => updateStat('shotsOnGoal', value)}
+                onChangeValue={value => updateStat('shotsOnGoal', value)}
               />
               <StatInput
                 label="Turnovers"
                 value={stats.turnovers}
-                onChangeValue={(value) => updateStat('turnovers', value)}
+                onChangeValue={value => updateStat('turnovers', value)}
                 color={colors.error}
               />
               <StatInput
                 label="Ground Balls"
                 value={stats.groundBalls}
-                onChangeValue={(value) => updateStat('groundBalls', value)}
+                onChangeValue={value => updateStat('groundBalls', value)}
               />
               <StatInput
                 label="Caused Turnovers"
                 value={stats.causedTurnovers}
-                onChangeValue={(value) => updateStat('causedTurnovers', value)}
+                onChangeValue={value => updateStat('causedTurnovers', value)}
                 color={colors.success}
               />
               <StatInput
                 label="Fouls"
                 value={stats.fouls}
-                onChangeValue={(value) => updateStat('fouls', value)}
+                onChangeValue={value => updateStat('fouls', value)}
                 color={colors.warning}
               />
 
@@ -309,13 +362,13 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                   <StatInput
                     label="Saves"
                     value={stats.saves || 0}
-                    onChangeValue={(value) => updateStat('saves', value)}
+                    onChangeValue={value => updateStat('saves', value)}
                     color={colors.success}
                   />
                   <StatInput
                     label="Goals Against"
                     value={stats.goalsAgainst || 0}
-                    onChangeValue={(value) => updateStat('goalsAgainst', value)}
+                    onChangeValue={value => updateStat('goalsAgainst', value)}
                     color={colors.error}
                   />
                 </>
@@ -326,13 +379,13 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
                   <StatInput
                     label="Faceoff Wins"
                     value={stats.faceoffWins || 0}
-                    onChangeValue={(value) => updateStat('faceoffWins', value)}
+                    onChangeValue={value => updateStat('faceoffWins', value)}
                     color={colors.success}
                   />
                   <StatInput
                     label="Faceoff Losses"
                     value={stats.faceoffLosses || 0}
-                    onChangeValue={(value) => updateStat('faceoffLosses', value)}
+                    onChangeValue={value => updateStat('faceoffLosses', value)}
                     color={colors.error}
                   />
                 </>
@@ -346,15 +399,21 @@ const LogGameModal: React.FC<LogGameModalProps> = ({ visible, onClose, userPosit
               <Ionicons name="calculator" size={20} color={colors.primary} />
               <Text style={styles.sectionTitle}>Live Calculations</Text>
             </View>
-            <Text style={styles.sectionSubtitle}>Auto-calculated stats as you type</Text>
+            <Text style={styles.sectionSubtitle}>
+              Auto-calculated stats as you type
+            </Text>
 
             <View style={styles.calculationsGrid}>
               <View style={styles.calculationCard}>
-                <Text style={styles.calculationValue}>{shootingPercentage}%</Text>
+                <Text style={styles.calculationValue}>
+                  {shootingPercentage}%
+                </Text>
                 <Text style={styles.calculationLabel}>Shooting %</Text>
               </View>
               <View style={styles.calculationCard}>
-                <Text style={styles.calculationValue}>{shotsOnGoalPercentage}%</Text>
+                <Text style={styles.calculationValue}>
+                  {shotsOnGoalPercentage}%
+                </Text>
                 <Text style={styles.calculationLabel}>Shots on Goal %</Text>
               </View>
               <View style={styles.calculationCard}>

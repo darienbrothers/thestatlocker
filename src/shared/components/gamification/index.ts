@@ -16,6 +16,13 @@ export { badgeService } from '../../services/BadgeService';
 export { streakService } from '../../services/StreakService';
 
 // Types
-export type { SeasonGoalProgress, ProgressSummary } from '../../services/ProgressService';
-export type { Badge, UserBadge, BadgeCategory } from '../../services/BadgeService';
+export type {
+  SeasonGoalProgress,
+  ProgressSummary,
+} from '../../services/ProgressService';
+export type {
+  Badge,
+  UserBadge,
+  BadgeCategory,
+} from '../../services/BadgeService';
 export type { StreakData, StreakType } from '../../services/StreakService';

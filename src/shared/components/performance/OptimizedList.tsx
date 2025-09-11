@@ -65,5 +65,5 @@ function OptimizedListComponent<T>({
 }
 
 export const OptimizedList = memo(OptimizedListComponent) as <T>(
-  props: OptimizedListProps<T>
+  props: OptimizedListProps<T>,
 ) => React.ReactElement;

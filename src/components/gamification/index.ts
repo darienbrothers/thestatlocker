@@ -12,9 +12,19 @@ export { badgeService } from '../../shared/services/BadgeService';
 export { streakService } from '../../shared/services/StreakService';
 
 // Types
-export type { SeasonGoalProgress, ProgressSummary } from '../../shared/services/ProgressService';
-export type { Badge, UserBadge, BadgeCategory } from '../../shared/services/BadgeService';
-export type { StreakData, StreakType } from '../../shared/services/StreakService';
+export type {
+  SeasonGoalProgress,
+  ProgressSummary,
+} from '../../shared/services/ProgressService';
+export type {
+  Badge,
+  UserBadge,
+  BadgeCategory,
+} from '../../shared/services/BadgeService';
+export type {
+  StreakData,
+  StreakType,
+} from '../../shared/services/StreakService';
 
 // Keep useful legacy components for transition
 export { OnboardingStepper } from './OnboardingStepper';

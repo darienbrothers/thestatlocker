@@ -18,7 +18,8 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
   progress = 0,
   maxProgress = 1,
 }) => {
-  const progressPercentage = maxProgress > 0 ? (progress / maxProgress) * 100 : 0;
+  const progressPercentage =
+    maxProgress > 0 ? (progress / maxProgress) * 100 : 0;
 
   return (
     <View style={[styles.container, isUnlocked && styles.unlockedContainer]}>
@@ -27,20 +28,21 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
           {getBadgeIcon(badge.iconName)}
         </Text>
       </View>
-      
+
       <View style={styles.content}>
         <Text style={[styles.title, isUnlocked && styles.unlockedTitle]}>
           {badge.title}
         </Text>
-        <Text style={styles.description}>
-          {badge.description}
-        </Text>
-        
+        <Text style={styles.description}>{badge.description}</Text>
+
         {!isUnlocked && maxProgress > 1 && (
           <View style={styles.progressContainer}>
             <View style={styles.progressTrack}>
-              <View 
-                style={[styles.progressFill, { width: `${Math.min(progressPercentage, 100)}%` }]} 
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${Math.min(progressPercentage, 100)}%` },
+                ]}
               />
             </View>
             <Text style={styles.progressText}>
@@ -48,14 +50,14 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
             </Text>
           </View>
         )}
-        
+
         {isUnlocked && unlockedAt && (
           <Text style={styles.unlockedDate}>
             Earned {formatDate(unlockedAt)}
           </Text>
         )}
       </View>
-      
+
       {isUnlocked && (
         <View style={styles.checkmark}>
           <Text style={styles.checkmarkText}>✓</Text>
@@ -68,18 +70,18 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
 const getBadgeIcon = (iconName: string): string => {
   const iconMap: Record<string, string> = {
     'shield-check': '🛡️',
-    'target': '🎯',
-    'award': '🏆',
-    'shield': '🔒',
-    'flame': '🔥',
+    target: '🎯',
+    award: '🏆',
+    shield: '🔒',
+    flame: '🔥',
     'circle-dot': '⚪',
-    'users': '👥',
-    'zap': '⚡',
+    users: '👥',
+    zap: '⚡',
     'trending-up': '📈',
     'calendar-check': '📅',
     'check-circle': '✅',
   };
-  
+
   return iconMap[iconName] || '🏅';
 };
 

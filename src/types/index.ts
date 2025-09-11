@@ -9,7 +9,6 @@ export interface UserProfile {
   club?: Club;
   purpose?: Purpose;
   focus_30d?: Focus;
-  strengths: string[];
   growth: string[];
   training_days_per_week: number;
   nudge: NudgeSettings;
@@ -21,7 +20,14 @@ export interface UserProfile {
   updated_at: string;
 }
 
-export type Position = 'Goalie' | 'Attack' | 'Midfield' | 'Defense' | 'FOGO' | 'LSM' | 'SSDM';
+export type Position =
+  | 'Goalie'
+  | 'Attack'
+  | 'Midfield'
+  | 'Defense'
+  | 'FOGO'
+  | 'LSM'
+  | 'SSDM';
 
 export interface HighSchool {
   name: string;
@@ -38,8 +44,19 @@ export interface Club {
   state: string;
 }
 
-export type Purpose = 'improve' | 'consistent' | 'track' | 'profile' | 'accountable' | 'other';
-export type Focus = 'skill' | 'game' | 'conditioning' | 'confidence' | 'leadership';
+export type Purpose =
+  | 'improve'
+  | 'consistent'
+  | 'track'
+  | 'profile'
+  | 'accountable'
+  | 'other';
+export type Focus =
+  | 'skill'
+  | 'game'
+  | 'conditioning'
+  | 'confidence'
+  | 'leadership';
 
 export interface NudgeSettings {
   time: string;
@@ -75,7 +92,7 @@ export interface PositionStats {
   clears?: number;
   clear_attempts?: number;
   caused_turnovers?: number;
-  
+
   // Attack Stats
   goals?: number;
   assists?: number;
@@ -83,28 +100,28 @@ export interface PositionStats {
   turnovers?: number;
   ride_success?: number;
   ride_attempts?: number;
-  
+
   // Midfield Stats
   ground_balls?: number;
   successful_dodges?: number;
   dodge_attempts?: number;
   clearing_success?: number;
   clearing_attempts?: number;
-  
+
   // Defense Stats
   matchup_goals_allowed?: number;
   penalties?: number;
   slide_success?: number;
   slide_attempts?: number;
   shot_blocks?: number;
-  
+
   // FOGO Stats
   faceoff_wins?: number;
   faceoff_attempts?: number;
   post_win_turnovers?: number;
   exit_speed?: number;
   transition_assists?: number;
-  
+
   // LSM/SSDM Stats
   defensive_stops?: number;
   defensive_attempts?: number;
@@ -188,27 +205,29 @@ export type RootStackParamList = {
   Auth: undefined;
   NameEntry: undefined;
   ProfileImage: { firstName: string; lastName: string };
-  BasicInfo: { firstName?: string; lastName?: string; profileImage?: string | null | undefined };
-  HighSchool: { firstName?: string; lastName?: string; profileImage?: string | null | undefined; gender?: 'boys' | 'girls'; position?: string; graduationYear?: number };
-  ClubTeam: { 
-    firstName?: string; 
-    lastName?: string; 
+  BasicInfo: {
+    firstName?: string;
+    lastName?: string;
     profileImage?: string | null | undefined;
-    gender?: 'boys' | 'girls'; 
-    position?: string; 
-    graduationYear?: number;
-    schoolName?: string;
-    city?: string;
-    state?: string;
-    level?: 'Varsity' | 'JV' | 'Freshman';
   };
-  Academic: { 
-    firstName: string; 
-    lastName: string; 
+  TeamInformation: {
+    firstName?: string;
+    lastName?: string;
+    profileImage?: string | null | undefined;
+    gender?: 'boys' | 'girls';
+    position?: string;
+    graduationYear?: number;
+    height?: string;
+    sport?: string;
+    returnTo?: string;
+  };
+  Academic: {
+    firstName: string;
+    lastName: string;
     profileImage?: string | null | undefined;
     sport: string;
-    gender: 'boys' | 'girls'; 
-    position: string; 
+    gender: 'boys' | 'girls';
+    position: string;
     graduationYear: number;
     height: string;
     schoolName: string;
@@ -222,14 +241,16 @@ export type RootStackParamList = {
     clubCity: string;
     clubState: string;
     clubJerseyNumber: string;
+    returnTo?: string;
+    [key: string]: any;
   };
-  Goals: { 
-    firstName: string; 
-    lastName: string; 
+  Goals: {
+    firstName: string;
+    lastName: string;
     profileImage?: string | null | undefined;
     sport: string;
-    gender: 'boys' | 'girls'; 
-    position: string; 
+    gender: 'boys' | 'girls';
+    position: string;
     graduationYear: number;
     height: string;
     schoolName: string;
@@ -251,12 +272,12 @@ export type RootStackParamList = {
     academicInterest: string;
     academicAwards: string;
   };
-  Review: { 
-    firstName?: string; 
-    lastName?: string; 
+  Review: {
+    firstName?: string;
+    lastName?: string;
     profileImage?: string | null | undefined;
-    gender?: 'boys' | 'girls'; 
-    position?: string; 
+    gender?: 'boys' | 'girls';
+    position?: string;
     graduationYear?: number;
     schoolName?: string;
     city?: string;
@@ -268,11 +289,13 @@ export type RootStackParamList = {
     clubCity?: string;
     clubState?: string;
     goals?: any;
-    strengths?: string[];
-    growthAreas?: string[];
   };
-  Paywall: undefined;
-  MainTabs: undefined;
+  Paywall: {
+    onboardingData?: any;
+  };
+  MainTabs: {
+    onboardingData?: any;
+  };
 };
 
 export type MainTabParamList = {
@@ -317,7 +340,9 @@ export interface AuthState {
 export interface GameLogState {
   logs: GameLog[];
   isLoading: boolean;
-  addLog: (log: Omit<GameLog, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addLog: (
+    log: Omit<GameLog, 'id' | 'created_at' | 'updated_at'>,
+  ) => Promise<void>;
   getLogs: (userId: string) => Promise<void>;
   updateLog: (id: string, updates: Partial<GameLog>) => Promise<void>;
   deleteLog: (id: string) => Promise<void>;

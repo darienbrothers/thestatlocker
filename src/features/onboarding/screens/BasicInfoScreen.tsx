@@ -1,5 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, Animated, ScrollView, TouchableWithoutFeedback, Keyboard, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Image,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
@@ -7,20 +21,33 @@ import { OnboardingStepper } from '@/components/gamification';
 
 interface BasicInfoScreenProps {
   navigation: any;
-  route: { params?: { firstName?: string; lastName?: string; profileImage?: string | null } };
+  route: {
+    params?: {
+      firstName?: string;
+      lastName?: string;
+      profileImage?: string | null;
+    };
+  };
 }
 
 const BOYS_POSITIONS = [
-  'Attack', 'Midfield', 'Defense', 'Goalie', 'LSM', 'FOGO'
+  'Attack',
+  'Midfield',
+  'Defense',
+  'Goalie',
+  'LSM',
+  'FOGO',
 ];
 
-const GIRLS_POSITIONS = [
-  'Attack', 'Midfield', 'Defense', 'Goalie'
-];
+const GIRLS_POSITIONS = ['Attack', 'Midfield', 'Defense', 'Goalie'];
 
 const SPORTS = [
   { id: 'lacrosse', name: 'Lacrosse', icon: '🥍', available: true },
   { id: 'basketball', name: 'Basketball', icon: '🏀', available: false },
+  { id: 'football', name: 'Football', icon: '🏈', available: false },
+  { id: 'soccer', name: 'Soccer', icon: '⚽', available: false },
+  { id: 'baseball', name: 'Baseball', icon: '⚾', available: false },
+  { id: 'hockey', name: 'Hockey', icon: '🏒', available: false },
 ];
 
 const GRADUATION_YEARS = [
@@ -30,14 +57,24 @@ const GRADUATION_YEARS = [
   { year: 2028, grade: 'Freshman' },
 ];
 
-export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenProps) {
+export default function BasicInfoScreen({
+  navigation,
+  route,
+}: BasicInfoScreenProps) {
   const { firstName, lastName, profileImage } = route.params || {};
   const [sport, setSport] = useState<string>('');
   const [gender, setGender] = useState<'boys' | 'girls' | ''>('');
   const [position, setPosition] = useState<string>('');
   const [graduationYear, setGraduationYear] = useState<number | null>(null);
   const [height, setHeight] = useState<string>('');
-  
+
+  // Numeric validation helper
+  const handleHeightChange = (text: string) => {
+    // Allow only numbers, apostrophe, quote, comma, and spaces for height format (e.g., "5'10", "6 2", "5,10")
+    const numericText = text.replace(/[^0-9'"',\s]/g, '');
+    setHeight(numericText);
+  };
+
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -90,11 +127,7 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
   const handleSportSelect = (selectedSport: string) => {
     const sportData = SPORTS.find(s => s.id === selectedSport);
     if (!sportData?.available) {
-      Alert.alert(
-        'Coming Soon!', 
-        'We\'re rolling out to lacrosse first. More sports coming soon!',
-        [{ text: 'Got it', style: 'default' }]
-      );
+      // Don't show alert, just don't allow selection
       return;
     }
     setSport(selectedSport);
@@ -131,7 +164,7 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
         }),
       ]).start(() => {
         // Navigate after animation completes
-        navigation.navigate('HighSchool', { 
+        navigation.navigate('TeamInformation', {
           firstName,
           lastName,
           profileImage,
@@ -139,7 +172,7 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
           gender,
           position,
           graduationYear,
-          height
+          height,
         });
       });
     }
@@ -153,128 +186,175 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
     Keyboard.dismiss();
   };
 
-  const currentPositions = gender === 'boys' ? BOYS_POSITIONS : gender === 'girls' ? GIRLS_POSITIONS : [];
-  const isValid = sport && gender && position && graduationYear && height.trim();
+  const currentPositions =
+    gender === 'boys'
+      ? BOYS_POSITIONS
+      : gender === 'girls'
+        ? GIRLS_POSITIONS
+        : [];
+  const isValid =
+    sport && gender && position && graduationYear && height.trim();
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Stepper with Back Button */}
-      <OnboardingStepper 
+      <OnboardingStepper
         currentStep={3}
         totalSteps={8}
         stepTitle="Basic Information"
         showBackButton={true}
         onBackPress={handleBack}
       />
-      
-      <KeyboardAvoidingView 
+
+      <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <ScrollView 
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.content,
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
-                }
+                },
               ]}
             >
               {/* Header Section */}
               <View style={styles.headerSection}>
-                <Text style={styles.title}>
-                  Gear Up
-                </Text>
+                <Image
+                  source={require('../../../../assets/logos/logoBlack.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.title}>Build Your Player Profile</Text>
                 <Text style={styles.subtitle}>
-                  Every locker has a player card. Let's fill yours out.
+                  Time to show the world what you're made of. Let's build your
+                  digital player card.
                 </Text>
               </View>
 
               {/* Sport Selection */}
               <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="fitness" size={20} color={theme.colors.primary} style={styles.sectionIcon} />
-                  <Text style={styles.sectionTitle}>Choose your Sport</Text>
+                  <Ionicons
+                    name="fitness"
+                    size={20}
+                    color={theme.colors.primary}
+                    style={styles.sectionIcon}
+                  />
+                  <Text style={styles.sectionTitle}>What's Your Game?</Text>
                 </View>
-                <Text style={styles.sectionSubtitle}>Select your sport to get started.</Text>
-                <View style={styles.optionsContainer}>
-                  {SPORTS.map((sportOption) => (
+                <Text style={styles.sectionSubtitle}>
+                  Select your sport to get started.
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sportsCarousel}
+                  style={styles.sportsScrollView}
+                >
+                  {SPORTS.map(sportOption => (
                     <TouchableOpacity
                       key={sportOption.id}
                       style={[
-                        styles.optionCard,
-                        sport === sportOption.id && styles.optionCardSelected,
-                        !sportOption.available && styles.optionCardDisabled
+                        styles.sportCarouselCard,
+                        sport === sportOption.id &&
+                          styles.sportCarouselCardSelected,
+                        !sportOption.available &&
+                          styles.sportCarouselCardDisabled,
                       ]}
                       onPress={() => handleSportSelect(sportOption.id)}
-                      activeOpacity={0.8}
+                      activeOpacity={sportOption.available ? 0.8 : 1}
                     >
-                      <View style={styles.optionContent}>
-                        <Text style={styles.optionEmoji}>{sportOption.icon}</Text>
-                        <Text style={[
-                          styles.optionText,
-                          sport === sportOption.id && styles.optionTextSelected,
-                          !sportOption.available && styles.optionTextDisabled
-                        ]}>
+                      <View style={styles.sportCardContent}>
+                        <Text style={styles.sportEmoji}>
+                          {sportOption.icon}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.sportText,
+                            sport === sportOption.id &&
+                              styles.sportTextSelected,
+                            !sportOption.available && styles.sportTextDisabled,
+                          ]}
+                        >
                           {sportOption.name}
                         </Text>
                         {!sportOption.available && (
-                          <View style={styles.lockIcon}>
-                            <Ionicons name="lock-closed" size={16} color={theme.colors.textSecondary} />
+                          <View style={styles.comingSoonBadge}>
+                            <Text style={styles.comingSoonText}>
+                              Coming Soon
+                            </Text>
                           </View>
                         )}
                         {sport === sportOption.id && sportOption.available && (
-                          <View style={styles.checkmark}>
-                            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                          <View style={styles.sportCheckmark}>
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={18}
+                              color={theme.colors.primary}
+                            />
                           </View>
                         )}
                       </View>
                     </TouchableOpacity>
                   ))}
-                </View>
+                </ScrollView>
               </View>
 
               {/* Gender Selection - Shows after sport is selected */}
               {sport === 'lacrosse' && (
-                <Animated.View 
-                  style={[
-                    styles.sectionContainer,
-                    { opacity: genderFadeAnim }
-                  ]}
+                <Animated.View
+                  style={[styles.sectionContainer, { opacity: genderFadeAnim }]}
                 >
                   <View style={styles.sectionHeader}>
-                    <Ionicons name="people" size={20} color={theme.colors.primary} style={styles.sectionIcon} />
-                    <Text style={styles.sectionTitle}>Choose your Game</Text>
+                    <Ionicons
+                      name="people"
+                      size={20}
+                      color={theme.colors.primary}
+                      style={styles.sectionIcon}
+                    />
+                    <Text style={styles.sectionTitle}>
+                      Boys or Girls League?
+                    </Text>
                   </View>
-                  <Text style={styles.sectionSubtitle}>Boys or Girls lacrosse?</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    Boys or Girls lacrosse?
+                  </Text>
                   <View style={styles.optionsContainer}>
                     <TouchableOpacity
                       style={[
                         styles.optionCard,
-                        gender === 'boys' && styles.optionCardSelected
+                        gender === 'boys' && styles.optionCardSelected,
                       ]}
                       onPress={() => handleGenderSelect('boys')}
                       activeOpacity={0.8}
                     >
                       <View style={styles.optionContent}>
                         <Text style={styles.optionEmoji}>♂️</Text>
-                        <Text style={[
-                          styles.optionText,
-                          gender === 'boys' && styles.optionTextSelected
-                        ]}>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            gender === 'boys' && styles.optionTextSelected,
+                          ]}
+                        >
                           Boys Lacrosse
                         </Text>
                         {gender === 'boys' && (
                           <View style={styles.checkmark}>
-                            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={20}
+                              color={theme.colors.primary}
+                            />
                           </View>
                         )}
                       </View>
@@ -283,22 +363,28 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
                     <TouchableOpacity
                       style={[
                         styles.optionCard,
-                        gender === 'girls' && styles.optionCardSelected
+                        gender === 'girls' && styles.optionCardSelected,
                       ]}
                       onPress={() => handleGenderSelect('girls')}
                       activeOpacity={0.8}
                     >
                       <View style={styles.optionContent}>
                         <Text style={styles.optionEmoji}>♀️</Text>
-                        <Text style={[
-                          styles.optionText,
-                          gender === 'girls' && styles.optionTextSelected
-                        ]}>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            gender === 'girls' && styles.optionTextSelected,
+                          ]}
+                        >
                           Girls Lacrosse
                         </Text>
                         {gender === 'girls' && (
                           <View style={styles.checkmark}>
-                            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={20}
+                              color={theme.colors.primary}
+                            />
                           </View>
                         )}
                       </View>
@@ -307,121 +393,170 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
                 </Animated.View>
               )}
 
-              {/* Position Selection - Shows after gender is selected */}
+              {/* Player Card Section - Combined Position/Year/Height */}
               {sport === 'lacrosse' && gender && (
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.sectionContainer,
-                    { opacity: positionFadeAnim }
+                    { opacity: positionFadeAnim },
                   ]}
                 >
                   <View style={styles.sectionHeader}>
-                    <Ionicons name="locate" size={20} color={theme.colors.primary} style={styles.sectionIcon} />
-                    <Text style={styles.sectionTitle}>Position on the Field</Text>
+                    <Ionicons
+                      name="card"
+                      size={20}
+                      color={theme.colors.primary}
+                      style={styles.sectionIcon}
+                    />
+                    <Text style={styles.sectionTitle}>
+                      Build Your Player Card
+                    </Text>
                   </View>
-                  <Text style={styles.sectionSubtitle}>Where do you run the show?</Text>
-                  <View style={styles.positionGrid}>
-                    {currentPositions.map((pos) => (
-                      <TouchableOpacity
-                        key={pos}
-                        style={[
-                          styles.positionCard,
-                          position === pos && styles.positionCardSelected
-                        ]}
-                        onPress={() => handlePositionSelect(pos)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[
-                          styles.positionText,
-                          position === pos && styles.positionTextSelected
-                        ]}>
-                          {pos}
-                        </Text>
-                        {position === pos && (
-                          <View style={styles.positionCheckmark}>
-                            <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </Animated.View>
-              )}
+                  <Text style={styles.sectionSubtitle}>
+                    Complete your digital player profile with these key details.
+                  </Text>
 
-              {/* Graduation Year Selection - Shows after position is selected */}
-              {sport === 'lacrosse' && gender && position && (
-                <Animated.View 
-                  style={[
-                    styles.sectionContainer,
-                    { opacity: positionFadeAnim }
-                  ]}
-                >
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="school" size={20} color={theme.colors.primary} style={styles.sectionIcon} />
-                    <Text style={styles.sectionTitle}>Grad Year</Text>
-                  </View>
-                  <Text style={styles.sectionSubtitle}>What class are you repping?</Text>
-                  <View style={styles.yearGrid}>
-                    {GRADUATION_YEARS.map(({ year, grade }) => (
-                      <TouchableOpacity
-                        key={year}
-                        style={[
-                          styles.yearCard,
-                          graduationYear === year && styles.yearCardSelected
-                        ]}
-                        onPress={() => handleYearSelect(year)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[
-                          styles.yearText,
-                          graduationYear === year && styles.yearTextSelected
-                        ]}>
-                          {year}
+                  <View style={styles.playerCardContainer}>
+                    {/* Position Selection */}
+                    <View style={styles.playerCardSection}>
+                      <View style={styles.playerCardSectionHeader}>
+                        <Ionicons
+                          name="locate"
+                          size={16}
+                          color={theme.colors.primary}
+                          style={styles.playerCardIcon}
+                        />
+                        <Text style={styles.playerCardSectionTitle}>
+                          Position
                         </Text>
-                        <Text style={[
-                          styles.gradeText,
-                          graduationYear === year && styles.gradeTextSelected
-                        ]}>
-                          {grade}
-                        </Text>
-                        {graduationYear === year && (
-                          <View style={styles.yearCheckmark}>
-                            <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </Animated.View>
-              )}
-
-              {/* Height Section - Shows after graduation year is selected */}
-              {sport === 'lacrosse' && gender && position && graduationYear && (
-                <Animated.View 
-                  style={[
-                    styles.sectionContainer,
-                    { opacity: positionFadeAnim }
-                  ]}
-                >
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="resize" size={20} color={theme.colors.primary} style={styles.sectionIcon} />
-                    <Text style={styles.sectionTitle}>Height</Text>
-                  </View>
-                  <Text style={styles.sectionSubtitle}>How tall are you?</Text>
-                  
-                  <View style={styles.heightCard}>
-                    <View style={styles.heightInputWrapper}>
-                      <Ionicons name="trending-up" size={20} color={theme.colors.primary} style={styles.heightIcon} />
-                      <TextInput
-                        style={styles.heightInput}
-                        value={height}
-                        onChangeText={setHeight}
-                        placeholder="5'10"
-                        placeholderTextColor={theme.colors.textSecondary}
-                        keyboardType="default"
-                        returnKeyType="done"
-                      />
+                      </View>
+                      <View style={styles.positionGrid}>
+                        {currentPositions.map(pos => (
+                          <TouchableOpacity
+                            key={pos}
+                            style={[
+                              styles.positionCard,
+                              position === pos && styles.positionCardSelected,
+                            ]}
+                            onPress={() => handlePositionSelect(pos)}
+                            activeOpacity={0.8}
+                          >
+                            <Text
+                              style={[
+                                styles.positionText,
+                                position === pos && styles.positionTextSelected,
+                              ]}
+                            >
+                              {pos}
+                            </Text>
+                            {position === pos && (
+                              <View style={styles.positionCheckmark}>
+                                <Ionicons
+                                  name="checkmark-circle"
+                                  size={16}
+                                  color={theme.colors.primary}
+                                />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
+
+                    {/* Graduation Year Selection */}
+                    {position && (
+                      <View style={styles.playerCardSection}>
+                        <View style={styles.playerCardSectionHeader}>
+                          <Ionicons
+                            name="school"
+                            size={16}
+                            color={theme.colors.primary}
+                            style={styles.playerCardIcon}
+                          />
+                          <Text style={styles.playerCardSectionTitle}>
+                            Graduation Year
+                          </Text>
+                        </View>
+                        <View style={styles.yearGrid}>
+                          {GRADUATION_YEARS.map(({ year, grade }) => (
+                            <TouchableOpacity
+                              key={year}
+                              style={[
+                                styles.yearCard,
+                                graduationYear === year &&
+                                  styles.yearCardSelected,
+                              ]}
+                              onPress={() => handleYearSelect(year)}
+                              activeOpacity={0.8}
+                            >
+                              <Text
+                                style={[
+                                  styles.yearText,
+                                  graduationYear === year &&
+                                    styles.yearTextSelected,
+                                ]}
+                              >
+                                {year}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.gradeText,
+                                  graduationYear === year &&
+                                    styles.gradeTextSelected,
+                                ]}
+                              >
+                                {grade}
+                              </Text>
+                              {graduationYear === year && (
+                                <View style={styles.yearCheckmark}>
+                                  <Ionicons
+                                    name="checkmark-circle"
+                                    size={16}
+                                    color={theme.colors.primary}
+                                  />
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Height Input */}
+                    {position && graduationYear && (
+                      <View style={styles.playerCardSection}>
+                        <View style={styles.playerCardSectionHeader}>
+                          <Ionicons
+                            name="resize"
+                            size={16}
+                            color={theme.colors.primary}
+                            style={styles.playerCardIcon}
+                          />
+                          <Text style={styles.playerCardSectionTitle}>
+                            Height
+                          </Text>
+                        </View>
+                        <View style={styles.heightInputContainer}>
+                          <View style={styles.heightInputWrapper}>
+                            <Ionicons
+                              name="resize-outline"
+                              size={20}
+                              color={theme.colors.primary}
+                              style={styles.heightIcon}
+                            />
+                            <TextInput
+                              style={styles.heightInput}
+                              value={height}
+                              onChangeText={handleHeightChange}
+                              placeholder="5'10"
+                              placeholderTextColor={theme.colors.textSecondary}
+                              keyboardType="numeric"
+                              returnKeyType="done"
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 </Animated.View>
               )}
@@ -430,32 +565,44 @@ export default function BasicInfoScreen({ navigation, route }: BasicInfoScreenPr
               <View style={styles.buttonSection}>
                 <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
                   <TouchableOpacity
-                    style={[styles.continueButton, !isValid && styles.disabledButton]}
+                    style={[
+                      styles.continueButton,
+                      !isValid && styles.disabledButton,
+                    ]}
                     onPress={handleContinue}
                     disabled={!isValid}
                     activeOpacity={0.8}
                   >
                     <LinearGradient
-                      colors={isValid ? [theme.colors.primary, theme.colors.primary + 'DD'] : [theme.colors.neutral300, theme.colors.neutral300]}
+                      colors={
+                        isValid
+                          ? [theme.colors.primary, theme.colors.primary + 'DD']
+                          : [theme.colors.neutral300, theme.colors.neutral300]
+                      }
                       start={[0, 0]}
                       end={[1, 1]}
                       style={styles.buttonGradient}
                     >
-                      <Text style={[styles.buttonText, !isValid && styles.disabledButtonText]}>
+                      <Text
+                        style={[
+                          styles.buttonText,
+                          !isValid && styles.disabledButtonText,
+                        ]}
+                      >
                         Next
                       </Text>
-                      <Ionicons 
-                        name="arrow-forward" 
-                        size={20} 
-                        color={isValid ? theme.colors.white : theme.colors.textTertiary} 
+                      <Ionicons
+                        name="arrow-forward"
+                        size={20}
+                        color={
+                          isValid
+                            ? theme.colors.white
+                            : theme.colors.textTertiary
+                        }
                       />
                     </LinearGradient>
                   </TouchableOpacity>
                 </Animated.View>
-                
-                <Text style={styles.helperText}>
-                  Building your personalized lacrosse profile
-                </Text>
               </View>
             </Animated.View>
           </ScrollView>
@@ -704,10 +851,36 @@ const styles = StyleSheet.create({
   },
   // Player Card Layout
   playerCardContainer: {
-    backgroundColor: theme.colors.neutral50,
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: theme.colors.white,
+    borderRadius: 20,
+    padding: 24,
     marginVertical: 8,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral200,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  playerCardSection: {
+    marginBottom: 24,
+  },
+  playerCardSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  playerCardIcon: {
+    marginRight: 8,
+  },
+  playerCardSectionTitle: {
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.textPrimary,
+  },
+  heightInputContainer: {
+    marginTop: 4,
   },
   // Height Input
   heightCard: {
@@ -729,7 +902,7 @@ const styles = StyleSheet.create({
   },
   heightIcon: {
     marginRight: 16,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.primary + '15',
     padding: 8,
     borderRadius: 8,
   },
@@ -748,5 +921,83 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textPrimary,
+  },
+  // Logo
+  logo: {
+    width: 56,
+    height: 56,
+    marginBottom: 24,
+  },
+  // Sports Carousel
+  sportsScrollView: {
+    marginTop: 4,
+  },
+  sportsCarousel: {
+    paddingHorizontal: 0,
+    gap: 12,
+  },
+  sportCarouselCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral200,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    minWidth: 140,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  sportCarouselCardSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '08',
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.2,
+  },
+  sportCarouselCardDisabled: {
+    opacity: 0.7,
+    backgroundColor: theme.colors.neutral50,
+  },
+  sportCardContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sportEmoji: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  sportText: {
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  sportTextSelected: {
+    color: theme.colors.primary,
+  },
+  sportTextDisabled: {
+    color: theme.colors.textSecondary,
+  },
+  comingSoonBadge: {
+    backgroundColor: theme.colors.neutral200,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  comingSoonText: {
+    fontSize: 11,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  sportCheckmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });

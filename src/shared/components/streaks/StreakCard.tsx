@@ -8,7 +8,10 @@ interface StreakCardProps {
   onLogActivity?: () => void;
 }
 
-export const StreakCard: React.FC<StreakCardProps> = ({ streakData, onLogActivity }) => {
+export const StreakCard: React.FC<StreakCardProps> = ({
+  streakData,
+  onLogActivity,
+}) => {
   const getStreakTitle = (type: StreakType): string => {
     switch (type) {
       case StreakType.WALL_BALL:
@@ -46,13 +49,15 @@ export const StreakCard: React.FC<StreakCardProps> = ({ streakData, onLogActivit
   };
 
   return (
-    <View style={[styles.container, streakData.isActive && styles.activeContainer]}>
+    <View
+      style={[styles.container, streakData.isActive && styles.activeContainer]}
+    >
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <Text style={styles.emoji}>{getStreakEmoji(streakData.type)}</Text>
           <Text style={styles.title}>{getStreakTitle(streakData.type)}</Text>
         </View>
-        
+
         {streakData.current > 0 && (
           <View style={styles.streakBadge}>
             <Text style={styles.fireEmoji}>🔥</Text>
@@ -67,7 +72,8 @@ export const StreakCard: React.FC<StreakCardProps> = ({ streakData, onLogActivit
 
       {streakData.longest > 0 && streakData.current !== streakData.longest && (
         <Text style={styles.longestStreak}>
-          Personal best: {streakData.longest} {streakData.longest === 1 ? 'day' : 'days'}
+          Personal best: {streakData.longest}{' '}
+          {streakData.longest === 1 ? 'day' : 'days'}
         </Text>
       )}
 

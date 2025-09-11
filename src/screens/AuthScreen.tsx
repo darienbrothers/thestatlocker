@@ -24,9 +24,13 @@ type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
 type Mode = 'signIn' | 'signUp';
 
-export default function AuthScreen({ navigation }: { navigation: AuthScreenNavigationProp }) {
+export default function AuthScreen({
+  navigation,
+}: {
+  navigation: AuthScreenNavigationProp;
+}) {
   const { signIn } = useAuthStore();
-  
+
   const [mode, setMode] = useState<Mode>('signUp');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -35,11 +39,11 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const validateField = (field: string, value: string) => {
     const errors = { ...fieldErrors };
-    
+
     switch (field) {
       case 'email':
         if (!value.trim()) {
@@ -74,13 +78,13 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
         }
         break;
     }
-    
+
     setFieldErrors(errors);
   };
 
   const isFormValid = () => {
     const hasNoErrors = Object.keys(fieldErrors).length === 0;
-    
+
     if (mode === 'signUp') {
       // For sign up, only need name and email
       return hasNoErrors && firstName.trim() && lastName.trim() && email.trim();
@@ -119,31 +123,32 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
     try {
       setIsLoading(true);
       setErrorMsg(null);
-      
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-      
+
       if (credential.identityToken) {
         // Handle Apple sign in - for now just go to onboarding
         navigation.navigate('NameCollection');
       } else {
         throw new Error('No identity token received');
       }
-      
     } catch (error: any) {
       if (error.code === 'ERR_CANCELED') {
         // User canceled the sign-in flow
         return;
       }
       console.error('Apple Sign In Error:', error);
-      
+
       // Show specific error message for development mode
       if (error.message?.includes('development mode')) {
-        setErrorMsg('Apple Sign In requires a production build. Use email for testing.');
+        setErrorMsg(
+          'Apple Sign In requires a production build. Use email for testing.',
+        );
       } else {
         setErrorMsg('Apple Sign In failed. Please try again.');
       }
@@ -157,7 +162,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
       setErrorMsg('Please enter your email address');
       return;
     }
-    
+
     // TODO: Implement password reset functionality
     setErrorMsg('Password reset functionality not implemented yet');
   };
@@ -173,20 +178,23 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
       style={{ flex: 1 }}
     >
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.content}>
             {/* Logo + Title */}
             <View style={styles.header}>
-              <Image 
-                source={require('../../assets/logos/logoBlack.png')} 
+              <Image
+                source={require('../../assets/logos/logoBlack.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
-              
+
               <Text style={styles.title}>
                 {mode === 'signIn' ? 'Welcome Back' : 'Create Your Account'}
               </Text>
-              
+
               <Text style={styles.subtitle}>
                 Your stats. Your story. Your future.
               </Text>
@@ -195,18 +203,34 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
             {/* Mode Selector */}
             <View style={styles.modeSelector}>
               <TouchableOpacity
-                style={[styles.modeButton, mode === 'signIn' && styles.modeButtonActive]}
+                style={[
+                  styles.modeButton,
+                  mode === 'signIn' && styles.modeButtonActive,
+                ]}
                 onPress={() => setMode('signIn')}
               >
-                <Text style={[styles.modeButtonText, mode === 'signIn' && styles.modeButtonTextActive]}>
+                <Text
+                  style={[
+                    styles.modeButtonText,
+                    mode === 'signIn' && styles.modeButtonTextActive,
+                  ]}
+                >
                   Sign In
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modeButton, mode === 'signUp' && styles.modeButtonActive]}
+                style={[
+                  styles.modeButton,
+                  mode === 'signUp' && styles.modeButtonActive,
+                ]}
                 onPress={() => setMode('signUp')}
               >
-                <Text style={[styles.modeButtonText, mode === 'signUp' && styles.modeButtonTextActive]}>
+                <Text
+                  style={[
+                    styles.modeButtonText,
+                    mode === 'signUp' && styles.modeButtonTextActive,
+                  ]}
+                >
                   Create Account
                 </Text>
               </TouchableOpacity>
@@ -221,7 +245,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                     placeholder="First name"
                     placeholderTextColor={colors.textSecondary}
                     value={firstName}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                       setFirstName(text);
                       validateField('firstName', text);
                     }}
@@ -233,7 +257,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                     placeholder="Last name"
                     placeholderTextColor={colors.textSecondary}
                     value={lastName}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                       setLastName(text);
                       validateField('lastName', text);
                     }}
@@ -248,7 +272,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                 placeholder="Email"
                 placeholderTextColor={colors.textSecondary}
                 value={email}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setEmail(text);
                   validateField('email', text);
                 }}
@@ -265,7 +289,7 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                     placeholder="Password"
                     placeholderTextColor={colors.textSecondary}
                     value={password}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                       setPassword(text);
                       validateField('password', text);
                     }}
@@ -276,7 +300,11 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
                     style={styles.eyeButton}
                     onPress={() => setShowPassword(!showPassword)}
                   >
-                    <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 </View>
               )}
@@ -293,13 +321,14 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
               {mode === 'signIn' && fieldErrors.password && (
                 <Text style={styles.errorText}>{fieldErrors.password}</Text>
               )}
-              {errorMsg && (
-                <Text style={styles.errorText}>{errorMsg}</Text>
-              )}
+              {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
 
               {/* Primary CTA */}
               <TouchableOpacity
-                style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                style={[
+                  styles.primaryButton,
+                  isLoading && styles.buttonDisabled,
+                ]}
                 onPress={handleAuth}
                 disabled={isLoading}
               >
@@ -312,7 +341,9 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
               <View style={styles.secondaryLinks}>
                 <TouchableOpacity onPress={toggleMode}>
                   <Text style={styles.linkTextPrimary}>
-                    {mode === 'signIn' ? 'Need an account? Sign up' : 'Have an account? Sign in'}
+                    {mode === 'signIn'
+                      ? 'Need an account? Sign up'
+                      : 'Have an account? Sign in'}
                   </Text>
                 </TouchableOpacity>
                 {mode === 'signIn' && (
@@ -334,34 +365,50 @@ export default function AuthScreen({ navigation }: { navigation: AuthScreenNavig
               {/* Apple Sign In */}
               {Platform.OS === 'ios' && (
                 <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  buttonType={
+                    AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+                  }
+                  buttonStyle={
+                    AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                  }
                   cornerRadius={12}
                   style={styles.appleButton}
                   onPress={handleAppleSignIn}
                 />
               )}
-              
+
               {Platform.OS !== 'ios' && (
-                <TouchableOpacity style={styles.appleButton} onPress={handleAppleSignIn} disabled={isLoading}>
+                <TouchableOpacity
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                  disabled={isLoading}
+                >
                   <Ionicons name="logo-apple" size={20} color="white" />
                   <Text style={styles.appleButtonText}>Sign in with Apple</Text>
                 </TouchableOpacity>
               )}
 
               {isLoading && (
-                <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={styles.loader}
+                />
               )}
 
               {/* Legal */}
               <Text style={styles.legalText}>
-                By continuing, you agree to our Terms of Service and Privacy Policy.
+                By continuing, you agree to our Terms of Service and Privacy
+                Policy.
               </Text>
             </View>
           </View>
         </ScrollView>
       </SafeAreaView>
-      <TouchableOpacity style={[styles.backButton, { top: 80 }]} onPress={() => navigation.goBack()}>
+      <TouchableOpacity
+        style={[styles.backButton, { top: 80 }]}
+        onPress={() => navigation.goBack()}
+      >
         <Ionicons name="arrow-back" size={24} color={COLORS.text} />
       </TouchableOpacity>
     </LinearGradient>

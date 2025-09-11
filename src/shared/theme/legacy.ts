@@ -7,17 +7,17 @@ export const LEGACY_COLORS = {
   primary: '#6366F1',
   primaryDark: '#4F46E5',
   primaryLight: '#E0E7FF',
-  
+
   // Base Colors
   white: '#FFFFFF',
   black: '#000000',
-  
+
   // Semantic Colors
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
-  
+
   // Neutral Palette
   neutral50: '#F9FAFB',
   neutral100: '#F3F4F6',
@@ -29,24 +29,25 @@ export const LEGACY_COLORS = {
   neutral700: '#374151',
   neutral800: '#1F2937',
   neutral900: '#111827',
-  
+
   // Background Colors
   background: '#F8FAFC',
   backgroundSecondary: '#F1F5F9',
   surface: '#FFFFFF',
-  
+
   // Text Colors
   textPrimary: '#1F2937',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
+  textOnPrimary: '#FFFFFF',
 };
 
 // Fonts from legacy constants/theme.ts
 export const LEGACY_FONTS = {
   // Primary Font Family
   anton: 'Anton-Regular',
-  
+
   // Secondary Font Family
   jakarta: {
     regular: 'PlusJakartaSans-Regular',
@@ -128,9 +129,14 @@ export const LEGACY_COLOR_ALIASES = {
   warning: LEGACY_COLORS.warning,
   background: LEGACY_COLORS.background,
   backgroundMuted: LEGACY_COLORS.backgroundSecondary,
+  backgroundSecondary: LEGACY_COLORS.backgroundSecondary,
+  surface: LEGACY_COLORS.surface,
   text: LEGACY_COLORS.textPrimary,
   textSecondary: LEGACY_COLORS.textSecondary,
+  textTertiary: LEGACY_COLORS.textTertiary,
+  textOnPrimary: LEGACY_COLORS.textInverse,
   border: LEGACY_COLORS.neutral200,
+  interactiveDisabled: LEGACY_COLORS.neutral300,
 };
 
 export const LEGACY_FONT_ALIASES = {
@@ -146,7 +152,12 @@ export const legacyTheme = {
   fontSizes: LEGACY_FONT_SIZES,
   spacing: LEGACY_SPACING,
   borderRadius: LEGACY_BORDER_RADIUS,
+  radius: LEGACY_BORDER_RADIUS,
   shadows: LEGACY_SHADOWS,
+  typography: {
+    caption: { fontSize: 12 },
+    weights: { medium: '500', bold: '700' }
+  },
   COLORS: LEGACY_COLOR_ALIASES,
   FONTS: LEGACY_FONT_ALIASES,
 };

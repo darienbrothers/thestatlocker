@@ -14,7 +14,7 @@ export const XPRewardAnimation: React.FC<XPRewardAnimationProps> = ({
   visible,
   xpAmount,
   message,
-  onComplete
+  onComplete,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-50)).current;
@@ -69,7 +69,9 @@ export const XPRewardAnimation: React.FC<XPRewardAnimationProps> = ({
     }
   }, [visible]);
 
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -78,10 +80,7 @@ export const XPRewardAnimation: React.FC<XPRewardAnimationProps> = ({
           styles.notification,
           {
             opacity: fadeAnim,
-            transform: [
-              { translateY: slideAnim },
-              { scale: scaleAnim }
-            ],
+            transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
           },
         ]}
       >

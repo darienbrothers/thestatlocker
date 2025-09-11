@@ -10,7 +10,11 @@ interface ProfilePreviewProps {
   isSticky?: boolean;
 }
 
-export default function ProfilePreview({ user, currentXP, isSticky = false }: ProfilePreviewProps) {
+export default function ProfilePreview({
+  user,
+  currentXP,
+  isSticky = false,
+}: ProfilePreviewProps) {
   const getInitials = (firstName?: string, lastName?: string) => {
     const first = firstName?.charAt(0) || '';
     const last = lastName?.charAt(0) || '';
@@ -38,12 +42,15 @@ export default function ProfilePreview({ user, currentXP, isSticky = false }: Pr
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
-                {getInitials(user.firstName || undefined, user.lastName || undefined)}
+                {getInitials(
+                  user.firstName || undefined,
+                  user.lastName || undefined,
+                )}
               </Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.userInfo}>
           <Text style={styles.name}>
             {user.firstName ? `${user.firstName}'s Profile` : 'Your Profile'}

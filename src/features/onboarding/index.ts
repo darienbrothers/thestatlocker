@@ -2,8 +2,7 @@
 export { default as NameEntryScreen } from './screens/NameEntryScreen';
 export { default as ProfileImageScreen } from './screens/ProfileImageScreen';
 export { default as BasicInfoScreen } from './screens/BasicInfoScreen';
-export { default as HighSchoolScreen } from './screens/HighSchoolScreen';
-export { default as ClubTeamScreen } from './screens/ClubTeamScreen';
+export { default as TeamInformationScreen } from './screens/TeamInformationScreen';
 export { default as GoalsScreen } from './screens/GoalsScreen';
 export { default as AcademicScreen } from './screens/AcademicScreen';
 export { default as ReviewScreen } from './screens/ReviewScreen';

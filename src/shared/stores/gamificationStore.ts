@@ -1,15 +1,15 @@
 import { create } from 'zustand';
-import { 
-  Badge, 
-  XPReward, 
+import {
+  Badge,
+  XPReward,
   Level,
-  BADGES, 
+  BADGES,
   XP_VALUES,
   calculateLevel,
   calculateLevelProgress,
   getXPToNextLevel,
   awardXP,
-  checkBadgeUnlock
+  checkBadgeUnlock,
 } from '@/utils/gamification';
 
 export interface Quest {
@@ -26,16 +26,16 @@ interface GamificationState {
   totalXP: number;
   badges: Badge[];
   xpHistory: XPReward[];
-  
+
   // Quest tracking
   currentQuests: Quest[];
   completedQuests: Quest[];
-  
+
   // UI state
   showLevelUpAnimation: boolean;
   showBadgeUnlockAnimation: boolean;
   pendingXPAnimation: number | null;
-  
+
   // Computed values (getters)
   currentLevel: Level;
   levelProgress: number;
@@ -46,27 +46,30 @@ interface GamificationActions {
   // XP Management
   addXP: (amount: number, reason: string) => XPReward;
   setTotalXP: (xp: number) => void;
-  
+
   // Badge Management
   unlockBadge: (badgeId: string) => void;
   resetBadges: () => void;
-  
+
   // Quest Management
   addQuest: (quest: Omit<Quest, 'isCompleted'>) => void;
   completeQuest: (questId: string) => void;
   clearQuests: () => void;
-  
+
   // Animation Control
   triggerLevelUpAnimation: () => void;
   triggerBadgeUnlockAnimation: () => void;
   setPendingXPAnimation: (xp: number | null) => void;
   clearAnimations: () => void;
-  
+
   // Onboarding specific actions
   startOnboardingPath: (pathType: 'rookie' | 'pro') => void;
-  completeOnboardingStep: (stepType: 'quick_quest' | 'extended_step', stepName: string) => void;
+  completeOnboardingStep: (
+    stepType: 'quick_quest' | 'extended_step',
+    stepName: string,
+  ) => void;
   completeOnboarding: (type: 'quick' | 'extended') => void;
-  
+
   // Reset/Initialize
   resetGamification: () => void;
   initializeFromUser: (userData: any) => void;
@@ -97,9 +100,9 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
     const newXP = currentXP + amount;
     const currentLevel = get().currentLevel;
     const newLevel = calculateLevel(newXP);
-    
+
     const reward = awardXP(currentXP, amount, reason);
-    
+
     set(state => ({
       totalXP: newXP,
       xpHistory: [...state.xpHistory, reward],
@@ -125,10 +128,8 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
   // Badge Management
   unlockBadge: (badgeId: string) => {
     set(state => ({
-      badges: state.badges.map(badge => 
-        badge.id === badgeId 
-          ? { ...badge, isUnlocked: true }
-          : badge
+      badges: state.badges.map(badge =>
+        badge.id === badgeId ? { ...badge, isUnlocked: true } : badge,
       ),
       showBadgeUnlockAnimation: true,
     }));
@@ -149,20 +150,22 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
 
   completeQuest: (questId: string) => {
     const quest = get().currentQuests.find(q => q.id === questId);
-    if (!quest || quest.isCompleted) return;
+    if (!quest || quest.isCompleted) {
+      return;
+    }
 
-    const completedQuest = { 
-      ...quest, 
-      isCompleted: true, 
-      completedAt: new Date() 
+    const completedQuest = {
+      ...quest,
+      isCompleted: true,
+      completedAt: new Date(),
     };
 
     // Award XP for quest completion
     get().addXP(quest.xpReward, `Completed: ${quest.title}`);
 
     set(state => ({
-      currentQuests: state.currentQuests.map(q => 
-        q.id === questId ? completedQuest : q
+      currentQuests: state.currentQuests.map(q =>
+        q.id === questId ? completedQuest : q,
       ),
       completedQuests: [...state.completedQuests, completedQuest],
     }));
@@ -198,19 +201,26 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
 
   // Onboarding specific actions
   startOnboardingPath: (pathType: 'rookie' | 'pro') => {
-    const xpAmount = pathType === 'rookie' ? XP_VALUES.ROOKIE_PATH : XP_VALUES.PRO_PATH;
+    const xpAmount =
+      pathType === 'rookie' ? XP_VALUES.ROOKIE_PATH : XP_VALUES.PRO_PATH;
     get().addXP(xpAmount, `Started ${pathType} onboarding path`);
   },
 
-  completeOnboardingStep: (stepType: 'quick_quest' | 'extended_step', stepName: string) => {
-    const xpAmount = stepType === 'quick_quest' ? XP_VALUES.QUICK_QUEST : XP_VALUES.EXTENDED_STEP;
+  completeOnboardingStep: (
+    stepType: 'quick_quest' | 'extended_step',
+    stepName: string,
+  ) => {
+    const xpAmount =
+      stepType === 'quick_quest'
+        ? XP_VALUES.QUICK_QUEST
+        : XP_VALUES.EXTENDED_STEP;
     get().addXP(xpAmount, `Completed: ${stepName}`);
   },
 
   completeOnboarding: (type: 'quick' | 'extended') => {
     const badgeId = type === 'quick' ? 'rookie_badge' : 'captain_badge';
     get().unlockBadge(badgeId);
-    
+
     // Clear current quests as onboarding is complete
     get().clearQuests();
   },
@@ -223,7 +233,7 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
   initializeFromUser: (userData: any) => {
     const userXP = userData?.gamification?.totalXP || 0;
     const userBadges = userData?.gamification?.badges || [];
-    
+
     set({
       totalXP: userXP,
       currentLevel: calculateLevel(userXP),

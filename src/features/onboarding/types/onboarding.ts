@@ -4,21 +4,21 @@ export interface OnboardingData {
   lastName?: string;
   email?: string;
   password?: string;
-  
+
   // Sport Info
   sport?: string;
   gender?: 'boys' | 'girls';
   position?: string;
   height?: string;
   graduationYear?: number;
-  
+
   // High School Info
   schoolName?: string;
   city?: string;
   state?: string;
   level?: 'Varsity' | 'JV' | 'Freshman';
   jerseyNumber?: string;
-  
+
   // Club Info
   clubEnabled?: boolean;
   clubOrgName?: string;
@@ -26,10 +26,10 @@ export interface OnboardingData {
   clubCity?: string;
   clubState?: string;
   clubJerseyNumber?: string;
-  
+
   // Goals
   goals?: string[];
-  
+
   // Academic Info
   gpa?: string;
   hasHonorsAP?: boolean | null;

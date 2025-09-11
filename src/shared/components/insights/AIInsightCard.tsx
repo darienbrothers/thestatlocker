@@ -69,7 +69,12 @@ export const AIInsightCard: React.FC<AIInsightCardProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleSection}>
-            <View style={[styles.categoryIcon, { backgroundColor: priorityConfig.backgroundColor }]}>
+            <View
+              style={[
+                styles.categoryIcon,
+                { backgroundColor: priorityConfig.backgroundColor },
+              ]}
+            >
               <Ionicons
                 name={getCategoryIcon(insight.category)}
                 size={16}
@@ -81,14 +86,16 @@ export const AIInsightCard: React.FC<AIInsightCardProps> = ({
               <Text style={styles.category}>{insight.category}</Text>
             </View>
           </View>
-          
+
           <View style={styles.priorityBadge}>
             <Ionicons
               name={priorityConfig.icon}
               size={12}
               color={priorityConfig.color}
             />
-            <Text style={[styles.priorityText, { color: priorityConfig.color }]}>
+            <Text
+              style={[styles.priorityText, { color: priorityConfig.color }]}
+            >
               {insight.priority.toUpperCase()}
             </Text>
           </View>
@@ -113,10 +120,7 @@ export const AIInsightCard: React.FC<AIInsightCardProps> = ({
           </View>
 
           {showActions && insight.actionable && (
-            <Pressable
-              onPress={onActionPress}
-              style={styles.actionButton}
-            >
+            <Pressable onPress={onActionPress} style={styles.actionButton}>
               <Text style={styles.actionText}>Take Action</Text>
               <Ionicons
                 name="arrow-forward"
@@ -133,7 +137,11 @@ export const AIInsightCard: React.FC<AIInsightCardProps> = ({
             colors={[theme.colors.primary.main, theme.colors.primary.dark]}
             style={styles.aiBadgeGradient}
           >
-            <Ionicons name="sparkles" size={10} color={theme.colors.surface.main} />
+            <Ionicons
+              name="sparkles"
+              size={10}
+              color={theme.colors.surface.main}
+            />
             <Text style={styles.aiText}>AI</Text>
           </LinearGradient>
         </View>

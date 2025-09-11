@@ -22,10 +22,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingStepper } from '@/components/gamification';
 import { colors, fonts, fontSizes } from '@/constants/theme';
 
-const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
+const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({
+  navigation,
+  route,
+}) => {
   // Get name data from previous screen
   const { firstName, lastName } = route.params || {};
-  
+
   // State
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -40,8 +43,12 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
 
   const loadData = async () => {
     try {
-      const savedProfileImage = await AsyncStorage.getItem('onboarding_profileImage');
-      if (savedProfileImage) setProfileImage(savedProfileImage);
+      const savedProfileImage = await AsyncStorage.getItem(
+        'onboarding_profileImage',
+      );
+      if (savedProfileImage) {
+        setProfileImage(savedProfileImage);
+      }
     } catch (error) {
       console.log('Error loading data:', error);
     }
@@ -62,17 +69,17 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
     // Enhanced pulsing animation for profile picture to guide user interaction
     const pulseAnimation = Animated.loop(
       Animated.sequence([
-        Animated.timing(glowAnim, { 
-          toValue: 1, 
-          duration: 1000, 
-          useNativeDriver: true 
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
         }),
-        Animated.timing(glowAnim, { 
-          toValue: 0.4, 
-          duration: 1000, 
-          useNativeDriver: true 
+        Animated.timing(glowAnim, {
+          toValue: 0.4,
+          duration: 1000,
+          useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     pulseAnimation.start();
   };
@@ -86,7 +93,7 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
     React.useCallback(() => {
       loadData();
       startAnimations();
-    }, [])
+    }, []),
   );
 
   // Save data when profile image changes
@@ -112,15 +119,14 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
         }),
       ]).start(() => {
         // Navigate to next screen (BasicInfo)
-        navigation.navigate('BasicInfo', { 
-          firstName: firstName, 
+        navigation.navigate('BasicInfo', {
+          firstName: firstName,
           lastName: lastName,
-          profileImage: profileImage
+          profileImage: profileImage,
         });
       });
     }
   };
-
 
   const handleBackPress = () => {
     navigation.goBack();
@@ -128,10 +134,14 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
 
   const pickImage = async () => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Please allow access to your photo library to add a profile picture.');
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your photo library to add a profile picture.',
+        );
         return;
       }
 
@@ -155,10 +165,14 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
 
   const takePhoto = async () => {
     try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestCameraPermissionsAsync();
+
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Please allow access to your camera to take a profile picture.');
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your camera to take a profile picture.',
+        );
         return;
       }
 
@@ -182,43 +196,43 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
   const showImageOptions = () => {
     Alert.alert(
       'Add Your Game Face',
-      'Choose how you\'d like to add your profile picture',
+      "Choose how you'd like to add your profile picture",
       [
         { text: 'Take Photo', onPress: takePhoto },
         { text: 'Choose from Library', onPress: pickImage },
-        { text: 'Cancel', style: 'cancel' }
-      ]
+        { text: 'Cancel', style: 'cancel' },
+      ],
     );
   };
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <SafeAreaView style={styles.container}>
-        <OnboardingStepper 
+        <OnboardingStepper
           currentStep={2}
           totalSteps={9}
           showBackButton={true}
           onBackPress={handleBackPress}
         />
-        
-        <KeyboardAvoidingView 
+
+        <KeyboardAvoidingView
           style={styles.keyboardView}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 240 : 120}
         >
           <View style={styles.mainContent}>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.headerContainer,
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
-                }
+                },
               ]}
             >
               <View style={styles.headerSection}>
-                <Image 
-                  source={require('../../../../assets/logos/logoBlack.png')} 
+                <Image
+                  source={require('../../../../assets/logos/logoBlack.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
@@ -226,46 +240,60 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
                   Show your game face, {firstName}!
                 </Text>
                 <Text style={styles.subtitle}>
-                  Add a profile picture so your teammates can recognize you on the field and in the locker room.
+                  Add a profile picture so your teammates can recognize you on
+                  the field and in the locker room.
                 </Text>
               </View>
             </Animated.View>
 
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.profileContainer,
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
-                }
+                },
               ]}
             >
               <View style={styles.profileSection}>
-                <TouchableOpacity 
-                  style={styles.profileImageTouchable} 
+                <TouchableOpacity
+                  style={styles.profileImageTouchable}
                   onPress={showImageOptions}
                   activeOpacity={0.8}
                 >
                   {profileImage ? (
-                    <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                    <Image
+                      source={{ uri: profileImage }}
+                      style={styles.profileImage}
+                    />
                   ) : (
-                    <Animated.View style={[
-                      styles.profileImagePlaceholder,
-                      {
-                        opacity: glowAnim,
-                      }
-                    ]}>
+                    <Animated.View
+                      style={[
+                        styles.profileImagePlaceholder,
+                        {
+                          opacity: glowAnim,
+                        },
+                      ]}
+                    >
                       <View style={styles.cameraIconContainer}>
-                        <Ionicons name="camera" size={48} color={colors.primary} />
+                        <Ionicons
+                          name="camera"
+                          size={48}
+                          color={colors.primary}
+                        />
                       </View>
-                      <Text style={styles.profileImageText}>Tap to Add Photo</Text>
-                      <Text style={styles.profileImageSubtext}>Camera or Photo Library</Text>
+                      <Text style={styles.profileImageText}>
+                        Tap to Add Photo
+                      </Text>
+                      <Text style={styles.profileImageSubtext}>
+                        Camera or Photo Library
+                      </Text>
                     </Animated.View>
                   )}
                 </TouchableOpacity>
-                
+
                 {profileImage && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.changePhotoButton}
                     onPress={showImageOptions}
                   >
@@ -276,31 +304,37 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({ navigat
             </Animated.View>
           </View>
         </KeyboardAvoidingView>
-          
+
         <View style={styles.fixedButtonContainer}>
           <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
             <TouchableOpacity
               style={[
                 styles.continueButton,
-                !isFormValid && styles.continueButtonDisabled
+                !isFormValid && styles.continueButtonDisabled,
               ]}
               onPress={handleContinue}
               disabled={!isFormValid}
             >
               <LinearGradient
-                colors={isFormValid ? [colors.primary, colors.primaryDark] : [colors.neutral300, colors.neutral400]}
+                colors={
+                  isFormValid
+                    ? [colors.primary, colors.primaryDark]
+                    : [colors.neutral300, colors.neutral400]
+                }
                 style={styles.buttonGradient}
               >
                 <View style={styles.buttonContent}>
-                  <Text style={[
-                    styles.continueButtonText,
-                    !isFormValid && styles.continueButtonTextDisabled
-                  ]}>
+                  <Text
+                    style={[
+                      styles.continueButtonText,
+                      !isFormValid && styles.continueButtonTextDisabled,
+                    ]}
+                  >
                     Next
                   </Text>
-                  <Ionicons 
-                    name="arrow-forward" 
-                    size={20} 
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
                     color={isFormValid ? colors.white : colors.neutral500}
                     style={styles.buttonIcon}
                   />

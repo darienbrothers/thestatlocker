@@ -3,17 +3,17 @@ export const colors = {
   primary: '#6366F1',
   primaryDark: '#4F46E5',
   primaryLight: '#E0E7FF',
-  
+
   // Base Colors
   white: '#FFFFFF',
   black: '#000000',
-  
+
   // Semantic Colors
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
-  
+
   // Neutral Palette
   neutral50: '#F9FAFB',
   neutral100: '#F3F4F6',
@@ -25,27 +25,29 @@ export const colors = {
   neutral700: '#374151',
   neutral800: '#1F2937',
   neutral900: '#111827',
-  
+
   // Background Colors
   background: '#F8FAFC',
   backgroundSecondary: '#F1F5F9',
   surface: '#FFFFFF',
-  
+
   // Text Colors
   textPrimary: '#1F2937',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
-  
+  textOnPrimary: '#FFFFFF',
+
   // Legacy aliases
   text: '#1F2937',
   border: '#E5E7EB',
+  secondary: '#6B7280',
 };
 
 export const fonts = {
   // Primary Font Family
   anton: 'Anton-Regular',
-  
+
   // Secondary Font Family
   jakarta: {
     regular: 'PlusJakartaSans-Regular',
@@ -53,7 +55,7 @@ export const fonts = {
     semiBold: 'PlusJakartaSans-SemiBold',
     bold: 'PlusJakartaSans-SemiBold', // Using semiBold as bold fallback
   },
-  
+
   // Legacy aliases
   heading: 'Anton-Regular',
   body: 'PlusJakartaSans-Regular',
@@ -82,7 +84,7 @@ export const spacing = {
   xl: 32,
   '2xl': 48,
   '3xl': 64,
-  
+
   // Legacy aliases
   s: 8,
   m: 16,
@@ -97,7 +99,7 @@ export const borderRadius = {
   xl: 16,
   '2xl': 24,
   full: 9999,
-  
+
   // Legacy aliases
   s: 4,
   m: 8,

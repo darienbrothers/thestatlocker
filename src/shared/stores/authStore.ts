@@ -1,14 +1,20 @@
 import { create } from 'zustand';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
   User as FirebaseUser,
   signInWithCredential,
-  OAuthProvider
+  OAuthProvider,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
@@ -22,7 +28,7 @@ export interface User {
   graduationYear?: number | null;
   profilePicture?: string | null;
   photoURL?: string | null; // Firebase photoURL
-  
+
   // Onboarding data
   sport?: string | null;
   height?: string | null;
@@ -30,7 +36,7 @@ export interface User {
   gpa?: string | null;
   level?: string | null;
   jerseyNumber?: string | null;
-  
+
   // High School Info
   highSchool?: {
     name?: string | null;
@@ -40,7 +46,7 @@ export interface User {
     coachEmail?: string | null;
     jerseyNumber?: string | null;
   };
-  
+
   // Club Info
   club?: {
     name?: string | null;
@@ -50,20 +56,19 @@ export interface User {
     coachEmail?: string | null;
     jerseyNumber?: string | null;
   };
-  
+
   // Onboarding
   hasCompletedOnboarding?: boolean;
   onboardingType?: 'quick' | 'extended';
-  
+
   // Profile completion tracking
   profileCompletion?: {
     basicInfo: boolean;
     schoolInfo: boolean;
     clubInfo: boolean;
     goals: boolean;
-    strengths: boolean;
   };
-  
+
   // Goals and aspirations
   goals?: {
     collegeInterest?: boolean;
@@ -72,13 +77,11 @@ export interface User {
     targetGPA?: number | null;
     improvementAreas?: string[];
   };
-  
+
   // Extended onboarding data
-  strengths?: string[];
-  weaknesses?: string[];
   trainingDays?: number | null;
   experience?: string | null;
-  
+
   // Timestamps
   createdAt?: any;
   updatedAt?: any;
@@ -91,9 +94,13 @@ interface AuthState {
   error: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+
   // Actions
-  signUp: (email: string, password: string, userData?: Partial<User>) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    userData?: Partial<User>,
+  ) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -116,9 +123,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email: string, password: string, userData = {}) => {
     set({ loading: true, error: null });
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
       const firebaseUser = userCredential.user;
-      
+
       const newUser: User = {
         id: firebaseUser.uid,
         uid: firebaseUser.uid,
@@ -131,11 +142,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           schoolInfo: false,
           clubInfo: false,
           goals: false,
-          strengths: false,
         },
         ...userData,
       };
-      
+
       await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
       set({ user: newUser, firebaseUser, loading: false });
     } catch (error: any) {
@@ -147,9 +157,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
       const firebaseUser = userCredential.user;
-      
+
       await get().fetchUser(firebaseUser.uid);
       set({ firebaseUser, loading: false });
     } catch (error: any) {
@@ -169,7 +183,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       const { identityToken, email, fullName } = credential;
-      
+
       if (identityToken) {
         const provider = new OAuthProvider('apple.com');
         const authCredential = provider.credential({
@@ -178,10 +192,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         const userCredential = await signInWithCredential(auth, authCredential);
         const firebaseUser = userCredential.user;
-        
+
         // Check if user exists in Firestore
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        
+
         if (!userDoc.exists()) {
           // Create new user document
           const newUser: User = {
@@ -198,10 +212,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               schoolInfo: false,
               clubInfo: false,
               goals: false,
-              strengths: false,
             },
           };
-          
+
           await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
           set({ user: newUser, firebaseUser, loading: false });
         } else {
@@ -224,11 +237,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await signOut(auth);
-      set({ 
-        user: null, 
-        firebaseUser: null, 
+      set({
+        user: null,
+        firebaseUser: null,
         isAuthenticated: false,
-        loading: false 
+        loading: false,
       });
     } catch (error: any) {
       set({ error: error.message, loading: false });
@@ -248,9 +261,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         ...userData,
         updatedAt: serverTimestamp(),
       };
-      
+
       await updateDoc(doc(db, 'users', firebaseUser.uid), updatedData);
-      
+
       const updatedUser = { ...user, ...userData };
       set({ user: updatedUser, loading: false });
     } catch (error: any) {
@@ -266,7 +279,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
-        console.log('AuthStore - User data retrieved from Firestore:', JSON.stringify(userData, null, 2));
+        console.log(
+          'AuthStore - User data retrieved from Firestore:',
+          JSON.stringify(userData, null, 2),
+        );
         set({ user: userData, loading: false });
       } else {
         console.log('AuthStore - No user document found for UID:', uid);
@@ -282,7 +298,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   initializeAuth: () => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       set({ isLoading: true });
       if (firebaseUser) {
         try {
@@ -290,10 +306,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ firebaseUser, isAuthenticated: true, isLoading: false });
         } catch (error) {
           console.error('Error fetching user data:', error);
-          set({ firebaseUser, user: null, isAuthenticated: true, isLoading: false });
+          set({
+            firebaseUser,
+            user: null,
+            isAuthenticated: true,
+            isLoading: false,
+          });
         }
       } else {
-        set({ firebaseUser: null, user: null, isAuthenticated: false, isLoading: false });
+        set({
+          firebaseUser: null,
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
     });
 
@@ -308,27 +334,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { email, password, ...userData } = onboardingData;
-      
+
       // Check if user already exists
       let firebaseUser;
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
         firebaseUser = userCredential.user;
       } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
           // Sign in existing user instead
-          const signInCredential = await signInWithEmailAndPassword(auth, email, password);
+          const signInCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password,
+          );
           firebaseUser = signInCredential.user;
-          
+
           // Check if user document exists
-          const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const existingUserDoc = await getDoc(
+            doc(db, 'users', firebaseUser.uid),
+          );
           if (existingUserDoc.exists()) {
             const existingUser = existingUserDoc.data() as User;
-            set({ 
-              user: existingUser, 
-              firebaseUser, 
+            set({
+              user: existingUser,
+              firebaseUser,
               isAuthenticated: true,
-              loading: false 
+              loading: false,
             });
             return;
           }
@@ -336,7 +372,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           throw error;
         }
       }
-      
+
       // Create complete user document with onboarding data
       const newUser: User = {
         id: firebaseUser.uid,
@@ -354,7 +390,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         gpa: userData.gpa,
         level: userData.level,
         jerseyNumber: userData.jerseyNumber,
-        
+
         // High School Info
         highSchool: {
           name: userData.schoolName || null,
@@ -364,59 +400,64 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           coachEmail: null,
           jerseyNumber: userData.jerseyNumber || null,
         },
-        
+
         // Club Info (if enabled)
-        club: userData.clubEnabled ? {
-          name: userData.clubOrgName || null,
-          city: userData.clubCity || null,
-          state: userData.clubState || null,
-          coach: null,
-          coachEmail: null,
-          jerseyNumber: null,
-        } : {
-          name: null,
-          city: null,
-          state: null,
-          coach: null,
-          coachEmail: null,
-          jerseyNumber: null,
+        club: userData.clubEnabled
+          ? {
+              name: userData.clubOrgName || null,
+              city: userData.clubCity || null,
+              state: userData.clubState || null,
+              coach: null,
+              coachEmail: null,
+              jerseyNumber: null,
+            }
+          : {
+              name: null,
+              city: null,
+              state: null,
+              coach: null,
+              coachEmail: null,
+              jerseyNumber: null,
+            },
+
+        // Goals and onboarding completion
+        goals: {
+          collegeInterest: userData.goals?.collegeInterest || false,
+          dreamSchools: userData.goals?.dreamSchools || [],
+          currentGPA: userData.gpa ? parseFloat(userData.gpa) : null,
+          targetGPA: userData.goals?.targetGPA || null,
+          improvementAreas: userData.goals?.improvementAreas || userData.selectedGoals || [],
         },
-        
-        // Goals and onboarding completion  
-        goals: Array.isArray(userData.goals) ? userData.goals : [],
-        strengths: Array.isArray(userData.strengths) ? userData.strengths : [],
-        weaknesses: Array.isArray(userData.growthAreas) ? userData.growthAreas : [],
         hasCompletedOnboarding: true,
         onboardingType: 'extended',
-        
+
         // Profile completion tracking
         profileCompletion: {
           basicInfo: true,
           schoolInfo: true,
           clubInfo: userData.clubEnabled || false,
           goals: true,
-          strengths: false,
         },
-        
+
         // Timestamps
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
-      
+
       // Save to Firestore
       await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-      
+
       // Update store state
-      set({ 
-        user: newUser, 
-        firebaseUser, 
+      set({
+        user: newUser,
+        firebaseUser,
         isAuthenticated: true,
-        loading: false 
+        loading: false,
       });
-      
+
       // Force a refresh of user data to ensure it's properly loaded
       await get().fetchUser(firebaseUser.uid);
-      
+
       console.log('User created successfully with onboarding data:', newUser);
     } catch (error: any) {
       console.error('Error creating user with onboarding data:', error);

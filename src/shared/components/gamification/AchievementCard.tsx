@@ -4,7 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 import { theme } from '@shared/theme';
-import type { Achievement, AchievementRarity } from '@shared/services/AchievementService';
+import type {
+  Achievement,
+  AchievementRarity,
+} from '@shared/services/AchievementService';
 
 interface AchievementCardProps {
   achievement: Achievement;
@@ -69,7 +72,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
               duration: 1500,
               useNativeDriver: false,
             }),
-          ])
+          ]),
         ).start();
       }
     }
@@ -144,10 +147,15 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
           styles.container,
           {
             transform: [{ scale: scaleAnim }],
-            borderColor: isUnlocked ? rarityConfig.borderColor : theme.colors.neutral[300],
+            borderColor: isUnlocked
+              ? rarityConfig.borderColor
+              : theme.colors.neutral[300],
             shadowColor: glowAnim.interpolate({
               inputRange: [0, 1],
-              outputRange: [theme.colors.neutral[400], rarityConfig.borderColor],
+              outputRange: [
+                theme.colors.neutral[400],
+                rarityConfig.borderColor,
+              ],
             }),
             shadowOpacity: glowAnim,
             elevation: glowAnim.interpolate({
@@ -171,11 +179,17 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
         {/* Content */}
         <View style={styles.content}>
           {/* Icon */}
-          <View style={[styles.iconContainer, !isUnlocked && styles.lockedIcon]}>
+          <View
+            style={[styles.iconContainer, !isUnlocked && styles.lockedIcon]}
+          >
             <Ionicons
               name={getIconName(achievement.iconName)}
               size={styles.iconSize}
-              color={isUnlocked ? rarityConfig.borderColor : theme.colors.neutral[400]}
+              color={
+                isUnlocked
+                  ? rarityConfig.borderColor
+                  : theme.colors.neutral[400]
+              }
             />
           </View>
 
@@ -183,15 +197,19 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
           <View style={styles.info}>
             <View style={styles.header}>
               <Text
-                style={[
-                  styles.title,
-                  !isUnlocked && styles.lockedText,
-                ]}
+                style={[styles.title, !isUnlocked && styles.lockedText]}
                 numberOfLines={1}
               >
-                {achievement.isSecret && !isUnlocked ? '???' : achievement.title}
+                {achievement.isSecret && !isUnlocked
+                  ? '???'
+                  : achievement.title}
               </Text>
-              <View style={[styles.rarityBadge, { backgroundColor: rarityConfig.borderColor }]}>
+              <View
+                style={[
+                  styles.rarityBadge,
+                  { backgroundColor: rarityConfig.borderColor },
+                ]}
+              >
                 <Text style={styles.rarityText}>
                   {achievement.rarity.toUpperCase()}
                 </Text>
@@ -199,10 +217,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
             </View>
 
             <Text
-              style={[
-                styles.description,
-                !isUnlocked && styles.lockedText,
-              ]}
+              style={[styles.description, !isUnlocked && styles.lockedText]}
               numberOfLines={2}
             >
               {achievement.isSecret && !isUnlocked

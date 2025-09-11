@@ -33,7 +33,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     shimmerTranslate.value = withRepeat(
       withTiming(1, { duration: 1500 }),
       -1,
-      false
+      false,
     );
   }, [shimmerTranslate]);
 
@@ -41,7 +41,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     const translateX = interpolate(
       shimmerTranslate.value,
       [-1, 1],
-      [-200, 200]
+      [-200, 200],
     );
 
     return {
@@ -59,14 +59,26 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
         };
       case 'text':
         return {
-          width: typeof width === 'number' ? width : parseInt(width as string) || 100,
-          height: (typeof height === 'number' ? height : parseInt(height as string) || 20) * 0.7,
+          width:
+            typeof width === 'number'
+              ? width
+              : parseInt(width as string) || 100,
+          height:
+            (typeof height === 'number'
+              ? height
+              : parseInt(height as string) || 20) * 0.7,
           borderRadius: theme.borderRadius.sm,
         };
       default:
         return {
-          width: typeof width === 'number' ? width : parseInt(width as string) || 100,
-          height: typeof height === 'number' ? height : parseInt(height as string) || 20,
+          width:
+            typeof width === 'number'
+              ? width
+              : parseInt(width as string) || 100,
+          height:
+            typeof height === 'number'
+              ? height
+              : parseInt(height as string) || 20,
           borderRadius,
         };
     }
@@ -94,11 +106,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
         ]}
       >
         <LinearGradient
-          colors={[
-            'transparent',
-            theme.colors.neutral50,
-            'transparent',
-          ]}
+          colors={['transparent', theme.colors.neutral50, 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{
@@ -128,10 +136,24 @@ export const SkeletonGroup: React.FC<SkeletonGroupProps> = ({
 
 // Pre-built skeleton patterns
 export const ProfileSkeleton: React.FC = () => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', padding: theme.spacing.md }}>
-    <SkeletonLoader variant="circular" height={48} style={{ marginRight: theme.spacing.md }} />
+  <View
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.spacing.md,
+    }}
+  >
+    <SkeletonLoader
+      variant="circular"
+      height={48}
+      style={{ marginRight: theme.spacing.md }}
+    />
     <View style={{ flex: 1 }}>
-      <SkeletonLoader height={16} width="60%" style={{ marginBottom: theme.spacing.xs }} />
+      <SkeletonLoader
+        height={16}
+        width="60%"
+        style={{ marginBottom: theme.spacing.xs }}
+      />
       <SkeletonLoader height={12} width="40%" />
     </View>
   </View>
@@ -140,22 +162,36 @@ export const ProfileSkeleton: React.FC = () => (
 export const CardSkeleton: React.FC = () => (
   <View style={{ padding: theme.spacing.md, marginBottom: theme.spacing.md }}>
     <SkeletonLoader height={120} style={{ marginBottom: theme.spacing.md }} />
-    <SkeletonLoader height={16} width="80%" style={{ marginBottom: theme.spacing.xs }} />
+    <SkeletonLoader
+      height={16}
+      width="80%"
+      style={{ marginBottom: theme.spacing.xs }}
+    />
     <SkeletonLoader height={12} width="60%" />
   </View>
 );
 
 export const ListItemSkeleton: React.FC = () => (
-  <View style={{ 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral100
-  }}>
-    <SkeletonLoader variant="circular" height={32} style={{ marginRight: theme.spacing.md }} />
+  <View
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.neutral100,
+    }}
+  >
+    <SkeletonLoader
+      variant="circular"
+      height={32}
+      style={{ marginRight: theme.spacing.md }}
+    />
     <View style={{ flex: 1 }}>
-      <SkeletonLoader height={14} width="70%" style={{ marginBottom: theme.spacing.xs }} />
+      <SkeletonLoader
+        height={14}
+        width="70%"
+        style={{ marginBottom: theme.spacing.xs }}
+      />
       <SkeletonLoader height={10} width="50%" />
     </View>
     <SkeletonLoader height={12} width={40} />

@@ -1,20 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Animated, Switch, TextInput, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Animated,
+  TextInput,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from 'react-native';
+import { useKeyboardAwareScrolling } from '@/utils/keyboardUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/constants/theme';
+import { theme } from '@shared/theme';
 import { OnboardingStepper } from '@/components/gamification';
 import { useAuthStore } from '@/shared/stores/authStore';
+import { clearOnboardingData } from '@/utils/onboardingStorage';
 
 interface ReviewScreenProps {
   navigation: any;
-  route: { 
-    params?: { 
-      firstName?: string; 
-      lastName?: string; 
+  route: {
+    params?: {
+      firstName?: string;
+      lastName?: string;
       profileImage?: string | null | undefined;
-      gender?: 'boys' | 'girls'; 
-      position?: string; 
+      gender?: 'boys' | 'girls';
+      position?: string;
       graduationYear?: number;
       height?: string;
       sport?: string;
@@ -29,48 +44,66 @@ interface ReviewScreenProps {
       clubCity?: string;
       clubState?: string;
       clubJerseyNumber?: string;
-      goals?: string[];
+      goals?: any[]; // Can be string[] or UserGoal[]
       gpa?: string;
       hasHonorsAP?: boolean | null;
       satScore?: string;
       actScore?: string;
       academicInterest?: string;
+      academicInterests?: string[];
       academicAwards?: string;
-    } 
+    };
   };
 }
 
 export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
-  const { 
-    firstName, lastName, profileImage, gender, position, graduationYear, height, sport,
-    schoolName, city, state, level, jerseyNumber,
-    clubEnabled, clubOrgName, clubTeamName, clubCity, clubState, clubJerseyNumber,
-    goals, gpa, hasHonorsAP, satScore, actScore, academicInterest, academicAwards
+  // Enhanced keyboard-aware scrolling
+  const { scrollViewRef, handleInputFocus, handleInputBlur } =
+    useKeyboardAwareScrolling();
+
+  const {
+    firstName,
+    lastName,
+    profileImage,
+    gender,
+    position,
+    graduationYear,
+    height,
+    sport,
+    schoolName,
+    city,
+    state,
+    level,
+    jerseyNumber,
+    clubEnabled,
+    clubOrgName,
+    clubTeamName,
+    clubCity,
+    clubState,
+    clubJerseyNumber,
+    goals,
+    gpa,
+    hasHonorsAP,
+    satScore,
+    actScore,
+    academicInterest,
+    academicInterests,
+    academicAwards,
   } = route.params || {};
 
   const { createUserWithOnboardingData } = useAuthStore();
-  const [commitment, setCommitment] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
-  
-  // Commitment tracking for credibility
-  const [commitmentDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    return date;
-  });
-  
+
+  // Input refs for keyboard handling
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
-
-  const formattedDate = commitmentDate.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
-  });
 
   useEffect(() => {
     Animated.parallel([
@@ -85,7 +118,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     // Animate checkmark stamp after a delay
     setTimeout(() => {
       Animated.spring(checkmarkAnim, {
@@ -102,15 +135,10 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
       alert('Please enter email and password');
       return;
     }
-    
-    if (!commitment) {
-      alert('Please confirm your commitment to get started');
-      return;
-    }
-    
+
     try {
       setIsCreatingUser(true);
-      
+
       // Create complete onboarding data object
       const onboardingData = {
         firstName,
@@ -140,16 +168,16 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         satScore,
         actScore,
         academicInterest,
+        academicInterests,
         academicAwards,
-        // Commitment tracking for credibility system
-        hasCommitment: commitment,
-        commitmentDate: commitmentDate.toISOString(),
-        commitmentCreatedAt: new Date().toISOString(),
       };
-      
+
       // Create user in Firebase with all onboarding data
       await createUserWithOnboardingData(onboardingData);
-      
+
+      // Clear onboarding form data from AsyncStorage
+      await clearOnboardingData();
+
       // Navigate to paywall screen with onboarding data
       navigation.navigate('Paywall', { onboardingData });
     } catch (error: any) {
@@ -174,84 +202,255 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         { id: 'avg_2_assists', title: 'Average 2+ assists per game' },
         { id: 'shooting_60_percent', title: 'Maintain 60%+ shooting accuracy' },
         { id: 'ground_balls_3_plus', title: 'Record 3+ ground balls per game' },
-        { id: 'limit_turnovers_2', title: 'Limit turnovers to under 2 per game' },
+        {
+          id: 'limit_turnovers_2',
+          title: 'Limit turnovers to under 2 per game',
+        },
         { id: 'dodge_success_70', title: 'Maintain 70%+ dodge success rate' },
         { id: 'man_up_goals_3', title: 'Score 3+ man-up goals this season' },
       ],
       Midfield: [
         { id: 'contribute_2_points', title: 'Contribute 2+ points per game' },
-        { id: 'ground_balls_50_percent', title: 'Win 50%+ ground balls attempted' },
-        { id: 'clear_80_percent', title: 'Clear ball successfully 80%+ of the time' },
-        { id: 'score_assist_every_game', title: 'Score or assist in every game' },
+        {
+          id: 'ground_balls_50_percent',
+          title: 'Win 50%+ ground balls attempted',
+        },
+        {
+          id: 'clear_80_percent',
+          title: 'Clear ball successfully 80%+ of the time',
+        },
+        {
+          id: 'score_assist_every_game',
+          title: 'Score or assist in every game',
+        },
         { id: 'cause_1_turnover', title: 'Record 1 caused turnover per game' },
-        { id: 'transition_goals_5', title: 'Score 5+ transition goals this season' },
+        {
+          id: 'transition_goals_5',
+          title: 'Score 5+ transition goals this season',
+        },
         { id: 'faceoff_wins_40', title: 'Win 40%+ of face-offs taken' },
       ],
       Defense: [
-        { id: 'hold_matchup_2_goals', title: 'Hold matchup to under 2 goals per game' },
-        { id: 'ground_balls_70_percent', title: 'Win 70%+ ground balls attempted' },
-        { id: 'cause_1_turnover_def', title: 'Cause at least 1 turnover per game' },
-        { id: 'clear_80_percent_def', title: 'Clear successfully on 80%+ attempts' },
+        {
+          id: 'hold_matchup_2_goals',
+          title: 'Hold matchup to under 2 goals per game',
+        },
+        {
+          id: 'ground_balls_70_percent',
+          title: 'Win 70%+ ground balls attempted',
+        },
+        {
+          id: 'cause_1_turnover_def',
+          title: 'Cause at least 1 turnover per game',
+        },
+        {
+          id: 'clear_80_percent_def',
+          title: 'Clear successfully on 80%+ attempts',
+        },
         { id: 'limit_penalties_2', title: 'Commit under 2 penalties per game' },
-        { id: 'slides_help_80', title: 'Make successful slides 80%+ of the time' },
+        {
+          id: 'slides_help_80',
+          title: 'Make successful slides 80%+ of the time',
+        },
         { id: 'takeaways_2_per_game', title: 'Record 2+ takeaways per game' },
       ],
       Goalie: [
-        { id: 'save_55_percent', title: 'Maintain at least 55% save percentage' },
+        {
+          id: 'save_55_percent',
+          title: 'Maintain at least 55% save percentage',
+        },
         { id: 'goals_under_8', title: 'Keep opponents under 8 goals per game' },
-        { id: 'saves_10_plus_5_games', title: 'Record 10+ saves in at least 5 games' },
+        {
+          id: 'saves_10_plus_5_games',
+          title: 'Record 10+ saves in at least 5 games',
+        },
         { id: 'shutout_games_2', title: 'Record 2+ shutout games this season' },
-        { id: 'ground_balls_2_plus_goalie', title: 'Record 2+ ground balls per game' },
-        { id: 'limit_goals_allowed_streaks', title: 'Limit opponent scoring streaks to 2 goals' },
-        { id: 'save_streaks_5_plus', title: 'Record 5+ consecutive saves at least 3 times' },
+        {
+          id: 'ground_balls_2_plus_goalie',
+          title: 'Record 2+ ground balls per game',
+        },
+        {
+          id: 'limit_goals_allowed_streaks',
+          title: 'Limit opponent scoring streaks to 2 goals',
+        },
+        {
+          id: 'save_streaks_5_plus',
+          title: 'Record 5+ consecutive saves at least 3 times',
+        },
       ],
       FOGO: [
         { id: 'faceoff_60_percent', title: 'Win 60%+ of face-offs' },
-        { id: 'ground_balls_3_plus_fogo', title: 'Average 3+ ground balls per game' },
-        { id: 'limit_faceoff_turnovers', title: 'Limit turnovers to under 1 per game' },
-        { id: 'faceoff_streaks_3', title: 'Keep face-off win streaks of 3+ in a row' },
+        {
+          id: 'ground_balls_3_plus_fogo',
+          title: 'Average 3+ ground balls per game',
+        },
+        {
+          id: 'limit_faceoff_turnovers',
+          title: 'Limit turnovers to under 1 per game',
+        },
+        {
+          id: 'faceoff_streaks_3',
+          title: 'Keep face-off win streaks of 3+ in a row',
+        },
         { id: 'wing_play_success_70', title: 'Win 70%+ of wing battles' },
-        { id: 'fast_break_goals_8', title: 'Score 8+ fast break goals this season' },
+        {
+          id: 'fast_break_goals_8',
+          title: 'Score 8+ fast break goals this season',
+        },
       ],
     },
     girls: {
       Attack: [
-        { id: 'score_1_per_game_girls', title: 'Score at least 1 goal per game' },
+        {
+          id: 'score_1_per_game_girls',
+          title: 'Score at least 1 goal per game',
+        },
         { id: 'avg_2_assists_girls', title: 'Average 2+ assists per game' },
-        { id: 'shooting_55_percent_girls', title: 'Maintain 55%+ shooting accuracy' },
-        { id: 'draw_ground_balls_3_girls', title: 'Record 3+ draw controls or ground balls per game' },
-        { id: 'limit_turnovers_2_girls', title: 'Limit turnovers to under 2 per game' },
+        {
+          id: 'shooting_55_percent_girls',
+          title: 'Maintain 55%+ shooting accuracy',
+        },
+        {
+          id: 'draw_ground_balls_3_girls',
+          title: 'Record 3+ draw controls or ground balls per game',
+        },
+        {
+          id: 'limit_turnovers_2_girls',
+          title: 'Limit turnovers to under 2 per game',
+        },
       ],
       Midfield: [
-        { id: 'draw_controls_3_girls', title: 'Record 3+ draw controls per game' },
-        { id: 'contribute_2_points_girls', title: 'Contribute 2+ points per game' },
-        { id: 'ground_balls_50_percent_girls', title: 'Win 50%+ ground balls attempted' },
-        { id: 'transition_80_percent_girls', title: 'Transition successfully on 80%+ clears' },
-        { id: 'cause_1_turnover_girls', title: 'Record 1 caused turnover per game' },
+        {
+          id: 'draw_controls_3_girls',
+          title: 'Record 3+ draw controls per game',
+        },
+        {
+          id: 'contribute_2_points_girls',
+          title: 'Contribute 2+ points per game',
+        },
+        {
+          id: 'ground_balls_50_percent_girls',
+          title: 'Win 50%+ ground balls attempted',
+        },
+        {
+          id: 'transition_80_percent_girls',
+          title: 'Transition successfully on 80%+ clears',
+        },
+        {
+          id: 'cause_1_turnover_girls',
+          title: 'Record 1 caused turnover per game',
+        },
       ],
       Defense: [
-        { id: 'hold_matchup_2_goals_girls', title: 'Hold matchup to under 2 goals per game' },
-        { id: 'ground_balls_2_plus_girls', title: 'Record 2+ ground balls per game' },
-        { id: 'cause_1_turnover_def_girls', title: 'Cause at least 1 turnover per game' },
-        { id: 'transition_80_percent_def_girls', title: 'Transition successfully on 80%+ clears' },
-        { id: 'limit_penalties_2_girls', title: 'Commit under 2 penalties per game' },
+        {
+          id: 'hold_matchup_2_goals_girls',
+          title: 'Hold matchup to under 2 goals per game',
+        },
+        {
+          id: 'ground_balls_2_plus_girls',
+          title: 'Record 2+ ground balls per game',
+        },
+        {
+          id: 'cause_1_turnover_def_girls',
+          title: 'Cause at least 1 turnover per game',
+        },
+        {
+          id: 'transition_80_percent_def_girls',
+          title: 'Transition successfully on 80%+ clears',
+        },
+        {
+          id: 'limit_penalties_2_girls',
+          title: 'Commit under 2 penalties per game',
+        },
       ],
       Goalie: [
-        { id: 'save_50_percent_girls', title: 'Maintain at least 50% save percentage' },
-        { id: 'goals_under_10_girls', title: 'Keep opponents under 10 goals per game' },
-        { id: 'saves_8_plus_5_games_girls', title: 'Record 8+ saves in at least 5 games' },
-        { id: 'transition_75_percent_girls', title: 'Transition ball successfully on 75%+ clears' },
-        { id: 'communicate_90_percent_girls', title: 'Communicate on 90% of defensive possessions' },
+        {
+          id: 'save_50_percent_girls',
+          title: 'Maintain at least 50% save percentage',
+        },
+        {
+          id: 'goals_under_10_girls',
+          title: 'Keep opponents under 10 goals per game',
+        },
+        {
+          id: 'saves_8_plus_5_games_girls',
+          title: 'Record 8+ saves in at least 5 games',
+        },
+        {
+          id: 'transition_75_percent_girls',
+          title: 'Transition ball successfully on 75%+ clears',
+        },
+        {
+          id: 'communicate_90_percent_girls',
+          title: 'Communicate on 90% of defensive possessions',
+        },
       ],
     },
   };
 
   // Helper function to get goal title from goal ID
   const getGoalTitle = (goalId: string): string => {
-    // Search through all positions and genders to find the goal
-    for (const genderKey of Object.keys(SEASON_GOALS) as Array<keyof typeof SEASON_GOALS>) {
-      for (const positionKey of Object.keys(SEASON_GOALS[genderKey]) as Array<keyof typeof SEASON_GOALS[typeof genderKey]>) {
-        const positionGoals = SEASON_GOALS[genderKey][positionKey] as Array<{id: string, title: string}>;
+    // Map of goal IDs to titles from the new SMART GoalsScreen
+    const goalTitles: { [key: string]: string } = {
+      // Attack Goals
+      'score_15_goals_season': 'Score 15+ Goals This Season',
+      'shooting_accuracy_65': 'Maintain 65%+ Shooting Accuracy',
+      'assists_per_game_1_5': 'Average 1.5+ Assists Per Game',
+      'ground_balls_3_per_game': 'Win 3+ Ground Balls Per Game',
+      'limit_turnovers_1_5': 'Keep Turnovers Under 1.5 Per Game',
+      
+      // Midfield Goals
+      'points_per_game_2': 'Average 2+ Points Per Game',
+      'faceoff_wins_55_percent': 'Win 55%+ of Face-offs',
+      'ground_balls_4_per_game': 'Secure 4+ Ground Balls Per Game',
+      'clear_success_80_percent': 'Clear Ball Successfully 80%+ of Time',
+      'caused_turnovers_1_per_game': 'Force 1+ Turnover Per Game',
+      
+      // Defense Goals
+      'hold_opponent_under_2_goals': 'Hold Matchup to Under 2 Goals Per Game',
+      'ground_balls_5_per_game': 'Win 5+ Ground Balls Per Game',
+      'caused_turnovers_1_5_per_game': 'Force 1.5+ Turnovers Per Game',
+      'clear_success_85_percent': 'Clear Successfully 85%+ of Time',
+      'slides_communication_90': 'Communicate on 90%+ of Slides',
+      
+      // Goalie Goals
+      'save_percentage_60_plus': 'Maintain 60%+ Save Percentage',
+      'goals_against_under_8': 'Allow Under 8 Goals Per Game',
+      'saves_10_plus_5_games': 'Record 10+ Saves in 5+ Games',
+      'clear_assists_15_season': 'Record 15+ Clear Assists This Season',
+      'ground_balls_2_per_game': 'Secure 2+ Ground Balls Per Game',
+      
+      // Recruiting Goals
+      'create_highlight_video': 'Create Professional Highlight Video',
+      'contact_20_college_coaches': 'Contact 20+ College Coaches',
+      'attend_3_college_camps': 'Attend 3+ College Camps/Showcases',
+      'maintain_3_5_gpa': 'Maintain 3.5+ GPA',
+      'complete_sat_act_prep': 'Complete SAT/ACT Prep Course',
+      
+      // Personal Goals
+      'leadership_captain_role': 'Earn Team Leadership Role',
+      'mentor_younger_players': 'Mentor 2+ Younger Players',
+      'perfect_attendance_practice': 'Perfect Practice Attendance',
+      'community_service_20_hours': 'Complete 20+ Hours Community Service',
+      'improve_fitness_benchmarks': 'Improve All Fitness Benchmarks by 10%',
+    };
+
+    // First check our onboarding goals
+    if (goalTitles[goalId]) {
+      return goalTitles[goalId];
+    }
+
+    // Fallback to searching season goals for backwards compatibility
+    for (const genderKey of Object.keys(SEASON_GOALS) as Array<
+      keyof typeof SEASON_GOALS
+    >) {
+      for (const positionKey of Object.keys(SEASON_GOALS[genderKey]) as Array<
+        keyof (typeof SEASON_GOALS)[typeof genderKey]
+      >) {
+        const positionGoals = SEASON_GOALS[genderKey][positionKey] as Array<{
+          id: string;
+          title: string;
+        }>;
         const goal = positionGoals.find(g => g.id === goalId);
         if (goal) {
           return goal.title;
@@ -264,7 +463,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       {/* Stepper */}
-      <OnboardingStepper 
+      <OnboardingStepper
         currentStep={8}
         totalSteps={8}
         stepTitle="Review & Commit"
@@ -272,282 +471,379 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         showBackButton={true}
       />
 
-      <Animated.ScrollView 
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          {/* Animated Checkmark Stamp */}
-          <Animated.View 
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <Animated.ScrollView
+            ref={scrollViewRef}
             style={[
-              styles.checkmarkContainer,
+              styles.content,
               {
-                transform: [
-                  { scale: checkmarkAnim },
-                  { rotate: checkmarkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg']
-                  })}
-                ]
-              }
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
             ]}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.checkmarkCircle}>
-              <Ionicons name="checkmark" size={28} color={theme.colors.white} />
-            </View>
-          </Animated.View>
-          
-          <Text style={styles.title}>Your Locker is Ready</Text>
-          <Text style={styles.subtitle}>
-            Review and confirm your profile details below
-          </Text>
-        </View>
-
-        {/* Player Card Hero */}
-        <View style={styles.playerCard}>
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primaryDark]}
-            style={styles.playerCardGradient}
-          >
-            {/* Player Avatar */}
-            <View style={styles.playerAvatar}>
-              {profileImage ? (
-                <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarText}>
-                  {firstName?.charAt(0)}{lastName?.charAt(0)}
-                </Text>
-              )}
-            </View>
-            
-            {/* Player Info */}
-            <View style={styles.playerInfo}>
-              <Text style={styles.playerName}>{firstName} {lastName}</Text>
-              <Text style={styles.playerPosition}>{position}</Text>
-              <View style={styles.playerDetails}>
-                <Text style={styles.playerDetailText}>{sport ? sport.charAt(0).toUpperCase() + sport.slice(1) : 'Lacrosse'} • Class of {graduationYear}</Text>
-                <Text style={styles.playerSchool}>{schoolName}</Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* High School Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconContainer}>
-              <Ionicons name="school" size={24} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.cardTitle}>High School</Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => navigation.navigate('HighSchool', { ...route.params, returnTo: 'Review' })}
-            >
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.cardContent}>
-            <Text style={styles.cardMainText}>{schoolName}</Text>
-            <Text style={styles.cardSubText}>{city}, {state} • {level}</Text>
-            <View style={styles.badgeContainer}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>#{jerseyNumber || 'TBD'}</Text>
-              </View>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Class of {graduationYear}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Club Team Card */}
-        {clubEnabled && (
-          <View style={styles.infoCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardIconContainer}>
-                <Ionicons name="trophy" size={24} color={theme.colors.warning} />
-              </View>
-              <Text style={styles.cardTitle}>Club Team</Text>
-              <TouchableOpacity 
-                style={styles.editButton}
-                onPress={() => navigation.navigate('ClubTeam', { ...route.params, returnTo: 'Review' })}
+            {/* Header */}
+            <View style={styles.header}>
+              {/* Animated Checkmark Stamp */}
+              <Animated.View
+                style={[
+                  styles.checkmarkContainer,
+                  {
+                    transform: [
+                      { scale: checkmarkAnim },
+                      {
+                        rotate: checkmarkAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
               >
-                <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.cardContent}>
-              <Text style={styles.cardMainText}>{clubOrgName} - {clubTeamName}</Text>
-              <Text style={styles.cardSubText}>
-                {clubCity}, {clubState}{clubJerseyNumber ? ` • #${clubJerseyNumber}` : ''}
+                <View style={styles.checkmarkCircle}>
+                  <Ionicons
+                    name="checkmark"
+                    size={28}
+                    color={theme.colors.white}
+                  />
+                </View>
+              </Animated.View>
+
+              <Text style={styles.title}>Your Locker is Ready</Text>
+              <Text style={styles.subtitle}>
+                Review and confirm your profile details below
               </Text>
             </View>
-          </View>
-        )}
 
-        {/* Season Goals Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconContainer}>
-              <Ionicons name="flag" size={24} color={theme.colors.success} />
-            </View>
-            <Text style={styles.cardTitle}>Season Goals</Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => navigation.navigate('Goals', { ...route.params, returnTo: 'Review' })}
-            >
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.cardContent}>
-            {goals && goals.length > 0 ? (
-              <View style={styles.goalsContainer}>
-                {goals.map((goalId: string, index: number) => (
-                  <View key={index} style={styles.goalBullet}>
-                    <View style={styles.bulletPoint} />
-                    <Text style={styles.goalBulletText}>{getGoalTitle(goalId)}</Text>
+            {/* Player Card Hero */}
+            <View style={styles.playerCard}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primaryDark]}
+                style={styles.playerCardGradient}
+              >
+                {/* Player Avatar */}
+                <View style={styles.playerAvatar}>
+                  {profileImage ? (
+                    <Image
+                      source={{ uri: profileImage }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>
+                      {firstName?.charAt(0)}
+                      {lastName?.charAt(0)}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Player Info */}
+                <View style={styles.playerInfo}>
+                  <Text style={styles.playerName}>
+                    {firstName} {lastName}
+                  </Text>
+                  <Text style={styles.playerPosition}>{position}</Text>
+                  <View style={styles.playerDetails}>
+                    <Text style={styles.playerDetailText}>
+                      {sport
+                        ? sport.charAt(0).toUpperCase() + sport.slice(1)
+                        : 'Lacrosse'}{' '}
+                      • Class of {graduationYear}
+                    </Text>
+                    <Text style={styles.playerSchool}>{schoolName}</Text>
                   </View>
-                ))}
+                </View>
+              </LinearGradient>
+            </View>
+
+            {/* Team Information Card */}
+            <View style={styles.infoCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardIconContainer}>
+                  <Ionicons
+                    name="school"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <Text style={styles.cardTitle}>Team Information</Text>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() =>
+                    navigation.navigate('TeamInformation', {
+                      ...route.params,
+                      teamData: {
+                        schoolName,
+                        city,
+                        state,
+                        level,
+                        jerseyNumber,
+                        clubEnabled,
+                        clubOrgName,
+                        clubTeamName,
+                        clubCity,
+                        clubState,
+                        clubJerseyNumber,
+                      },
+                      returnTo: 'Review',
+                    })
+                  }
+                >
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
               </View>
-            ) : (
-              <View style={styles.goalsContainer}>
-                <View style={styles.goalBullet}>
-                  <View style={styles.bulletPoint} />
-                  <Text style={styles.goalBulletText}>Score at least 1 goal per game</Text>
+              <View style={styles.cardContent}>
+                {/* High School Section */}
+                <View style={styles.teamSection}>
+                  <Text style={styles.teamSectionTitle}>High School</Text>
+                  <Text style={styles.cardMainText}>{schoolName}</Text>
+                  <Text style={styles.cardSubText}>
+                    {city}, {state} • {level}
+                  </Text>
+                  <View style={styles.badgeContainer}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        #
+                        {jerseyNumber && jerseyNumber.trim()
+                          ? jerseyNumber.trim()
+                          : 'TBD'}
+                      </Text>
+                    </View>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        Class of {graduationYear}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.goalBullet}>
-                  <View style={styles.bulletPoint} />
-                  <Text style={styles.goalBulletText}>Average 2 assists per game</Text>
+
+                {/* Club Team Section */}
+                {clubEnabled && (
+                  <View style={[styles.teamSection, styles.teamSectionSpacing]}>
+                    <Text style={styles.teamSectionTitle}>Club Team</Text>
+                    <Text style={styles.cardMainText}>
+                      {clubOrgName} - {clubTeamName}
+                    </Text>
+                    <Text style={styles.cardSubText}>
+                      {clubCity}, {clubState}
+                    </Text>
+                    {clubJerseyNumber && clubJerseyNumber.trim() && (
+                      <View style={styles.clubJerseyBadge}>
+                        <Text style={styles.badgeText}>
+                          #
+                          {clubJerseyNumber.trim()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Season Goals Card */}
+            <View style={styles.infoCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardIconContainer}>
+                  <Ionicons
+                    name="flag"
+                    size={24}
+                    color={theme.colors.success}
+                  />
                 </View>
-                <View style={styles.goalBullet}>
-                  <View style={styles.bulletPoint} />
-                  <Text style={styles.goalBulletText}>Maintain 70% ground ball success</Text>
+                <Text style={styles.cardTitle}>Season Goals</Text>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() =>
+                    navigation.navigate('Goals', {
+                      ...route.params,
+                      returnTo: 'Review',
+                    })
+                  }
+                >
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.cardContent}>
+                {goals && goals.length > 0 ? (
+                  <View style={styles.goalsContainer}>
+                    {goals.map((goal: any, index: number) => (
+                      <View key={index} style={styles.goalBullet}>
+                        <View style={styles.bulletPoint} />
+                        <Text style={styles.goalBulletText}>
+                          {typeof goal === 'string'
+                            ? getGoalTitle(goal)
+                            : goal.title || goal.id}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.goalsContainer}>
+                    <View style={styles.goalBullet}>
+                      <View style={styles.bulletPoint} />
+                      <Text style={styles.goalBulletText}>
+                        Score at least 1 goal per game
+                      </Text>
+                    </View>
+                    <View style={styles.goalBullet}>
+                      <View style={styles.bulletPoint} />
+                      <Text style={styles.goalBulletText}>
+                        Average 2 assists per game
+                      </Text>
+                    </View>
+                    <View style={styles.goalBullet}>
+                      <View style={styles.bulletPoint} />
+                      <Text style={styles.goalBulletText}>
+                        Maintain 70% ground ball success
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Academic Card */}
+            {(gpa || satScore || actScore || academicInterest || academicInterests?.length || hasHonorsAP || academicAwards) && (
+              <View style={styles.infoCard}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconContainer}>
+                    <Ionicons name="book" size={24} color={theme.colors.info} />
+                  </View>
+                  <Text style={styles.cardTitle}>Academic</Text>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() =>
+                      navigation.navigate('Academic', {
+                        ...route.params,
+                        returnTo: 'Review',
+                      })
+                    }
+                  >
+                    <Text style={styles.editButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.cardContent}>
+                  {gpa && <Text style={styles.cardMainText}>GPA: {gpa}</Text>}
+                  {(satScore || actScore) && (
+                    <Text style={styles.cardSubText}>
+                      {satScore ? `SAT: ${satScore}` : ''}
+                      {satScore && actScore ? ' • ' : ''}
+                      {actScore ? `ACT: ${actScore}` : ''}
+                    </Text>
+                  )}
+                  {(academicInterests?.length || academicInterest) && (
+                    <Text style={styles.cardSubText}>
+                      Interests: {academicInterests?.length ? academicInterests.join(', ') : academicInterest}
+                    </Text>
+                  )}
+                  {hasHonorsAP && (
+                    <Text style={styles.cardSubText}>
+                      Honors/AP Courses
+                    </Text>
+                  )}
+                  {academicAwards && (
+                    <Text style={styles.cardSubText}>
+                      Awards: {academicAwards}
+                    </Text>
+                  )}
                 </View>
               </View>
             )}
-          </View>
-        </View>
 
-        {/* Academic Card */}
-        {(gpa || satScore || actScore || academicInterest) && (
-          <View style={styles.infoCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardIconContainer}>
-                <Ionicons name="book" size={24} color={theme.colors.info} />
-              </View>
-              <Text style={styles.cardTitle}>Academic</Text>
-              <TouchableOpacity 
-                style={styles.editButton}
-                onPress={() => navigation.navigate('Academic', { ...route.params, returnTo: 'Review' })}
-              >
-                <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.cardContent}>
-              {gpa && <Text style={styles.cardMainText}>GPA: {gpa}</Text>}
-              {(satScore || actScore) && (
-                <Text style={styles.cardSubText}>
-                  {satScore ? `SAT: ${satScore}` : ''}{satScore && actScore ? ' • ' : ''}{actScore ? `ACT: ${actScore}` : ''}
+            {/* Final Steps Card */}
+            <View style={styles.finalStepsCard}>
+              <View style={styles.cardHeaderCentered}>
+                <Text style={styles.cardTitleFullCentered}>
+                  Create Your Account
                 </Text>
-              )}
-              {academicInterest && <Text style={styles.cardSubText}>Interest: {academicInterest}</Text>}
-            </View>
-          </View>
-        )}
+              </View>
 
-        {/* Final Steps Card */}
-        <View style={styles.finalStepsCard}>
-          <View style={styles.cardHeaderCentered}>
-            <Text style={styles.cardTitleFullCentered}>Create Your Account</Text>
-          </View>
-          
-          <View style={styles.accountDescription}>
-            <Text style={styles.accountDescriptionText}>
-              You're almost there! Create your account to save your personalized locker and start tracking your {sport || 'lacrosse'} journey.
-            </Text>
-          </View>
-          
-          {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Create a secure password"
-                placeholderTextColor={theme.colors.neutral400}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity 
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons 
-                  name={showPassword ? "eye-off" : "eye"} 
-                  size={20} 
-                  color={theme.colors.textSecondary} 
+              <View style={styles.accountDescription}>
+                <Text style={styles.accountDescriptionText}>
+                  You're almost there! Create your account to save your
+                  personalized locker and start tracking your{' '}
+                  {sport || 'lacrosse'} journey.
+                </Text>
+              </View>
+
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  ref={emailInputRef}
+                  style={styles.input}
+                  placeholder="Email address"
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => handleInputFocus(emailInputRef)}
+                  onBlur={handleInputBlur}
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
                 />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Commitment Section */}
-          <View style={styles.commitmentSection}>
-            <View style={styles.commitmentToggle}>
-              <View style={styles.commitmentText}>
-                <Text style={styles.commitmentLabel}>
-                  I'll log my first game by {formattedDate}
-                </Text>
-                <Text style={styles.commitmentSubtext}>
-                  Build your tracking habit early
-                </Text>
               </View>
-              <Switch
-                value={commitment}
-                onValueChange={setCommitment}
-                trackColor={{ false: theme.colors.neutral200, true: theme.colors.primary + '30' }}
-                thumbColor={commitment ? theme.colors.primary : theme.colors.neutral400}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    ref={passwordInputRef}
+                    style={styles.passwordInput}
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => handleInputFocus(passwordInputRef)}
+                    onBlur={handleInputBlur}
+                    placeholder="Create a secure password"
+                    placeholderTextColor={theme.colors.neutral400}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    returnKeyType="done"
+                    onSubmitEditing={handleEnterLocker}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
 
-        {/* Enter Button */}
-        <TouchableOpacity 
-          style={[
-            styles.enterButton, 
-            (!commitment || !email || !password || isCreatingUser) && styles.enterButtonDisabled
-          ]}
-          onPress={handleEnterLocker}
-          disabled={!commitment || !email || !password || isCreatingUser}
-        >
-          <Text style={styles.enterButtonText}>Enter the Locker</Text>
-          <Ionicons name="arrow-forward" size={20} color={theme.colors.white} />
-        </TouchableOpacity>
+            {/* Enter Button */}
+            <TouchableOpacity
+              style={[
+                styles.enterButton,
+                (!email || !password || isCreatingUser) &&
+                  styles.enterButtonDisabled,
+              ]}
+              onPress={handleEnterLocker}
+              disabled={!email || !password || isCreatingUser}
+            >
+              <Text style={styles.enterButtonText}>Enter the Locker</Text>
+              <Ionicons
+                name="arrow-forward"
+                size={20}
+                color={theme.colors.white}
+              />
+            </TouchableOpacity>
 
-        <View style={styles.bottomSpacer} />
-      </Animated.ScrollView>
-
+            <View style={styles.bottomSpacer} />
+          </Animated.ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -813,6 +1109,58 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textSecondary,
   },
+  commitmentSectionTitle: {
+    fontSize: 18,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textPrimary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  commitmentOptions: {
+    marginBottom: 20,
+  },
+  commitmentOption: {
+    backgroundColor: theme.colors.neutral50,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  commitmentOptionSelected: {
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+  },
+  commitmentOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  commitmentOptionText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  commitmentOptionTitle: {
+    fontSize: 16,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  commitmentOptionTitleSelected: {
+    color: theme.colors.primary,
+  },
+  commitmentOptionSubtitle: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
+  commitmentDisplay: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.neutral200,
+  },
   inputContainer: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -913,5 +1261,46 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 40,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  teamSection: {
+    marginBottom: 8,
+  },
+  teamSectionSpacing: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral100,
+  },
+  teamSectionTitle: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.semiBold,
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  teamSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  teamSectionTitleContainer: {
+    flex: 1,
+  },
+  clubJerseyBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+    marginTop: 8,
   },
 });

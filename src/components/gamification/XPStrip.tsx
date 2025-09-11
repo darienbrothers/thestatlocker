@@ -2,7 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
-import { calculateLevel, calculateLevelProgress, getXPToNextLevel, ANIMATION_DURATIONS } from '../../utils/gamification';
+import {
+  calculateLevel,
+  calculateLevelProgress,
+  getXPToNextLevel,
+  ANIMATION_DURATIONS,
+} from '../../utils/gamification';
 
 interface XPStripProps {
   currentXP: number;
@@ -11,15 +16,17 @@ interface XPStripProps {
   compact?: boolean;
 }
 
-export default function XPStrip({ 
-  currentXP, 
-  animateToXP, 
-  showLabel = true, 
-  compact = false 
+export default function XPStrip({
+  currentXP,
+  animateToXP,
+  showLabel = true,
+  compact = false,
 }: XPStripProps) {
-  const progressAnim = useRef(new Animated.Value(calculateLevelProgress(currentXP))).current;
+  const progressAnim = useRef(
+    new Animated.Value(calculateLevelProgress(currentXP)),
+  ).current;
   const xpCountAnim = useRef(new Animated.Value(currentXP)).current;
-  
+
   const currentLevel = calculateLevel(animateToXP || currentXP);
   const progress = calculateLevelProgress(animateToXP || currentXP);
   const xpToNext = getXPToNextLevel(animateToXP || currentXP);
@@ -53,12 +60,10 @@ export default function XPStrip({
             <Text style={styles.levelIcon}>{currentLevel.icon}</Text>
             <Text style={styles.levelText}>{currentLevel.name}</Text>
           </View>
-          <Text style={styles.xpText}>
-            {currentXP} XP
-          </Text>
+          <Text style={styles.xpText}>{currentXP} XP</Text>
         </View>
       )}
-      
+
       <View style={[styles.progressTrack, { height: stripHeight }]}>
         <Animated.View
           style={[
@@ -80,7 +85,7 @@ export default function XPStrip({
             style={styles.gradient}
           />
         </Animated.View>
-        
+
         {/* Progress glow effect */}
         <Animated.View
           style={[
@@ -99,7 +104,8 @@ export default function XPStrip({
 
       {showLabel && !compact && xpToNext > 0 && (
         <Text style={styles.nextLevelText}>
-          {xpToNext} XP to {currentLevel.id !== 'captain' ? 'next level' : 'max level'}
+          {xpToNext} XP to{' '}
+          {currentLevel.id !== 'captain' ? 'next level' : 'max level'}
         </Text>
       )}
     </View>

@@ -1,4 +1,17 @@
-import { doc, updateDoc, increment, serverTimestamp, collection, addDoc, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import {
+  doc,
+  updateDoc,
+  increment,
+  serverTimestamp,
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  Timestamp,
+} from 'firebase/firestore';
 
 import { db } from '../../config/firebase';
 
@@ -114,7 +127,7 @@ class XPService {
   async awardXP(
     userId: string,
     actionType: XPActionType,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ): Promise<{ success: boolean; xpAwarded: number; message?: string }> {
     try {
       // Rate limiting check
@@ -148,7 +161,11 @@ class XPService {
       }
 
       // Calculate XP amount
-      const xpAmount = await this.calculateXPAmount(userId, actionType, metadata);
+      const xpAmount = await this.calculateXPAmount(
+        userId,
+        actionType,
+        metadata,
+      );
 
       // Award XP and log action
       await this.executeXPAward(userId, actionType, xpAmount, metadata);
@@ -171,7 +188,9 @@ class XPService {
   /**
    * Check if user is within rate limits
    */
-  private async checkRateLimit(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  private async checkRateLimit(
+    userId: string,
+  ): Promise<{ allowed: boolean; reason?: string }> {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -182,10 +201,10 @@ class XPService {
         collection(db, 'xp_actions'),
         where('userId', '==', userId),
         where('timestamp', '>=', Timestamp.fromDate(oneHourAgo)),
-        orderBy('timestamp', 'desc')
+        orderBy('timestamp', 'desc'),
       );
       const hourlySnapshot = await getDocs(hourlyQuery);
-      
+
       if (hourlySnapshot.size >= this.RATE_LIMITS.maxActionsPerHour) {
         return { allowed: false, reason: 'Hourly rate limit exceeded.' };
       }
@@ -202,7 +221,7 @@ class XPService {
         collection(db, 'xp_actions'),
         where('userId', '==', userId),
         where('timestamp', '>=', Timestamp.fromDate(oneDayAgo)),
-        orderBy('timestamp', 'desc')
+        orderBy('timestamp', 'desc'),
       );
       const dailySnapshot = await getDocs(dailyQuery);
 
@@ -222,7 +241,7 @@ class XPService {
    */
   private async checkCooldown(
     userId: string,
-    actionType: XPActionType
+    actionType: XPActionType,
   ): Promise<{ allowed: boolean; remainingMinutes?: number }> {
     const reward = this.XP_REWARDS[actionType];
     if (!reward.cooldownMinutes) {
@@ -231,11 +250,11 @@ class XPService {
 
     const cacheKey = `${userId}-${actionType}`;
     const lastAction = this.actionCache.get(cacheKey);
-    
+
     if (lastAction) {
       const timeSinceLastAction = Date.now() - lastAction.getTime();
       const cooldownMs = reward.cooldownMinutes * 60 * 1000;
-      
+
       if (timeSinceLastAction < cooldownMs) {
         const remainingMs = cooldownMs - timeSinceLastAction;
         const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
@@ -245,22 +264,25 @@ class XPService {
 
     // Check database for more persistent cooldown tracking
     try {
-      const cooldownTime = new Date(Date.now() - reward.cooldownMinutes * 60 * 1000);
+      const cooldownTime = new Date(
+        Date.now() - reward.cooldownMinutes * 60 * 1000,
+      );
       const recentQuery = query(
         collection(db, 'xp_actions'),
         where('userId', '==', userId),
         where('type', '==', actionType),
         where('timestamp', '>=', Timestamp.fromDate(cooldownTime)),
         orderBy('timestamp', 'desc'),
-        limit(1)
+        limit(1),
       );
-      
+
       const recentSnapshot = await getDocs(recentQuery);
       if (!recentSnapshot.empty) {
-        const lastActionTime = recentSnapshot.docs[0].data().timestamp.toDate();
+        const lastActionTime = recentSnapshot.docs[0]?.data()?.timestamp?.toDate();
+        if (!lastActionTime) return { allowed: true };
         const timeSinceLastAction = Date.now() - lastActionTime.getTime();
         const cooldownMs = reward.cooldownMinutes * 60 * 1000;
-        
+
         if (timeSinceLastAction < cooldownMs) {
           const remainingMs = cooldownMs - timeSinceLastAction;
           const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
@@ -279,7 +301,7 @@ class XPService {
    */
   private async checkDailyLimit(
     userId: string,
-    actionType: XPActionType
+    actionType: XPActionType,
   ): Promise<{ allowed: boolean }> {
     const reward = this.XP_REWARDS[actionType];
     if (!reward.maxPerDay) {
@@ -295,7 +317,7 @@ class XPService {
         where('userId', '==', userId),
         where('type', '==', actionType),
         where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
-        orderBy('timestamp', 'desc')
+        orderBy('timestamp', 'desc'),
       );
 
       const dailySnapshot = await getDocs(dailyQuery);
@@ -314,9 +336,9 @@ class XPService {
    * Calculate XP amount with multipliers
    */
   private async calculateXPAmount(
-    userId: string,
+    _userId: string,
     actionType: XPActionType,
-    metadata: Record<string, any>
+    metadata: Record<string, any>,
   ): Promise<number> {
     const reward = this.XP_REWARDS[actionType];
     let amount = reward.baseAmount;
@@ -329,18 +351,27 @@ class XPService {
           const gamesInSession = metadata.gamesInSession || 1;
           amount *= Math.min(reward.multiplier * gamesInSession, 3.0);
           break;
-        
+
         case XPActionType.STREAK_MILESTONE:
           // Bonus based on streak length
           const streakLength = metadata.streakLength || 1;
-          amount *= Math.min(reward.multiplier * Math.log10(streakLength + 1), 5.0);
+          amount *= Math.min(
+            reward.multiplier * Math.log10(streakLength + 1),
+            5.0,
+          );
           break;
-        
+
         case XPActionType.ACHIEVEMENT_UNLOCKED:
           // Bonus for rare achievements
           const rarity = metadata.rarity || 'common';
-          const rarityMultiplier = { common: 1, rare: 1.5, epic: 2, legendary: 3 };
-          amount *= rarityMultiplier[rarity as keyof typeof rarityMultiplier] || 1;
+          const rarityMultiplier = {
+            common: 1,
+            rare: 1.5,
+            epic: 2,
+            legendary: 3,
+          };
+          amount *=
+            rarityMultiplier[rarity as keyof typeof rarityMultiplier] || 1;
           break;
       }
     }
@@ -355,7 +386,7 @@ class XPService {
     userId: string,
     actionType: XPActionType,
     amount: number,
-    metadata: Record<string, any>
+    metadata: Record<string, any>,
   ): Promise<void> {
     const batch = [
       // Update user's total XP
@@ -363,7 +394,7 @@ class XPService {
         totalXP: increment(amount),
         lastXPUpdate: serverTimestamp(),
       }),
-      
+
       // Log the XP action
       addDoc(collection(db, 'xp_actions'), {
         userId,
@@ -387,7 +418,7 @@ class XPService {
   private async logSuspiciousActivity(
     userId: string,
     type: string,
-    details: Record<string, any>
+    details: Record<string, any>,
   ): Promise<void> {
     try {
       await addDoc(collection(db, 'suspicious_activity'), {
@@ -411,7 +442,7 @@ class XPService {
         collection(db, 'xp_actions'),
         where('userId', '==', userId),
         orderBy('timestamp', 'desc'),
-        limit(limitCount)
+        limit(limitCount),
       );
 
       const snapshot = await getDocs(historyQuery);

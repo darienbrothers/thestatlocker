@@ -26,7 +26,7 @@ export const XPDisplay: React.FC<XPDisplayProps> = ({
 
   const progress = Math.min(
     (currentXP - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel),
-    1
+    1,
   );
 
   const styles = getStyles(size);
@@ -57,36 +57,58 @@ export const XPDisplay: React.FC<XPDisplayProps> = ({
   }, [progress, showAnimation]);
 
   const getLevelColor = (level: number): string => {
-    if (level < 10) return theme.colors.primary.main;
-    if (level < 25) return theme.colors.success.main;
-    if (level < 50) return theme.colors.warning.main;
-    if (level < 100) return theme.colors.error.main;
+    if (level < 10) {
+      return theme.colors.primary.main;
+    }
+    if (level < 25) {
+      return theme.colors.success.main;
+    }
+    if (level < 50) {
+      return theme.colors.warning.main;
+    }
+    if (level < 100) {
+      return theme.colors.error.main;
+    }
     return theme.colors.info.main;
   };
 
   const getLevelTitle = (level: number): string => {
-    if (level < 5) return 'Rookie';
-    if (level < 15) return 'Player';
-    if (level < 30) return 'Veteran';
-    if (level < 50) return 'All-Star';
-    if (level < 75) return 'Superstar';
-    if (level < 100) return 'Legend';
+    if (level < 5) {
+      return 'Rookie';
+    }
+    if (level < 15) {
+      return 'Player';
+    }
+    if (level < 30) {
+      return 'Veteran';
+    }
+    if (level < 50) {
+      return 'All-Star';
+    }
+    if (level < 75) {
+      return 'Superstar';
+    }
+    if (level < 100) {
+      return 'Legend';
+    }
     return 'Hall of Fame';
   };
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View
+      style={[styles.container, { transform: [{ scale: scaleAnim }] }]}
+    >
       {/* Level Badge */}
-      <View style={[styles.levelBadge, { backgroundColor: getLevelColor(level) }]}>
+      <View
+        style={[styles.levelBadge, { backgroundColor: getLevelColor(level) }]}
+      >
         <Text style={styles.levelText}>{level}</Text>
       </View>
 
       {/* XP Info */}
       <View style={styles.xpInfo}>
         <Text style={styles.levelTitle}>{getLevelTitle(level)}</Text>
-        <Text style={styles.xpText}>
-          {currentXP.toLocaleString()} XP
-        </Text>
+        <Text style={styles.xpText}>{currentXP.toLocaleString()} XP</Text>
         <Text style={styles.xpSubText}>
           {(xpForNextLevel - currentXP).toLocaleString()} XP to next level
         </Text>
@@ -114,9 +136,7 @@ export const XPDisplay: React.FC<XPDisplayProps> = ({
             />
           </Animated.View>
         </View>
-        <Text style={styles.progressText}>
-          {Math.round(progress * 100)}%
-        </Text>
+        <Text style={styles.progressText}>{Math.round(progress * 100)}%</Text>
       </View>
     </Animated.View>
   );

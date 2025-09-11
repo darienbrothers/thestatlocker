@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { theme } from '../../../constants/theme';
 import { ProgressBar } from './ProgressBar';
-import { progressService, type ProgressSummary } from '../../services/ProgressService';
+import {
+  progressService,
+  type ProgressSummary,
+} from '../../services/ProgressService';
 
 interface SeasonGoalsCardProps {
   userId: string;
@@ -45,32 +48,41 @@ export const SeasonGoalsCard: React.FC<SeasonGoalsCardProps> = ({ userId }) => {
         <Text style={styles.title}>Season Goals</Text>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No season goals set yet</Text>
-          <Text style={styles.emptySubtext}>Set your goals to track progress</Text>
+          <Text style={styles.emptySubtext}>
+            Set your goals to track progress
+          </Text>
         </View>
       </View>
     );
   }
 
-  const completedGoals = progress.seasonGoals.filter(goal => goal.isCompleted).length;
+  const completedGoals = progress.seasonGoals.filter(
+    goal => goal.isCompleted,
+  ).length;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Season Goals</Text>
         <View style={styles.overallProgress}>
-          <Text style={styles.overallPercentage}>{progress.overallProgress}%</Text>
+          <Text style={styles.overallPercentage}>
+            {progress.overallProgress}%
+          </Text>
           <Text style={styles.overallLabel}>Overall</Text>
         </View>
       </View>
-      
+
       <View style={styles.summary}>
         <Text style={styles.summaryText}>
           {completedGoals} of {progress.seasonGoals.length} goals completed
         </Text>
       </View>
 
-      <ScrollView style={styles.goalsContainer} showsVerticalScrollIndicator={false}>
-        {progress.seasonGoals.map((goal) => (
+      <ScrollView
+        style={styles.goalsContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {progress.seasonGoals.map(goal => (
           <ProgressBar
             key={goal.goalId}
             title={goal.title}
@@ -79,6 +91,7 @@ export const SeasonGoalsCard: React.FC<SeasonGoalsCardProps> = ({ userId }) => {
             percentage={goal.percentage}
             isCompleted={goal.isCompleted}
             unit={getUnitForStatType(goal.statType)}
+            statType={goal.statType}
           />
         ))}
       </ScrollView>

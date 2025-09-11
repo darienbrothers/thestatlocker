@@ -1,8 +1,9 @@
 export type MainTabParamList = {
   Home: undefined;
   Stats: undefined;
+  FAB: undefined;
   Recruiting: undefined;
-  Goals: undefined;
+  Skills: undefined;
 };
 
 export type RootStackParamList = {

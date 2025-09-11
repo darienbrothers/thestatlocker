@@ -9,6 +9,7 @@ interface ProgressBarProps {
   percentage: number;
   isCompleted: boolean;
   unit?: string;
+  statType?: string;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
@@ -18,35 +19,50 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   percentage,
   isCompleted,
   unit = '',
+  statType,
 }) => {
+  const isImprovementGoal = statType === 'improvement';
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={[styles.percentage, isCompleted && styles.completedText]}>
-          {percentage}%
-        </Text>
-      </View>
-      
-      <View style={styles.progressContainer}>
-        <View style={styles.progressTrack}>
-          <View 
-            style={[
-              styles.progressFill,
-              { width: `${Math.min(percentage, 100)}%` },
-              isCompleted && styles.completedFill
-            ]} 
-          />
-        </View>
-      </View>
-      
-      <View style={styles.footer}>
-        <Text style={styles.stats}>
-          {current.toLocaleString()}{unit} / {target.toLocaleString()}{unit}
-        </Text>
-        {isCompleted && (
-          <Text style={styles.completedLabel}>✓ Completed</Text>
+        {!isImprovementGoal ? (
+          <Text style={[styles.percentage, isCompleted && styles.completedText]}>
+            {percentage}%
+          </Text>
+        ) : (
+          <Text style={styles.improvementLabel}>Goal Set</Text>
         )}
+      </View>
+
+      {!isImprovementGoal && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${Math.min(percentage, 100)}%` },
+                isCompleted && styles.completedFill,
+              ]}
+            />
+          </View>
+        </View>
+      )}
+
+      <View style={styles.footer}>
+        {!isImprovementGoal ? (
+          <Text style={styles.stats}>
+            {current.toLocaleString()}
+            {unit} / {target.toLocaleString()}
+            {unit}
+          </Text>
+        ) : (
+          <Text style={styles.improvementText}>
+            Work towards this improvement area throughout the season
+          </Text>
+        )}
+        {isCompleted && <Text style={styles.completedLabel}>✓ Completed</Text>}
       </View>
     </View>
   );
@@ -113,5 +129,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.success,
     fontWeight: '600',
+  },
+  improvementLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  improvementText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
   },
 });

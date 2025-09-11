@@ -11,9 +11,9 @@ interface GamificationDashboardProps {
   userPosition: string;
 }
 
-export const GamificationDashboard: React.FC<GamificationDashboardProps> = ({ 
-  userId, 
-  userPosition 
+export const GamificationDashboard: React.FC<GamificationDashboardProps> = ({
+  userId,
+  userPosition,
 }) => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +25,8 @@ export const GamificationDashboard: React.FC<GamificationDashboardProps> = ({
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const data = await gamificationIntegrationService.getDashboardSummary(userId);
+      const data =
+        await gamificationIntegrationService.getDashboardSummary(userId);
       setDashboardData(data);
     } catch (error) {
       console.error('Error loading gamification dashboard:', error);
@@ -46,24 +47,28 @@ export const GamificationDashboard: React.FC<GamificationDashboardProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Season Goals Progress */}
       <SeasonGoalsCard userId={userId} />
-      
+
       {/* Skills & Drills Streaks */}
       <StreaksContainer userId={userId} />
-      
+
       {/* Achievements/Badges */}
       <BadgesList userId={userId} userPosition={userPosition} />
-      
+
       {/* Summary Stats */}
       {dashboardData && (
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Your Progress</Text>
           <View style={styles.summaryStats}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{dashboardData.activeStreaks}</Text>
+              <Text style={styles.summaryValue}>
+                {dashboardData.activeStreaks}
+              </Text>
               <Text style={styles.summaryLabel}>Active Streaks</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{dashboardData.totalBadges}</Text>
+              <Text style={styles.summaryValue}>
+                {dashboardData.totalBadges}
+              </Text>
               <Text style={styles.summaryLabel}>Badges Earned</Text>
             </View>
             <View style={styles.summaryItem}>

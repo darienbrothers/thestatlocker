@@ -1,18 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { theme } from '../../../constants/theme';
 import { BadgeCard } from './BadgeCard';
-import { badgeService, type Badge, type UserBadge, BadgeCategory } from '../../services/BadgeService';
+import {
+  badgeService,
+  type Badge,
+  type UserBadge,
+  BadgeCategory,
+} from '../../services/BadgeService';
 
 interface BadgesListProps {
   userId: string;
   userPosition: string;
 }
 
-export const BadgesList: React.FC<BadgesListProps> = ({ userId, userPosition }) => {
+export const BadgesList: React.FC<BadgesListProps> = ({
+  userId,
+  userPosition,
+}) => {
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<BadgeCategory | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<
+    BadgeCategory | 'all'
+  >('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,9 +40,9 @@ export const BadgesList: React.FC<BadgesListProps> = ({ userId, userPosition }) 
       setLoading(true);
       const [userBadgesData, availableBadgesData] = await Promise.all([
         badgeService.getUserBadges(userId),
-        badgeService.getAvailableBadges(userPosition)
+        badgeService.getAvailableBadges(userPosition),
       ]);
-      
+
       setUserBadges(userBadgesData);
       setAvailableBadges(availableBadgesData);
     } catch (error) {
@@ -37,9 +53,9 @@ export const BadgesList: React.FC<BadgesListProps> = ({ userId, userPosition }) 
   };
 
   const unlockedBadgeIds = userBadges.map(ub => ub.badgeId);
-  
-  const filteredBadges = availableBadges.filter(badge => 
-    selectedCategory === 'all' || badge.category === selectedCategory
+
+  const filteredBadges = availableBadges.filter(
+    badge => selectedCategory === 'all' || badge.category === selectedCategory,
   );
 
   const unlockedCount = userBadges.length;
@@ -65,39 +81,58 @@ export const BadgesList: React.FC<BadgesListProps> = ({ userId, userPosition }) 
         </Text>
       </View>
 
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         style={styles.categoriesContainer}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesContent}
       >
         <TouchableOpacity
-          style={[styles.categoryButton, selectedCategory === 'all' && styles.selectedCategory]}
+          style={[
+            styles.categoryButton,
+            selectedCategory === 'all' && styles.selectedCategory,
+          ]}
           onPress={() => setSelectedCategory('all')}
         >
-          <Text style={[styles.categoryText, selectedCategory === 'all' && styles.selectedCategoryText]}>
+          <Text
+            style={[
+              styles.categoryText,
+              selectedCategory === 'all' && styles.selectedCategoryText,
+            ]}
+          >
             All
           </Text>
         </TouchableOpacity>
-        
+
         {Object.values(BadgeCategory).map(category => (
           <TouchableOpacity
             key={category}
-            style={[styles.categoryButton, selectedCategory === category && styles.selectedCategory]}
+            style={[
+              styles.categoryButton,
+              selectedCategory === category && styles.selectedCategory,
+            ]}
             onPress={() => setSelectedCategory(category)}
           >
-            <Text style={[styles.categoryText, selectedCategory === category && styles.selectedCategoryText]}>
+            <Text
+              style={[
+                styles.categoryText,
+                selectedCategory === category && styles.selectedCategoryText,
+              ]}
+            >
               {formatCategoryName(category)}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <ScrollView style={styles.badgesContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.badgesContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {filteredBadges.map(badge => {
           const userBadge = userBadges.find(ub => ub.badgeId === badge.id);
           const isUnlocked = unlockedBadgeIds.includes(badge.id);
-          
+
           return (
             <BadgeCard
               key={badge.id}
@@ -107,7 +142,7 @@ export const BadgesList: React.FC<BadgesListProps> = ({ userId, userPosition }) 
             />
           );
         })}
-        
+
         {filteredBadges.length === 0 && (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No badges in this category</Text>

@@ -12,7 +12,9 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ScrollView,
 } from 'react-native';
+import { useKeyboardAwareScrolling } from '@/utils/keyboardUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,12 +23,20 @@ import { OnboardingStepper } from '@/components/gamification';
 import { colors, fonts, fontSizes } from '@/constants/theme';
 
 const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  // Enhanced keyboard-aware scrolling
+  const { scrollViewRef, handleInputFocus, handleInputBlur } =
+    useKeyboardAwareScrolling();
+
   // State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
   // Animation refs
   const bounceAnim = useRef(new Animated.Value(1)).current;
+
+  // Input refs for keyboard handling
+  const firstNameInputRef = useRef<TextInput>(null);
+  const lastNameInputRef = useRef<TextInput>(null);
 
   // Form validation
   const isFormValid = firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -35,9 +45,13 @@ const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       const savedFirstName = await AsyncStorage.getItem('onboarding_firstName');
       const savedLastName = await AsyncStorage.getItem('onboarding_lastName');
-      
-      if (savedFirstName) setFirstName(savedFirstName);
-      if (savedLastName) setLastName(savedLastName);
+
+      if (savedFirstName) {
+        setFirstName(savedFirstName);
+      }
+      if (savedLastName) {
+        setLastName(savedLastName);
+      }
     } catch (error) {
       console.log('Error loading data:', error);
     }
@@ -52,16 +66,11 @@ const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
   };
 
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
-
-
   // Load data when screen gains focus
   useFocusEffect(
     React.useCallback(() => {
       loadData();
-    }, [])
+    }, []),
   );
 
   // Save data when inputs change
@@ -105,9 +114,9 @@ const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         }),
       ]).start(() => {
         // Navigate to ProfileImageScreen
-        navigation.navigate('ProfileImage', { 
-          firstName: firstName.trim(), 
-          lastName: lastName.trim()
+        navigation.navigate('ProfileImage', {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
         });
       });
     }
@@ -119,101 +128,119 @@ const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <OnboardingStepper 
+      <OnboardingStepper
         currentStep={1}
         totalSteps={9}
         showBackButton={true}
         onBackPress={handleBackPress}
       />
-      
-      <KeyboardAvoidingView 
+
+      <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <View style={styles.contentContainer}>
-            <View style={styles.headerContainer}>
-              <View style={styles.headerSection}>
-                <Image 
-                  source={require('../../../../assets/logos/logoBlack.png')} 
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.welcomeText}>
-                  Welcome to your locker
-                </Text>
-                <Text style={styles.title}>
-                  What's your name, champ?
-                </Text>
-                <Text style={styles.subtitle}>
-                  Let's get you set up with a personalized experience in your stat locker.
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <View style={styles.inputSection}>
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>First Name</Text>
-                  <TextInput
-                    style={styles.cleanInput}
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="Enter your first name"
-                    placeholderTextColor={colors.textSecondary}
-                    autoCapitalize="words"
-                    returnKeyType="next"
-                    onSubmitEditing={() => {
-                      // Focus on last name field
-                    }}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.contentContainer}>
+              <View style={styles.headerContainer}>
+                <View style={styles.headerSection}>
+                  <Image
+                    source={require('../../../../assets/logos/logoBlack.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
                   />
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Last Name</Text>
-                  <TextInput
-                    style={styles.cleanInput}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Enter your last name"
-                    placeholderTextColor={colors.textSecondary}
-                    autoCapitalize="words"
-                    returnKeyType="done"
-                    onSubmitEditing={handleContinue}
-                  />
+                  <Text style={styles.welcomeText}>Welcome to your locker</Text>
+                  <Text style={styles.title}>What's your name, champ?</Text>
+                  <Text style={styles.subtitle}>
+                    Let's get you set up with a personalized experience in your
+                    stat locker.
+                  </Text>
                 </View>
               </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputSection}>
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>First Name</Text>
+                    <TextInput
+                      ref={firstNameInputRef}
+                      style={styles.cleanInput}
+                      value={firstName}
+                      onChangeText={setFirstName}
+                      placeholder="Enter your first name"
+                      placeholderTextColor={colors.textSecondary}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                      onFocus={() =>
+                        handleInputFocus(firstNameInputRef.current)
+                      }
+                      onBlur={handleInputBlur}
+                      onSubmitEditing={() => {
+                        lastNameInputRef.current?.focus();
+                      }}
+                    />
+                  </View>
+
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Last Name</Text>
+                    <TextInput
+                      ref={lastNameInputRef}
+                      style={styles.cleanInput}
+                      value={lastName}
+                      onChangeText={setLastName}
+                      placeholder="Enter your last name"
+                      placeholderTextColor={colors.textSecondary}
+                      autoCapitalize="words"
+                      returnKeyType="done"
+                      onFocus={() => handleInputFocus(lastNameInputRef.current)}
+                      onBlur={handleInputBlur}
+                      onSubmitEditing={handleContinue}
+                    />
+                  </View>
+                </View>
+              </View>
             </View>
-          </View>
+          </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      
+
       <View style={styles.fixedButtonContainer}>
         <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
           <TouchableOpacity
             style={[
               styles.continueButton,
-              !isFormValid && styles.continueButtonDisabled
+              !isFormValid && styles.continueButtonDisabled,
             ]}
             onPress={handleContinue}
             disabled={!isFormValid}
           >
             <LinearGradient
-              colors={isFormValid ? [colors.primary, colors.primaryDark] : [colors.neutral300, colors.neutral400]}
+              colors={
+                isFormValid
+                  ? [colors.primary, colors.primaryDark]
+                  : [colors.neutral300, colors.neutral400]
+              }
               style={styles.buttonGradient}
             >
               <View style={styles.buttonContent}>
-                <Text style={[
-                  styles.continueButtonText,
-                  !isFormValid && styles.continueButtonTextDisabled
-                ]}>
+                <Text
+                  style={[
+                    styles.continueButtonText,
+                    !isFormValid && styles.continueButtonTextDisabled,
+                  ]}
+                >
                   Next
                 </Text>
-                <Ionicons 
-                  name="arrow-forward" 
-                  size={20} 
-                  color={isFormValid ? colors.white : colors.neutral500} 
+                <Ionicons
+                  name="arrow-forward"
+                  size={20}
+                  color={isFormValid ? colors.white : colors.neutral500}
                   style={styles.buttonIcon}
                 />
               </View>

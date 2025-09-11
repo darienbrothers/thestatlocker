@@ -17,18 +17,61 @@ interface DrawerMenuProps {
   onClose: () => void;
   onNavigate: (screen: string) => void;
   onSignOut?: () => void;
+  showTutorials?: boolean;
 }
 
 const { width } = Dimensions.get('window');
 
-const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate, onSignOut }) => {
-  const menuItems = [
-    { id: 'ai-insights', title: 'AI Insights', icon: 'sparkles', description: 'Get personalized insights' },
-    { id: 'skills', title: 'Skills', icon: 'fitness', description: 'Track your development' },
-    { id: 'messages', title: 'Messages', icon: 'chatbubbles', description: 'Connect with coaches' },
-    { id: 'profile', title: 'Profile', icon: 'person', description: 'Manage your profile' },
-    { id: 'settings', title: 'Settings', icon: 'settings', description: 'App preferences' },
+const DrawerMenu: React.FC<DrawerMenuProps> = ({
+  visible,
+  onClose,
+  onNavigate,
+  onSignOut,
+  showTutorials,
+}) => {
+  const baseMenuItems = [
+    {
+      id: 'ai-insights',
+      title: 'AI Insights',
+      icon: 'sparkles',
+      description: 'Get personalized insights',
+    },
+    {
+      id: 'goals',
+      title: 'Goals',
+      icon: 'trophy',
+      description: 'Track your goals',
+    },
+    {
+      id: 'messages',
+      title: 'Messages',
+      icon: 'chatbubbles',
+      description: 'Connect with coaches',
+    },
+    {
+      id: 'profile',
+      title: 'Profile',
+      icon: 'person',
+      description: 'Manage your profile',
+    },
+    {
+      id: 'settings',
+      title: 'Settings',
+      icon: 'settings',
+      description: 'App preferences',
+    },
   ];
+
+  const tutorialItem = {
+    id: 'tutorials',
+    title: 'Tutorials',
+    icon: 'school',
+    description: 'Revisit app tutorials',
+  };
+
+  const menuItems = showTutorials
+    ? [tutorialItem, ...baseMenuItems]
+    : baseMenuItems;
 
   const handleItemPress = (itemId: string) => {
     onNavigate(itemId);
@@ -60,7 +103,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate, o
 
             {/* Menu Items */}
             <View style={styles.menuContent}>
-              {menuItems.map((item) => (
+              {menuItems.map(item => (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.menuItem}
@@ -68,20 +111,22 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate, o
                   activeOpacity={0.7}
                 >
                   <View style={styles.menuIconContainer}>
-                    <Ionicons 
-                      name={item.icon as any} 
-                      size={24} 
-                      color={theme.colors.primary} 
+                    <Ionicons
+                      name={item.icon as any}
+                      size={24}
+                      color={theme.colors.primary}
                     />
                   </View>
                   <View style={styles.menuTextContainer}>
                     <Text style={styles.menuTitle}>{item.title}</Text>
-                    <Text style={styles.menuDescription}>{item.description}</Text>
+                    <Text style={styles.menuDescription}>
+                      {item.description}
+                    </Text>
                   </View>
-                  <Ionicons 
-                    name="chevron-forward" 
-                    size={20} 
-                    color={theme.colors.textSecondary} 
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={theme.colors.textSecondary}
                   />
                 </TouchableOpacity>
               ))}
@@ -98,15 +143,17 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, onNavigate, o
                 activeOpacity={0.7}
               >
                 <View style={styles.signOutIconContainer}>
-                  <Ionicons 
-                    name="log-out-outline" 
-                    size={24} 
-                    color={theme.colors.error} 
+                  <Ionicons
+                    name="log-out-outline"
+                    size={24}
+                    color={theme.colors.error}
                   />
                 </View>
                 <View style={styles.menuTextContainer}>
                   <Text style={styles.signOutTitle}>Sign Out</Text>
-                  <Text style={styles.menuDescription}>Return to welcome screen</Text>
+                  <Text style={styles.menuDescription}>
+                    Return to welcome screen
+                  </Text>
                 </View>
               </TouchableOpacity>
             )}

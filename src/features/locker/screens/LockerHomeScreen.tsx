@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  ScrollView,
   SafeAreaView,
-  Image,
   Alert,
+  Modal,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,20 +17,51 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, fontSizes, fonts, tokens, borderRadius } from '@shared/theme';
 import { useAuthStore } from '@shared/stores/authStore';
 import { useGameStore } from '@shared/stores/gameStore';
-import LogGameModal from '@shared/components/LogGameModal';
+import { useProgressStore } from '@shared/stores/progressStore';
+import GameTrackingModal from '@shared/components/GameTrackingModal';
 import DrawerMenu from '@shared/components/DrawerMenu';
+import { SmartDemoSystem } from '@/components/demo/SmartDemoSystem';
+import { useSmartDemo } from '@/hooks/useSmartDemo';
+import { DemoCard } from '@/components/demo/DemoCard';
+import { CollegePipelineModal } from '@/components/demo/CollegePipelineModal';
+import { ProfileFeaturesModal } from '@/components/demo/ProfileFeaturesModal';
+import { SkillsDrillsModal } from '@/components/demo/SkillsDrillsModal';
 
-const LockerHomeScreen: React.FC = () => {
+interface LockerHomeScreenProps {
+  onboardingData?: any;
+}
+
+const LockerHomeScreen: React.FC<LockerHomeScreenProps> = ({
+  onboardingData,
+}) => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { games, initializeChecklists, fetchUserGames } = useGameStore();
+  const { progress, initializeProgress, markTaskCompleted, incrementTaskView } =
+    useProgressStore();
 
   const [showLogGameModal, setShowLogGameModal] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState<'school' | 'club'>('school');
-  const [image, setImage] = useState<string | null>(user?.photoURL || user?.profilePicture || null);
+  const [selectedSeason, setSelectedSeason] = useState<'school' | 'club'>(
+    'school',
+  );
+  const [image, setImage] = useState<string | null>(
+    user?.photoURL || user?.profilePicture || null,
+  );
   const [showDrawerMenu, setShowDrawerMenu] = useState(false);
+  const [showCollegePipelineModal, setShowCollegePipelineModal] =
+    useState(false);
+  const [showProfileFeaturesModal, setShowProfileFeaturesModal] =
+    useState(false);
+  const [showSkillsDrillsModal, setShowSkillsDrillsModal] = useState(false);
+  const [showTutorialSelection, setShowTutorialSelection] = useState(false);
+
+  // Smart Demo System
+  const { activeDemoType, completeDemoType, closeDemoType } = useSmartDemo();
 
   useEffect(() => {
+    // Initialize progress tracking
+    initializeProgress(user?.uid);
+
     console.log('=== LockerHomeScreen Debug ===');
     console.log('User object exists:', !!user);
     console.log('User UID:', user?.uid);
@@ -38,14 +70,19 @@ const LockerHomeScreen: React.FC = () => {
     console.log('User lastName:', user?.lastName);
     console.log('User position:', user?.position);
     console.log('User graduationYear:', user?.graduationYear);
+    console.log('User goals:', user?.goals);
     console.log('User highSchool:', user?.highSchool);
     console.log('User club:', user?.club);
+    console.log('Onboarding data received:', !!onboardingData);
     console.log('Full user object:', JSON.stringify(user, null, 2));
     console.log('=== End Debug ===');
-    
+
     if (user?.uid) {
       console.log('LockerHomeScreen - User UID:', user.uid);
-      console.log('LockerHomeScreen - Full User Data:', JSON.stringify(user, null, 2));
+      console.log(
+        'LockerHomeScreen - Full User Data:',
+        JSON.stringify(user, null, 2),
+      );
       initializeChecklists(user.uid);
       fetchUserGames(user.uid);
     } else {
@@ -62,7 +99,6 @@ const LockerHomeScreen: React.FC = () => {
   useEffect(() => {
     console.log('LockerHomeScreen - Filtered games:', filteredGames);
   }, [filteredGames]);
-
 
   const getTotalSaves = () => {
     return filteredGames.reduce((total, game) => {
@@ -83,19 +119,25 @@ const LockerHomeScreen: React.FC = () => {
   };
 
   const getAverageSaves = () => {
-    if (filteredGames.length === 0) return '0.0';
+    if (filteredGames.length === 0) {
+      return '0.0';
+    }
     const avg = getTotalSaves() / filteredGames.length;
     return avg.toFixed(1);
   };
 
   const getAverageShotsFaced = () => {
-    if (filteredGames.length === 0) return '0.0';
+    if (filteredGames.length === 0) {
+      return '0.0';
+    }
     const avg = getShotsFaced() / filteredGames.length;
     return avg.toFixed(1);
   };
 
   const getAverageGoalsAgainst = () => {
-    if (filteredGames.length === 0) return '0.0';
+    if (filteredGames.length === 0) {
+      return '0.0';
+    }
     const avg = getGoalsAgainst() / filteredGames.length;
     return avg.toFixed(1);
   };
@@ -106,95 +148,171 @@ const LockerHomeScreen: React.FC = () => {
     return shots > 0 ? Math.round((saves / shots) * 100) : 0;
   };
 
+  // Get tasks from progress store with completion status
+  const tasks = progress.tasks;
 
-  // Tasks for new users
-  const tasks = [
-    {
-      icon: '🥍',
-      title: 'Log Your First Game',
-      description: 'Track your performance and start building your stats',
-      action: 'LOG_GAME',
-      xpReward: 50
-    },
-    {
-      icon: '🎯',
-      title: 'Add Target Colleges',
-      description: 'Build your recruiting pipeline',
-      action: 'ADD_COLLEGES',
-      xpReward: 30
-    },
-    {
-      icon: '📝',
-      title: 'Complete Your Profile',
-      description: 'Add photos and detailed information',
-      action: 'COMPLETE_PROFILE',
-      xpReward: 100
+  // Render Season Goals based on user's onboarding goals
+  const renderSeasonGoals = () => {
+    if (!user?.goals || !Array.isArray(user.goals) || user.goals.length === 0) {
+      return (
+        <View style={styles.noGoalsContainer}>
+          <Text style={styles.noGoalsText}>No season goals set yet</Text>
+          <Text style={styles.noGoalsSubtext}>
+            Complete onboarding to set your goals
+          </Text>
+        </View>
+      );
     }
-  ];
 
+    return user.goals.map((goal: any, index: number) => {
+      const currentValue = getCurrentStatValue(goal);
+      const targetValue = goal.target || 0;
+      const progress =
+        targetValue > 0 ? Math.min((currentValue / targetValue) * 100, 100) : 0;
 
-
-  const pickImage = async () => {
-    Alert.alert(
-      "Select Profile Picture",
-      "Choose an option",
-      [
-        {
-          text: "Camera",
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Sorry, we need camera permissions to take a photo!');
-              return;
-            }
-            
-            let result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ['images'],
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets && result.assets[0]) {
-              setImage(result.assets[0].uri);
-              // TODO: Upload to Firebase and update user profile
-            }
-          }
-        },
-        {
-          text: "Photo Library",
-          onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Sorry, we need photo library permissions to select a photo!');
-              return;
-            }
-            
-            let result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets && result.assets[0]) {
-              setImage(result.assets[0].uri);
-              // TODO: Upload to Firebase and update user profile
-            }
-          }
-        },
-        {
-          text: "Cancel",
-          style: "cancel"
-        }
-      ]
-    );
+      return (
+        <View key={index} style={styles.goalItem}>
+          <View style={styles.goalHeader}>
+            <Text style={styles.goalLabel}>{goal.title}</Text>
+            <Text style={styles.goalProgress}>
+              {formatGoalValue(currentValue, goal)} /{' '}
+              {formatGoalValue(targetValue, goal)}
+            </Text>
+          </View>
+          <View style={styles.goalProgressBar}>
+            <View
+              style={[styles.goalProgressFill, { width: `${progress}%` }]}
+            />
+          </View>
+          <Text style={styles.goalSubtext}>
+            {progress >= 100
+              ? '🎉 Goal achieved!'
+              : `${Math.round(progress)}% complete`}
+          </Text>
+        </View>
+      );
+    });
   };
 
+  // Get current stat value for a goal
+  const getCurrentStatValue = (goal: any) => {
+    if (!goal.category) {
+      return 0;
+    }
+
+    switch (goal.category) {
+      case 'saves':
+        return getTotalSaves();
+      case 'goals':
+        return getTotalGoals();
+      case 'assists':
+        return getTotalAssists();
+      case 'defense':
+      case 'ground_balls':
+        return getTotalGroundBalls();
+      case 'accuracy':
+        return getSavePercentage();
+      default:
+        return 0;
+    }
+  };
+
+  // Format goal values based on category
+  const formatGoalValue = (value: number, goal: any) => {
+    if (goal.category === 'accuracy') {
+      return `${value}%`;
+    }
+    return Math.round(value).toString();
+  };
+
+  // Helper functions for goal calculations
+  const getTotalGoals = () => {
+    return games.reduce((total, game) => {
+      const stats = game.stats;
+      return total + (stats?.goals || 0);
+    }, 0);
+  };
+
+  const getTotalAssists = () => {
+    return games.reduce((total, game) => {
+      const stats = game.stats;
+      return total + (stats?.assists || 0);
+    }, 0);
+  };
+
+  const getTotalGroundBalls = () => {
+    return games.reduce((total, game) => {
+      const stats = game.stats;
+      return total + (stats?.groundBalls || 0);
+    }, 0);
+  };
+
+  const pickImage = async () => {
+    Alert.alert('Select Profile Picture', 'Choose an option', [
+      {
+        text: 'Camera',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Sorry, we need camera permissions to take a photo!');
+            return;
+          }
+
+          const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+
+          if (!result.canceled && result.assets && result.assets[0]) {
+            setImage(result.assets[0].uri);
+            // TODO: Upload to Firebase and update user profile
+          }
+        },
+      },
+      {
+        text: 'Photo Library',
+        onPress: async () => {
+          const { status } =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(
+              'Sorry, we need photo library permissions to select a photo!',
+            );
+            return;
+          }
+
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+
+          if (!result.canceled && result.assets && result.assets[0]) {
+            setImage(result.assets[0].uri);
+            // TODO: Upload to Firebase and update user profile
+          }
+        },
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
+  };
 
   const handleDrawerNavigation = (screen: string) => {
-    console.log(`Navigating to: ${screen}`);
-    Alert.alert('Navigation', `${screen} screen coming soon!`);
+    switch (screen) {
+      case 'tutorials':
+        setShowTutorialSelection(true);
+        break;
+      default:
+        console.log(`Navigating to: ${screen}`);
+        Alert.alert('Navigation', `${screen} screen coming soon!`);
+        break;
+    }
   };
 
   const handleSignOut = async () => {
@@ -203,7 +321,7 @@ const LockerHomeScreen: React.FC = () => {
       const { signOut } = useAuthStore.getState();
       await signOut();
       console.log('LockerHomeScreen - Sign out successful');
-      
+
       // Navigate to Welcome screen after successful sign out
       navigation.reset({
         index: 0,
@@ -215,26 +333,33 @@ const LockerHomeScreen: React.FC = () => {
     }
   };
 
-  const handleTaskAction = (action: string) => {
+  const handleTaskAction = async (action: string) => {
+    // Track task view
+    await incrementTaskView(action);
+
     switch (action) {
-      case 'LOG_GAME':
+      case 'DEMO_GAME_TRACKING':
         setShowLogGameModal(true);
         break;
-      case 'ADD_COLLEGES':
-        Alert.alert('Coming Soon', 'College recruiting features will be available soon!');
+      case 'DEMO_RECRUITING':
+        setShowCollegePipelineModal(true);
         break;
-      case 'COMPLETE_PROFILE':
-        Alert.alert('Coming Soon', 'Profile completion features will be available soon!');
+      case 'DEMO_PROFILE':
+        setShowProfileFeaturesModal(true);
+        break;
+      case 'DEMO_SKILLS':
+        setShowSkillsDrillsModal(true);
         break;
       default:
-        console.log('Unknown task action:', action);
+        break;
     }
   };
 
-
   const handleGameLogged = async (gameData: any) => {
-    if (!user?.uid) return;
-    
+    if (!user?.uid) {
+      return;
+    }
+
     try {
       // Game logged successfully - could add gamification logic here later
       console.log('Game logged:', gameData);
@@ -247,7 +372,10 @@ const LockerHomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topNavBar}>
-        <TouchableOpacity style={styles.hamburgerMenu} onPress={() => setShowDrawerMenu(true)}>
+        <TouchableOpacity
+          style={styles.hamburgerMenu}
+          onPress={() => setShowDrawerMenu(true)}
+        >
           <Ionicons name="menu" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
@@ -255,237 +383,304 @@ const LockerHomeScreen: React.FC = () => {
         </View>
         <View style={styles.rightIcons}>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="calendar-outline" size={24} color={colors.textPrimary} />
+            <Ionicons
+              name="calendar-outline"
+              size={24}
+              color={colors.textPrimary}
+            />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={24} color={colors.textPrimary} />
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
       </View>
-      <DrawerMenu 
-        visible={showDrawerMenu} 
+      <DrawerMenu
+        visible={showDrawerMenu}
         onClose={() => setShowDrawerMenu(false)}
         onNavigate={handleDrawerNavigation}
         onSignOut={handleSignOut}
+        showTutorials={tasks.filter(t => t.completed).length === tasks.length}
       />
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Player Header Card */}
         <View style={styles.playerCard}>
           <View style={styles.playerHeader}>
-            <TouchableOpacity style={styles.profilePictureContainer} onPress={pickImage}>
-              {(image || user?.photoURL || user?.profilePicture) ? (
-                <Image 
-                  source={{ uri: (image || user?.photoURL || user?.profilePicture)! }} 
-                  style={styles.profilePicture as any}
+            <TouchableOpacity
+              style={styles.profilePictureContainer}
+              onPress={pickImage}
+            >
+              {image || user?.photoURL || user?.profilePicture ? (
+                <Image
+                  source={{
+                    uri: (image || user?.photoURL || user?.profilePicture)!,
+                  }}
+                  style={styles.profilePicture}
                 />
               ) : (
                 <View style={styles.profilePicturePlaceholder}>
-                  <Ionicons name="person" size={24} color={colors.textSecondary} />
+                  <Ionicons
+                    name="person"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
                 </View>
               )}
             </TouchableOpacity>
             <View style={styles.playerInfo}>
               <View style={styles.playerNameRow}>
                 <Text style={styles.playerName}>
-                  {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 
-                   user?.firstName ? user.firstName : 
-                   user?.email ? user.email.split('@')[0] : "Player Name"}
+                  {user?.firstName && user?.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user?.firstName
+                      ? user.firstName
+                      : user?.email
+                        ? user.email.split('@')[0]
+                        : 'Player Name'}
                 </Text>
                 <View style={styles.sportBadge}>
-                  <Text style={styles.sportBadgeText}>{user?.sport || 'Lacrosse'}</Text>
+                  <Text style={styles.sportBadgeText}>
+                    {user?.sport || 'Lacrosse'}
+                  </Text>
                 </View>
               </View>
               <Text style={styles.playerDetails}>
-                {user?.graduationYear ? `Class of ${user.graduationYear}` : 'Class of 2027'} • {user?.position || 'Position'}
+                {user?.graduationYear
+                  ? `Class of ${user.graduationYear}`
+                  : 'Class of 2027'}{' '}
+                • {user?.position || 'Position'}
               </Text>
-              
+
               {/* Stats Row */}
               <View style={styles.playerStatsRow}>
                 <View style={styles.playerStatItem}>
-                  <Text style={styles.playerStatValue}>{user?.height || "5' 11\""}</Text>
+                  <Text style={styles.playerStatValue}>
+                    {user?.height || '5\' 11"'}
+                  </Text>
                   <Text style={styles.playerStatLabel}>HT</Text>
                 </View>
                 <View style={styles.playerStatItem}>
-                  <Text style={styles.playerStatValue}>{user?.gpa || '3.85'} / 4.00</Text>
+                  <Text style={styles.playerStatValue}>
+                    {user?.gpa ? `${user.gpa} / 4.00` : 'Not Set'}
+                  </Text>
                   <Text style={styles.playerStatLabel}>GPA</Text>
                 </View>
               </View>
-              
+
               {/* Location Row */}
               <View style={styles.playerLocationRow}>
                 <View style={styles.playerLocationItem}>
                   <Text style={styles.playerLocationValue}>
-                    {selectedSeason === 'school' ? 
-                      user?.highSchool?.name || 'High School' :
-                      user?.club?.name || 'Club Team'
-                    }
+                    {selectedSeason === 'school'
+                      ? user?.highSchool?.name || 'High School'
+                      : user?.club?.name || 'Club Team'}
                   </Text>
-                  <Text style={styles.playerLocationLabel}>{selectedSeason === 'school' ? 'SCHOOL' : 'CLUB'}</Text>
+                  <Text style={styles.playerLocationLabel}>
+                    {selectedSeason === 'school' ? 'SCHOOL' : 'CLUB'}
+                  </Text>
                 </View>
                 <View style={styles.playerLocationItem}>
                   <Text style={styles.playerLocationValue}>
-                    {selectedSeason === 'school' ? 
-                      `${user?.highSchool?.city || 'City'}, ${user?.highSchool?.state || 'State'}` :
-                      `${user?.club?.city || 'City'}, ${user?.club?.state || 'State'}`
-                    }
+                    {selectedSeason === 'school'
+                      ? `${user?.highSchool?.city || 'City'}, ${user?.highSchool?.state || 'State'}`
+                      : `${user?.club?.city || 'City'}, ${user?.club?.state || 'State'}`}
                   </Text>
                   <Text style={styles.playerLocationLabel}>HOMETOWN</Text>
                 </View>
               </View>
             </View>
           </View>
-          
+
           {/* Season Toggle */}
           <View style={styles.seasonToggle}>
-            <TouchableOpacity 
-              style={[styles.seasonButton, selectedSeason === 'school' && styles.seasonButtonActive]}
+            <TouchableOpacity
+              style={[
+                styles.seasonButton,
+                selectedSeason === 'school' && styles.seasonButtonActive,
+              ]}
               onPress={() => setSelectedSeason('school')}
             >
-              <Text style={[styles.seasonButtonText, selectedSeason === 'school' && styles.seasonButtonTextActive]}>
+              <Text
+                style={[
+                  styles.seasonButtonText,
+                  selectedSeason === 'school' && styles.seasonButtonTextActive,
+                ]}
+              >
                 High School
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.seasonButton, selectedSeason === 'club' && styles.seasonButtonActive]}
+            <TouchableOpacity
+              style={[
+                styles.seasonButton,
+                selectedSeason === 'club' && styles.seasonButtonActive,
+              ]}
               onPress={() => setSelectedSeason('club')}
             >
-              <Text style={[styles.seasonButtonText, selectedSeason === 'club' && styles.seasonButtonTextActive]}>
+              <Text
+                style={[
+                  styles.seasonButtonText,
+                  selectedSeason === 'club' && styles.seasonButtonTextActive,
+                ]}
+              >
                 Club
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Get Started Section - Show for new users */}
-        {filteredGames.length === 0 && (
-          <View style={styles.getStartedSection}>
-            <Text style={styles.sectionTitle}>🚀 Get Started - Unlock Your Full Potential</Text>
-            <Text style={styles.getStartedSubtitle}>Complete these steps to maximize your StatLocker experience</Text>
-            
-            {tasks.map((item, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.taskCard}
-                onPress={() => handleTaskAction(item.action)}
-                activeOpacity={0.7}
+        {/* Enhanced Get Started Section - Show for new users who haven't completed all demos */}
+        {filteredGames.length === 0 &&
+          tasks.filter(t => t.completed).length < tasks.length && (
+            <View style={styles.getStartedSection}>
+              <LinearGradient
+                colors={[colors.primary, colors.primaryDark]}
+                style={styles.getStartedHeader}
               >
-                <View style={styles.taskCardContent}>
-                  <View style={styles.taskIconContainer}>
-                    <Text style={styles.taskEmoji}>{item.icon}</Text>
-                  </View>
-                  <View style={styles.taskDetails}>
-                    <Text style={styles.taskTitle}>{item.title}</Text>
-                    <Text style={styles.taskDescription}>{item.description}</Text>
-                    <View style={styles.taskProgress}>
-                      <View style={styles.taskProgressBar}>
-                        <View style={[styles.taskProgressFill, { width: '0%' }]} />
-                      </View>
-                      <Text style={styles.taskStatus}>Not Started</Text>
+                <View style={styles.getStartedHeaderContent}>
+                  <Text style={styles.getStartedTitle}>
+                    🚀 Welcome to StatLocker!
+                  </Text>
+                  <Text style={styles.getStartedSubtitle}>
+                    Complete these 4 steps to unlock your full potential
+                  </Text>
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressTrack}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          {
+                            width: `${(tasks.filter(t => t.completed).length / tasks.length) * 100}%`,
+                          },
+                        ]}
+                      />
                     </View>
+                    <Text style={styles.progressText}>
+                      {tasks.filter(t => t.completed).length} of {tasks.length}{' '}
+                      completed
+                    </Text>
                   </View>
-                  <View style={styles.taskReward}>
-                    <LinearGradient
-                      colors={[colors.success, '#059669']}
-                      style={styles.xpBadgeGradient}
-                    >
-                      <Text style={styles.xpBadgeText}>+{item.xpReward} XP</Text>
-                    </LinearGradient>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                 </View>
-              </TouchableOpacity>
-            ))}
+              </LinearGradient>
+
+              <View style={styles.tasksContainer}>
+                <DemoCard
+                  title="Game Tracking"
+                  subtitle="Learn to track your performance"
+                  icon="stats-chart"
+                  gradientColors={[colors.primary, colors.primaryDark]}
+                  onPress={() => handleTaskAction('DEMO_GAME_TRACKING')}
+                  completed={
+                    tasks.find(t => t.action === 'DEMO_GAME_TRACKING')
+                      ?.completed || false
+                  }
+                />
+                <DemoCard
+                  title="College Pipeline"
+                  subtitle="Connect with college coaches"
+                  icon="school"
+                  gradientColors={[colors.success, '#10B981']}
+                  onPress={() => handleTaskAction('DEMO_RECRUITING')}
+                  completed={
+                    tasks.find(t => t.action === 'DEMO_RECRUITING')
+                      ?.completed || false
+                  }
+                />
+                <DemoCard
+                  title="Profile Features"
+                  subtitle="Showcase your achievements"
+                  icon="person-circle"
+                  gradientColors={[colors.warning, '#F59E0B']}
+                  onPress={() => handleTaskAction('DEMO_PROFILE')}
+                  completed={
+                    tasks.find(t => t.action === 'DEMO_PROFILE')?.completed ||
+                    false
+                  }
+                />
+                <DemoCard
+                  title="Skills & Drills"
+                  subtitle="Improve your game"
+                  icon="fitness"
+                  gradientColors={[colors.error, '#EF4444']}
+                  onPress={() => handleTaskAction('DEMO_SKILLS')}
+                  completed={
+                    tasks.find(t => t.action === 'DEMO_SKILLS')?.completed ||
+                    false
+                  }
+                />
+              </View>
+            </View>
+          )}
+
+        {/* Show stat cards when all demos are completed or user has games */}
+        {(filteredGames.length > 0 ||
+          tasks.filter(t => t.completed).length === tasks.length) && (
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{getTotalSaves()}</Text>
+              <Text style={styles.statLabel}>Total Saves</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{getSavePercentage()}%</Text>
+              <Text style={styles.statLabel}>Save %</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{getShotsFaced()}</Text>
+              <Text style={styles.statLabel}>Shots Faced</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{getGoalsAgainst()}</Text>
+              <Text style={styles.statLabel}>Goals Against</Text>
+            </View>
           </View>
         )}
 
-        {/* Main Stats Grid - 2x2 layout */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{getTotalSaves()}</Text>
-            <Text style={styles.statLabel}>Total Saves</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{getSavePercentage()}%</Text>
-            <Text style={styles.statLabel}>Save %</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{getShotsFaced()}</Text>
-            <Text style={styles.statLabel}>Shots Faced</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{getGoalsAgainst()}</Text>
-            <Text style={styles.statLabel}>Goals Against</Text>
-          </View>
-        </View>
-
-
         {/* Per Game Averages */}
-        <View style={styles.averagesSection}>
-          <Text style={styles.sectionTitle}>Per Game Averages</Text>
-          <Text style={styles.sectionSubtitle}>({filteredGames.length} Games)</Text>
-          
-          <View style={styles.averagesGrid}>
-            <View style={styles.averageItem}>
-              <Text style={styles.averageValue}>{getAverageSaves()}</Text>
-              <Text style={styles.averageLabel}>Saves</Text>
-            </View>
-            <View style={styles.averageItem}>
-              <Text style={styles.averageValue}>{getAverageShotsFaced()}</Text>
-              <Text style={styles.averageLabel}>Shots Faced</Text>
-            </View>
-            <View style={styles.averageItem}>
-              <Text style={styles.averageValue}>{getAverageGoalsAgainst()}</Text>
-              <Text style={styles.averageLabel}>Goals Against</Text>
+        {(filteredGames.length > 0 ||
+          tasks.filter(t => t.completed).length === tasks.length) && (
+          <View style={styles.averagesSection}>
+            <Text style={styles.sectionTitle}>Per Game Averages</Text>
+            <Text style={styles.sectionSubtitle}>
+              ({filteredGames.length} Games)
+            </Text>
+
+            <View style={styles.averagesGrid}>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>{getAverageSaves()}</Text>
+                <Text style={styles.averageLabel}>Saves</Text>
+              </View>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>
+                  {getAverageShotsFaced()}
+                </Text>
+                <Text style={styles.averageLabel}>Shots Faced</Text>
+              </View>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>
+                  {getAverageGoalsAgainst()}
+                </Text>
+                <Text style={styles.averageLabel}>Goals Against</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Season Goals */}
         <View style={styles.goalsSection}>
           <Text style={styles.sectionTitle}>Season Goals</Text>
-          
-          <View style={styles.goalItem}>
-            <View style={styles.goalHeader}>
-              <Text style={styles.goalLabel}>Save % Goal</Text>
-              <Text style={styles.goalProgress}>0% / 0%</Text>
-            </View>
-            <View style={styles.goalProgressBar}>
-              <View style={[styles.goalProgressFill, { width: '0%' }]} />
-            </View>
-            <Text style={styles.goalSubtext}>Set your goals in profile</Text>
-          </View>
-          
-          <View style={styles.goalItem}>
-            <View style={styles.goalHeader}>
-              <Text style={styles.goalLabel}>Total Saves Goal</Text>
-              <Text style={styles.goalProgress}>0 / 0</Text>
-            </View>
-            <View style={styles.goalProgressBar}>
-              <View style={[styles.goalProgressFill, { width: '0%' }]} />
-            </View>
-            <Text style={styles.goalSubtext}>Set your goals in profile</Text>
-          </View>
-          
-          <View style={styles.goalItem}>
-            <View style={styles.goalHeader}>
-              <Text style={styles.goalLabel}>Goals Against Goal</Text>
-              <Text style={styles.goalProgress}>0 / 0</Text>
-            </View>
-            <View style={styles.goalProgressBar}>
-              <View style={[styles.goalProgressFill, { width: '0%' }]} />
-            </View>
-            <Text style={styles.goalSubtext}>Set your goals in profile</Text>
-          </View>
+          {renderSeasonGoals()}
         </View>
 
         {/* AI Insights */}
         <View style={styles.insightsSection}>
           <Text style={styles.sectionTitle}>AI Insights</Text>
-          
+
           <View style={styles.lockedInsight}>
             <View style={styles.lockIcon}>
               <Text style={styles.lockEmoji}>🔒</Text>
@@ -493,7 +688,8 @@ const LockerHomeScreen: React.FC = () => {
             <View style={styles.lockedContent}>
               <Text style={styles.lockedTitle}>AI Insights Locked</Text>
               <Text style={styles.lockedSubtext}>
-                Log 3 games to unlock personalized AI insights and performance analysis
+                Log 3 games to unlock personalized AI insights and performance
+                analysis
               </Text>
             </View>
           </View>
@@ -502,7 +698,7 @@ const LockerHomeScreen: React.FC = () => {
         {/* Upcoming Events */}
         <View style={styles.eventsSection}>
           <Text style={styles.sectionTitle}>Upcoming Events</Text>
-          
+
           <View style={styles.noEventsContainer}>
             <Text style={styles.noEventsEmoji}>📅</Text>
             <Text style={styles.noEventsTitle}>No Upcoming Events</Text>
@@ -515,90 +711,229 @@ const LockerHomeScreen: React.FC = () => {
         {/* Recent Games */}
         <View style={styles.recentGamesSection}>
           <Text style={styles.sectionTitle}>Recent Games</Text>
-          
-          {filteredGames.slice(-3).reverse().map((game: any, index: number) => (
-            <View key={index} style={styles.recentGameItem}>
-              <View style={styles.gameHeader}>
-                <View style={styles.gameOpponent}>
-                  <Text style={styles.opponentName}>
-                    {game.isHome ? 'vs.' : '@'} {game.opponent || 'Unknown Opponent'}
-                  </Text>
-                  <Text style={styles.gameDate}>
-                    {new Date(game.date).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </Text>
+
+          {filteredGames
+            .slice(-3)
+            .reverse()
+            .map((game: any, index: number) => (
+              <View key={index} style={styles.recentGameItem}>
+                <View style={styles.gameHeader}>
+                  <View style={styles.gameOpponent}>
+                    <Text style={styles.opponentName}>
+                      {game.isHome ? 'vs.' : '@'}{' '}
+                      {game.opponent || 'Unknown Opponent'}
+                    </Text>
+                    <Text style={styles.gameDate}>
+                      {new Date(game.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.gameResult}>
+                    <Text style={styles.scoreText}>
+                      {game.teamScore || 0} - {game.opponentScore || 0}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.resultText,
+                        (game.teamScore || 0) > (game.opponentScore || 0)
+                          ? styles.winText
+                          : styles.lossText,
+                      ]}
+                    >
+                      {(game.teamScore || 0) > (game.opponentScore || 0)
+                        ? 'W'
+                        : 'L'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.gameResult}>
-                  <Text style={styles.scoreText}>
-                    {game.teamScore || 0} - {game.opponentScore || 0}
-                  </Text>
-                  <Text style={[
-                    styles.resultText,
-                    (game.teamScore || 0) > (game.opponentScore || 0) 
-                      ? styles.winText 
-                      : styles.lossText
-                  ]}>
-                    {(game.teamScore || 0) > (game.opponentScore || 0) ? 'W' : 'L'}
-                  </Text>
+
+                <View style={styles.gameStats}>
+                  <View style={styles.gameStatItem}>
+                    <Text style={styles.gameStatValue}>
+                      {game.stats?.saves || 0}
+                    </Text>
+                    <Text style={styles.gameStatLabel}>Saves</Text>
+                  </View>
+                  <View style={styles.gameStatItem}>
+                    <Text style={styles.gameStatValue}>
+                      {game.stats?.shots || 0}
+                    </Text>
+                    <Text style={styles.gameStatLabel}>Shots</Text>
+                  </View>
+                  <View style={styles.gameStatItem}>
+                    <Text style={styles.gameStatValue}>
+                      {game.stats?.goalsAgainst || 0}
+                    </Text>
+                    <Text style={styles.gameStatLabel}>GA</Text>
+                  </View>
+                  <View style={styles.gameStatItem}>
+                    <Text style={styles.gameStatValue}>
+                      {game.stats?.shots > 0
+                        ? (
+                            ((game.stats?.saves || 0) / game.stats.shots) *
+                            100
+                          ).toFixed(1) + '%'
+                        : '0.0%'}
+                    </Text>
+                    <Text style={styles.gameStatLabel}>Save %</Text>
+                  </View>
                 </View>
               </View>
-              
-              <View style={styles.gameStats}>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatValue}>{game.stats?.saves || 0}</Text>
-                  <Text style={styles.gameStatLabel}>Saves</Text>
-                </View>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatValue}>{game.stats?.shots || 0}</Text>
-                  <Text style={styles.gameStatLabel}>Shots</Text>
-                </View>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatValue}>{game.stats?.goalsAgainst || 0}</Text>
-                  <Text style={styles.gameStatLabel}>GA</Text>
-                </View>
-                <View style={styles.gameStatItem}>
-                  <Text style={styles.gameStatValue}>
-                    {game.stats?.shots > 0 
-                      ? ((game.stats?.saves || 0) / game.stats.shots * 100).toFixed(1) + '%'
-                      : '0.0%'
-                    }
-                  </Text>
-                  <Text style={styles.gameStatLabel}>Save %</Text>
-                </View>
-              </View>
-            </View>
-          ))}
-          
+            ))}
+
           {filteredGames.length === 0 && (
             <View style={styles.noGamesContainer}>
               <Text style={styles.noGamesText}>No games logged yet</Text>
-              <Text style={styles.noGamesSubtext}>Tap the + button to log your first game</Text>
+              <Text style={styles.noGamesSubtext}>
+                Tap the + button to log your first game
+              </Text>
             </View>
           )}
         </View>
-
-
       </ScrollView>
 
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setShowLogGameModal(true)}
-        activeOpacity={0.8}
-      >
-        <LinearGradient 
-          colors={[colors.primary, colors.primaryDark]}
-          style={styles.fabGradient}
-        >
-          <Ionicons name="add" size={28} color="white" />
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <LogGameModal 
+      <GameTrackingModal
         visible={showLogGameModal}
-        onClose={() => setShowLogGameModal(false)}
+        onClose={async () => {
+          setShowLogGameModal(false);
+          await markTaskCompleted('DEMO_GAME_TRACKING');
+        }}
+        initialMode="setup"
         onGameLogged={handleGameLogged}
+        demoMode={true}
+      />
+
+      <CollegePipelineModal
+        visible={showCollegePipelineModal}
+        onClose={async () => {
+          setShowCollegePipelineModal(false);
+          await markTaskCompleted('DEMO_RECRUITING');
+        }}
+      />
+
+      <ProfileFeaturesModal
+        visible={showProfileFeaturesModal}
+        onClose={async () => {
+          setShowProfileFeaturesModal(false);
+          await markTaskCompleted('DEMO_PROFILE');
+        }}
+      />
+
+      <SkillsDrillsModal
+        visible={showSkillsDrillsModal}
+        onClose={async () => {
+          setShowSkillsDrillsModal(false);
+          await markTaskCompleted('DEMO_SKILLS');
+        }}
+      />
+
+      {/* Tutorial Selection Modal */}
+      <Modal
+        visible={showTutorialSelection}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowTutorialSelection(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.tutorialSelectionModal}>
+            <View style={styles.tutorialModalHeader}>
+              <Text style={styles.tutorialModalTitle}>Choose Tutorial</Text>
+              <TouchableOpacity
+                onPress={() => setShowTutorialSelection(false)}
+                style={styles.tutorialCloseButton}
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tutorialOptionsContainer}>
+              <TouchableOpacity
+                style={styles.tutorialOption}
+                onPress={() => {
+                  setShowTutorialSelection(false);
+                  setShowLogGameModal(true);
+                }}
+              >
+                <View style={styles.tutorialOptionIcon}>
+                  <Ionicons
+                    name="stats-chart"
+                    size={24}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text style={styles.tutorialOptionTitle}>Game Tracking</Text>
+                <Text style={styles.tutorialOptionSubtitle}>
+                  Learn to track your performance
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.tutorialOption}
+                onPress={() => {
+                  setShowTutorialSelection(false);
+                  setShowCollegePipelineModal(true);
+                }}
+              >
+                <View style={styles.tutorialOptionIcon}>
+                  <Ionicons name="school" size={24} color={colors.primary} />
+                </View>
+                <Text style={styles.tutorialOptionTitle}>College Pipeline</Text>
+                <Text style={styles.tutorialOptionSubtitle}>
+                  Connect with college coaches
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.tutorialOption}
+                onPress={() => {
+                  setShowTutorialSelection(false);
+                  setShowProfileFeaturesModal(true);
+                }}
+              >
+                <View style={styles.tutorialOptionIcon}>
+                  <Ionicons name="person" size={24} color={colors.primary} />
+                </View>
+                <Text style={styles.tutorialOptionTitle}>Profile Features</Text>
+                <Text style={styles.tutorialOptionSubtitle}>
+                  Showcase your achievements
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.tutorialOption}
+                onPress={() => {
+                  setShowTutorialSelection(false);
+                  setShowSkillsDrillsModal(true);
+                }}
+              >
+                <View style={styles.tutorialOptionIcon}>
+                  <Ionicons name="fitness" size={24} color={colors.primary} />
+                </View>
+                <Text style={styles.tutorialOptionTitle}>Skills & Drills</Text>
+                <Text style={styles.tutorialOptionSubtitle}>
+                  Improve your game
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Smart Demo System */}
+      <SmartDemoSystem
+        visible={activeDemoType !== null}
+        demoType={activeDemoType || 'game_tracking'}
+        onClose={closeDemoType}
+        onComplete={async () => {
+          if (activeDemoType) {
+            await completeDemoType(activeDemoType);
+            await markTaskCompleted(
+              `DEMO_${activeDemoType.toUpperCase().replace('_', '_')}`,
+            );
+          }
+        }}
       />
     </SafeAreaView>
   );
@@ -1356,13 +1691,13 @@ const styles = StyleSheet.create({
   getStartedHeader: {
     marginBottom: tokens.spacing.m,
   },
-  getStartedTitle: {
+  getStartedWelcomeTitle: {
     fontSize: tokens.typography.h2.size,
     fontFamily: fonts.anton,
     color: colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
-  getStartedSubtitle: {
+  getStartedWelcomeSubtitle: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
@@ -1370,8 +1705,8 @@ const styles = StyleSheet.create({
   taskCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
-    padding: tokens.spacing.m,
-    marginBottom: tokens.spacing.s,
+    padding: tokens.spacing.l,
+    marginBottom: tokens.spacing.m,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -1381,7 +1716,6 @@ const styles = StyleSheet.create({
   taskCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   taskIconContainer: {
     width: 40,
@@ -1400,24 +1734,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   taskTitle: {
-    fontSize: fontSizes.base,
+    fontSize: fontSizes.lg,
     fontFamily: fonts.jakarta.medium,
     color: colors.textPrimary,
-    marginBottom: tokens.spacing.xs,
+    marginBottom: 4,
   },
   taskDescription: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.base,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
   },
   taskProgress: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: tokens.spacing.s,
+    gap: tokens.spacing.s,
   },
   taskProgressBar: {
-    width: '100%',
+    flex: 1,
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.background,
@@ -1431,20 +1765,204 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
+    minWidth: 70,
+    textAlign: 'right',
   },
-  taskReward: {
+  taskChevron: {
+    marginLeft: tokens.spacing.s,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  getStartedHeaderContent: {
+    padding: tokens.spacing.l,
+  },
+  getStartedTitle: {
+    fontSize: fontSizes.xl,
+    fontFamily: fonts.anton,
+    color: colors.surface,
+    marginBottom: tokens.spacing.xs,
+    textAlign: 'center',
+  },
+  getStartedSubtitle: {
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.surface,
+    textAlign: 'center',
+    opacity: 0.9,
+    marginBottom: tokens.spacing.m,
+  },
+  progressContainer: {
+    alignItems: 'center',
+  },
+  progressTrack: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
+    marginBottom: tokens.spacing.s,
+  },
+  progressFill: {
+    height: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.surface,
+    opacity: 0.9,
+  },
+  tasksContainer: {
+    padding: tokens.spacing.m,
+  },
+  taskCardHighlighted: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  taskLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  xpBadgeGradient: {
+  taskNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: tokens.spacing.l,
+  },
+  taskNumberText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.bold,
+    color: colors.surface,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: tokens.spacing.xs,
+  },
+  taskTime: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.success,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: tokens.spacing.s,
-    paddingVertical: tokens.spacing.xs,
+    paddingVertical: 2,
     borderRadius: borderRadius.sm,
   },
-  xpBadgeText: {
+  taskFooter: {
+    marginTop: tokens.spacing.s,
+  },
+  taskStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.warning,
+    marginRight: tokens.spacing.xs,
+  },
+  motivationCard: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.md,
+    padding: tokens.spacing.m,
+    marginHorizontal: tokens.spacing.m,
+    marginBottom: tokens.spacing.m,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: tokens.spacing.s,
+  },
+  progressTitle: {
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.textPrimary,
+  },
+  progressPercentage: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
+  },
+  progressBarContainer: {
+    marginBottom: tokens.spacing.s,
+  },
+  progressBarBackground: {
+    height: 6,
+    backgroundColor: colors.neutral200,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 3,
+  },
+  taskCardCompleted: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.success,
+  },
+  taskNumberCompleted: {
+    backgroundColor: colors.success,
+  },
+  taskTitleCompleted: {
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  taskDescriptionCompleted: {
+    color: colors.textTertiary,
+  },
+  taskViewCount: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textTertiary,
+    marginTop: 2,
+  },
+  completedBadge: {
+    backgroundColor: colors.success,
+    paddingHorizontal: tokens.spacing.s,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  completedBadgeText: {
     fontSize: fontSizes.xs,
     fontFamily: fonts.jakarta.medium,
     color: colors.surface,
+  },
+  motivationText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  noGoalsContainer: {
+    backgroundColor: colors.neutral100,
+    borderRadius: borderRadius.md,
+    padding: tokens.spacing.l,
+    alignItems: 'center',
+    marginBottom: tokens.spacing.m,
+  },
+  noGoalsText: {
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  noGoalsSubtext: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textTertiary,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',
@@ -1458,6 +1976,68 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tutorialSelectionModal: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    margin: tokens.spacing.l,
+    maxHeight: '80%',
+    width: '90%',
+  },
+  tutorialModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: tokens.spacing.l,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral200,
+  },
+  tutorialModalTitle: {
+    fontSize: fontSizes.xl,
+    fontFamily: fonts.jakarta.bold,
+    color: colors.textPrimary,
+  },
+  tutorialCloseButton: {
+    padding: tokens.spacing.xs,
+  },
+  tutorialOptionsContainer: {
+    padding: tokens.spacing.l,
+  },
+  tutorialOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: tokens.spacing.m,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    marginBottom: tokens.spacing.m,
+    borderWidth: 1,
+    borderColor: colors.neutral200,
+  },
+  tutorialOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: tokens.spacing.m,
+  },
+  tutorialOptionTitle: {
+    fontSize: fontSizes.base,
+    fontFamily: fonts.jakarta.bold,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  tutorialOptionSubtitle: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
   },
 });
 

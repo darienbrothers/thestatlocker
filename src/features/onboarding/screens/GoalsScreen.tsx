@@ -2,195 +2,309 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
+  ScrollView,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Animated,
-  ScrollView,
   TouchableWithoutFeedback,
   Keyboard,
   Image,
-  TextInput,
-  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { theme } from '@shared/theme';
+import { useAuthStore } from '../../../shared/stores/authStore';
+import { useGamificationStore } from '../../../shared/stores/gamificationStore';
 import { OnboardingStepper } from '@/components/gamification';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '@/types';
-import {
-  SEASON_GOALS as ImportedSeasonGoals,
-  RECRUITING_GOALS,
-  PERSONAL_GOALS,
-  convertToUserGoal,
-  type Goal,
-  type GoalCategory,
-} from '@/data/goals';
 
-type GoalsScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'Goals'
->;
-type GoalsScreenRouteProp = RouteProp<RootStackParamList, 'Goals'>;
+interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'personal' | 'season' | 'recruiting';
+}
+
+// SMART Goals by Position
+const ATTACK_GOALS: Goal[] = [
+  {
+    id: 'score_15_goals_season',
+    title: 'Score 15+ Goals This Season',
+    description: 'Achieve at least 15 goals by season end',
+    icon: 'football',
+    category: 'season',
+  },
+  {
+    id: 'shooting_accuracy_65',
+    title: 'Maintain 65%+ Shooting Accuracy',
+    description: 'Keep shooting percentage above 65% all season',
+    icon: 'target',
+    category: 'season',
+  },
+  {
+    id: 'assists_per_game_1_5',
+    title: 'Average 1.5+ Assists Per Game',
+    description: 'Contribute 1.5 or more assists each game',
+    icon: 'hand-left',
+    category: 'season',
+  },
+  {
+    id: 'ground_balls_3_per_game',
+    title: 'Win 3+ Ground Balls Per Game',
+    description: 'Secure at least 3 ground balls every game',
+    icon: 'basketball',
+    category: 'season',
+  },
+  {
+    id: 'limit_turnovers_1_5',
+    title: 'Keep Turnovers Under 1.5 Per Game',
+    description: 'Maintain ball security with minimal turnovers',
+    icon: 'shield-checkmark',
+    category: 'season',
+  },
+];
+
+const MIDFIELD_GOALS: Goal[] = [
+  {
+    id: 'points_per_game_2',
+    title: 'Average 2+ Points Per Game',
+    description: 'Combine goals and assists for 2+ points per game',
+    icon: 'stats-chart',
+    category: 'season',
+  },
+  {
+    id: 'faceoff_wins_55_percent',
+    title: 'Win 55%+ of Face-offs',
+    description: 'Dominate face-off circle with 55%+ win rate',
+    icon: 'refresh-circle',
+    category: 'season',
+  },
+  {
+    id: 'ground_balls_4_per_game',
+    title: 'Secure 4+ Ground Balls Per Game',
+    description: 'Control possession with 4+ ground balls per game',
+    icon: 'basketball',
+    category: 'season',
+  },
+  {
+    id: 'clear_success_80_percent',
+    title: 'Clear Ball Successfully 80%+ of Time',
+    description: 'Move ball upfield successfully 4 out of 5 times',
+    icon: 'arrow-up-circle',
+    category: 'season',
+  },
+  {
+    id: 'caused_turnovers_1_per_game',
+    title: 'Force 1+ Turnover Per Game',
+    description: 'Create defensive pressure resulting in turnovers',
+    icon: 'hand-right',
+    category: 'season',
+  },
+];
+
+const DEFENSE_GOALS: Goal[] = [
+  {
+    id: 'hold_opponent_under_2_goals',
+    title: 'Hold Matchup to Under 2 Goals Per Game',
+    description: 'Limit direct opponent to less than 2 goals per game',
+    icon: 'shield',
+    category: 'season',
+  },
+  {
+    id: 'ground_balls_5_per_game',
+    title: 'Win 5+ Ground Balls Per Game',
+    description: 'Dominate ground ball battles with 5+ per game',
+    icon: 'basketball',
+    category: 'season',
+  },
+  {
+    id: 'caused_turnovers_1_5_per_game',
+    title: 'Force 1.5+ Turnovers Per Game',
+    description: 'Apply pressure to create 1.5+ turnovers per game',
+    icon: 'hand-right',
+    category: 'season',
+  },
+  {
+    id: 'clear_success_85_percent',
+    title: 'Clear Successfully 85%+ of Time',
+    description: 'Move ball out of defensive zone 85%+ of attempts',
+    icon: 'arrow-up-circle',
+    category: 'season',
+  },
+  {
+    id: 'slides_communication_90',
+    title: 'Communicate on 90%+ of Slides',
+    description: 'Provide clear communication during defensive rotations',
+    icon: 'chatbubbles',
+    category: 'season',
+  },
+];
+
+const GOALIE_GOALS: Goal[] = [
+  {
+    id: 'save_percentage_60_plus',
+    title: 'Maintain 60%+ Save Percentage',
+    description: 'Stop 6 out of every 10 shots faced',
+    icon: 'shield-checkmark',
+    category: 'season',
+  },
+  {
+    id: 'goals_against_under_8',
+    title: 'Allow Under 8 Goals Per Game',
+    description: 'Keep team competitive by limiting goals against',
+    icon: 'trending-down',
+    category: 'season',
+  },
+  {
+    id: 'saves_10_plus_5_games',
+    title: 'Record 10+ Saves in 5+ Games',
+    description: 'Have at least 5 games with double-digit saves',
+    icon: 'trophy',
+    category: 'season',
+  },
+  {
+    id: 'clear_assists_15_season',
+    title: 'Record 15+ Clear Assists This Season',
+    description: 'Contribute to offense with 15+ clear assists',
+    icon: 'arrow-forward-circle',
+    category: 'season',
+  },
+  {
+    id: 'ground_balls_2_per_game',
+    title: 'Secure 2+ Ground Balls Per Game',
+    description: 'Help defense by winning ground balls in crease',
+    icon: 'basketball',
+    category: 'season',
+  },
+];
+
+const RECRUITING_GOALS: Goal[] = [
+  {
+    id: 'create_highlight_video',
+    title: 'Create Professional Highlight Video',
+    description: 'Compile 3-5 minute highlight reel by mid-season',
+    icon: 'videocam',
+    category: 'recruiting',
+  },
+  {
+    id: 'contact_20_college_coaches',
+    title: 'Contact 20+ College Coaches',
+    description: 'Reach out to 20+ coaches at target schools',
+    icon: 'mail',
+    category: 'recruiting',
+  },
+  {
+    id: 'attend_3_college_camps',
+    title: 'Attend 3+ College Camps/Showcases',
+    description: 'Participate in camps at target schools',
+    icon: 'school',
+    category: 'recruiting',
+  },
+  {
+    id: 'maintain_3_5_gpa',
+    title: 'Maintain 3.5+ GPA',
+    description: 'Keep academic eligibility with strong grades',
+    icon: 'library',
+    category: 'recruiting',
+  },
+  {
+    id: 'complete_sat_act_prep',
+    title: 'Complete SAT/ACT Prep Course',
+    description: 'Improve standardized test scores for college admission',
+    icon: 'document-text',
+    category: 'recruiting',
+  },
+];
+
+const PERSONAL_GOALS: Goal[] = [
+  {
+    id: 'leadership_captain_role',
+    title: 'Earn Team Leadership Role',
+    description: 'Be selected as team captain or assistant captain',
+    icon: 'people',
+    category: 'personal',
+  },
+  {
+    id: 'mentor_younger_players',
+    title: 'Mentor 2+ Younger Players',
+    description: 'Take 2+ underclassmen under your wing',
+    icon: 'heart',
+    category: 'personal',
+  },
+  {
+    id: 'perfect_attendance_practice',
+    title: 'Perfect Practice Attendance',
+    description: 'Attend every practice and team meeting',
+    icon: 'checkmark-circle',
+    category: 'personal',
+  },
+  {
+    id: 'community_service_20_hours',
+    title: 'Complete 20+ Hours Community Service',
+    description: 'Give back to community with volunteer work',
+    icon: 'hand-right',
+    category: 'personal',
+  },
+  {
+    id: 'improve_fitness_benchmarks',
+    title: 'Improve All Fitness Benchmarks by 10%',
+    description: 'Increase speed, strength, and endurance by 10%',
+    icon: 'fitness',
+    category: 'personal',
+  },
+];
 
 interface GoalsScreenProps {
-  navigation: GoalsScreenNavigationProp;
-  route: GoalsScreenRouteProp & {
+  navigation: any;
+  route: {
     params?: {
-      returnTo?: string;
+      firstName?: string;
+      lastName?: string;
+      profileImage?: string | null;
+      sport?: string;
+      gender?: string;
+      position?: string;
+      graduationYear?: number;
+      height?: string;
+      schoolName?: string;
+      city?: string;
+      state?: string;
+      level?: string;
+      jerseyNumber?: string;
+      clubEnabled?: boolean;
+      clubOrgName?: string;
+      clubTeamName?: string;
+      clubCity?: string;
+      clubState?: string;
+      clubJerseyNumber?: string;
+      selectedGoals?: string[];
       [key: string]: any;
     };
   };
 }
 
-// Goal selection state interface
-interface SelectedGoalData {
-  goal: Goal;
-  category: GoalCategory;
-}
-
-// Helper functions for category display
-const getCategoryIcon = (category: string): string => {
-  const iconMap: Record<string, string> = {
-    scoring: 'football',
-    assists: 'people',
-    defense: 'shield',
-    saves: 'hand-right',
-    faceoffs: 'refresh',
-    ground_balls: 'basketball',
-    turnovers: 'hand-left',
-    accuracy: 'target',
-  };
-  return iconMap[category] || 'star';
-};
-
-const getCategoryColor = (category: string): string => {
-  const colorMap: Record<string, string> = {
-    scoring: theme.colors.error,
-    assists: theme.colors.success,
-    defense: theme.colors.primary,
-    saves: theme.colors.info,
-    faceoffs: theme.colors.warning,
-    ground_balls: '#8B5CF6', // Purple
-    turnovers: '#F59E0B', // Amber
-    accuracy: '#10B981', // Emerald
-  };
-  return colorMap[category] || theme.colors.primary;
-};
-
-export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
-  const { gender, position } = route.params || {};
-
-  // Goal selection state - now supports multiple categories
-  const [selectedGoals, setSelectedGoals] = useState<SelectedGoalData[]>([]);
-  const [showCustomGoalModal, setShowCustomGoalModal] = useState(false);
-  const [customGoalTitle, setCustomGoalTitle] = useState('');
-  const [customGoalDescription, setCustomGoalDescription] = useState('');
-  const [customGoalCategory, setCustomGoalCategory] = useState('scoring');
-
-  // Accordion section states
-  const [expandedSections, setExpandedSections] = useState({
-    season: true,
-    recruiting: false,
-    personal: false,
-  });
-
-  // Animation states
-  const [progressAnim] = useState(new Animated.Value(0));
-  const [confettiAnim] = useState(new Animated.Value(0));
-  const [modalAnim] = useState(new Animated.Value(0));
-
-  // Animation refs
+const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
+  const { updateUser, user, isAuthenticated } = useAuthStore();
+  const { addXP } = useGamificationStore();
+  
+  // Initialize with existing selected goals from route params
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(route.params?.selectedGoals || []);
+  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
+  
+  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const bounceAnim = useRef(new Animated.Value(1)).current;
-  const goalCardAnims = useRef<{ [key: string]: Animated.Value }>({}).current;
-  const sectionAnimations = useRef({
-    season: new Animated.Value(1),
-    recruiting: new Animated.Value(0),
-    personal: new Animated.Value(0),
-  }).current;
-
-  // Get position-specific season goals
-  const genderKey = gender as 'boys' | 'girls';
-  const positionKey = position as keyof typeof ImportedSeasonGoals.boys;
-  const seasonGoals = ImportedSeasonGoals[genderKey]?.[positionKey] || [];
-
-  // Goals are now directly accessed from the imported arrays
-
-  const handleGoalToggle = (goal: Goal, category: GoalCategory) => {
-    setSelectedGoals(prev => {
-      const existingIndex = prev.findIndex(
-        selected => selected.goal.id === goal.id,
-      );
-      let newGoals;
-
-      if (existingIndex >= 0) {
-        // Remove goal if already selected
-        newGoals = prev.filter((_, index) => index !== existingIndex);
-      } else {
-        // Check if category already has 3 goals
-        const categoryGoals = prev.filter(
-          selected => selected.category === category,
-        );
-        if (categoryGoals.length < 3) {
-          // Add goal if category under limit
-          newGoals = [...prev, { goal, category }];
-        } else {
-          // Category at limit, don't add
-          return prev;
-        }
-      }
-
-      // Add haptic feedback on selection
-      if (newGoals.length !== prev.length) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
-
-      // Animate progress bar with spring effect
-      Animated.spring(progressAnim, {
-        toValue: newGoals.length,
-        tension: 100,
-        friction: 8,
-        useNativeDriver: false,
-      }).start();
-
-      return newGoals;
-    });
-  };
-
-  const isGoalSelected = (goalId: string) =>
-    selectedGoals.some(selected => selected.goal.id === goalId);
-  const canSelectMoreInCategory = (category: GoalCategory) => {
-    const categoryGoals = selectedGoals.filter(
-      selected => selected.category === category,
-    );
-    return categoryGoals.length < 3;
-  };
-  const isComplete = selectedGoals.length >= 1; // Allow 1+ goals from any category
-
-  // Get selection counts per category
-  const getSelectionCounts = () => {
-    const counts = { season: 0, recruiting: 0, personal: 0 };
-    selectedGoals.forEach(selected => {
-      counts[selected.category]++;
-    });
-    return counts;
-  };
-
-  const selectionCounts = getSelectionCounts();
 
   useEffect(() => {
     // Entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
@@ -201,75 +315,47 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
     ]).start();
   }, []);
 
-  // Initialize goal card animations for all goal types
-  useEffect(() => {
-    const allGoals = [...seasonGoals, ...RECRUITING_GOALS, ...PERSONAL_GOALS];
-
-    allGoals.forEach(goal => {
-      if (!goalCardAnims[goal.id]) {
-        goalCardAnims[goal.id] = new Animated.Value(1);
-      }
-    });
-  }, [seasonGoals]);
-
-  // Animate goal selection
-  useEffect(() => {
-    selectedGoals.forEach(({ goal }) => {
-      const anim = goalCardAnims[goal.id];
-      if (anim) {
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: 1.05,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
-    });
-  }, [selectedGoals]);
-
-  const handleContinue = () => {
-    if (selectedGoals.length >= 1) {
-      // Trigger confetti animation
-      Animated.sequence([
-        Animated.timing(confettiAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(confettiAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      // Navigate after a short delay to show confetti
-      setTimeout(() => {
-        // Convert selected goals to UserGoal format
-        const selectedGoalObjects = selectedGoals.map(({ goal, category }) =>
-          convertToUserGoal(goal, category),
-        );
-
-        const { returnTo, ...otherParams } = route.params || {};
-        if (returnTo === 'Review') {
-          navigation.navigate('Review', {
-            ...otherParams,
-            goals: selectedGoalObjects,
-          });
-        } else {
-          navigation.navigate('Review', {
-            ...route.params,
-            goals: selectedGoalObjects,
-          });
-        }
-      }, 800);
+  // Get goals based on user's position
+  const getGoalsByPosition = (position: string): Goal[] => {
+    const pos = position?.toLowerCase();
+    switch (pos) {
+      case 'attack':
+      case 'attacker':
+        return ATTACK_GOALS;
+      case 'midfield':
+      case 'midfielder':
+        return MIDFIELD_GOALS;
+      case 'defense':
+      case 'defender':
+        return DEFENSE_GOALS;
+      case 'goalie':
+      case 'goalkeeper':
+        return GOALIE_GOALS;
+      default:
+        return MIDFIELD_GOALS; // Default to midfield
     }
+  };
+  
+  const userPosition = route.params?.position || 'Midfield';
+  const seasonGoals = getGoalsByPosition(userPosition);
+
+  const isGoalSelected = (goalId: string) => {
+    return selectedGoals.includes(goalId);
+  };
+
+  const toggleGoalSelection = (goalId: string) => {
+    if (isGoalSelected(goalId)) {
+      setSelectedGoals(prev => prev.filter(id => id !== goalId));
+    } else if (selectedGoals.length < 6) {
+      setSelectedGoals(prev => [...prev, goalId]);
+    }
+  };
+  
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   const handleBack = () => {
@@ -280,895 +366,252 @@ export default function GoalsScreen({ navigation, route }: GoalsScreenProps) {
     Keyboard.dismiss();
   };
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    const isExpanded = expandedSections[section];
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !isExpanded,
-    }));
+  const isValid = selectedGoals.length > 0;
 
-    Animated.timing(sectionAnimations[section], {
-      toValue: isExpanded ? 0 : 1,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
+  const handleContinue = async () => {
+    if (selectedGoals.length === 0) return;
 
-  const handleSaveCustomGoal = () => {
-    if (!customGoalTitle.trim() || !customGoalDescription.trim()) {
-      return;
-    }
-
-    // For now, we'll skip custom goals and focus on the main three categories
-    // This can be implemented later if needed
-
-    setCustomGoalTitle('');
-    setCustomGoalDescription('');
-    setCustomGoalCategory('scoring');
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    handleCloseCustomGoalModal();
-  };
-
-  const handleCloseCustomGoalModal = () => {
-    Animated.timing(modalAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowCustomGoalModal(false);
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(bounceAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(async () => {
+      try {
+        // Only update user if authenticated, otherwise just navigate
+        if (isAuthenticated && user) {
+          await updateUser({ 
+            goals: {
+              improvementAreas: selectedGoals,
+              collegeInterest: selectedGoals.some(goal => 
+                ['create_highlight_video', 'contact_20_college_coaches', 'attend_3_college_camps', 'maintain_3_5_gpa', 'complete_sat_act_prep'].includes(goal)
+              ),
+            }
+          });
+          
+          // Award XP for completing goals step
+          addXP(50, 'Goals set - ready to achieve!');
+        }
+        
+        // Navigate to next screen with all route params
+        navigation.navigate('Review', {
+          ...route.params,
+          selectedGoals,
+          goals: selectedGoals, // Pass goals in the format ReviewScreen expects
+        });
+      } catch (error) {
+        console.error('Error saving goals:', error);
+        // Still navigate even if save fails
+        navigation.navigate('Review', {
+          ...route.params,
+          selectedGoals,
+          goals: selectedGoals,
+        });
+      }
     });
   };
 
-  const getCustomGoalCategoryOptions = () => [
-    { value: 'scoring', label: 'Scoring' },
-    { value: 'assists', label: 'Playmaking' },
-    { value: 'defense', label: 'Defense' },
-    { value: 'saves', label: 'Saves' },
-    { value: 'faceoffs', label: 'Face-offs' },
-    { value: 'ground_balls', label: 'Ground Balls' },
-    { value: 'turnovers', label: 'Turnovers' },
-    { value: 'accuracy', label: 'Accuracy' },
-  ];
+  const renderGoalCard = (goal: Goal) => {
+    const isSelected = isGoalSelected(goal.id);
+    const isDisabled = !isSelected && selectedGoals.length >= 6;
+
+    return (
+      <TouchableOpacity
+        key={goal.id}
+        style={[
+          styles.goalCard,
+          isSelected && styles.selectedGoalCard,
+          isDisabled && styles.disabledGoalCard,
+        ]}
+        onPress={() => !isDisabled && toggleGoalSelection(goal.id)}
+        disabled={isDisabled}
+      >
+        <View style={styles.goalCardContent}>
+          <View style={styles.goalHeader}>
+            <Ionicons
+              name={goal.icon as any}
+              size={24}
+              color={
+                isSelected
+                  ? theme.colors.white
+                  : isDisabled
+                  ? theme.colors.textSecondary
+                  : theme.colors.primary
+              }
+            />
+            <View style={styles.goalTextContainer}>
+              <Text
+                style={[
+                  styles.goalTitle,
+                  isSelected && styles.selectedGoalTitle,
+                  isDisabled && styles.disabledGoalTitle,
+                ]}
+              >
+                {goal.title}
+              </Text>
+              <Text
+                style={[
+                  styles.goalDescription,
+                  isSelected && styles.selectedGoalDescription,
+                  isDisabled && styles.disabledGoalDescription,
+                ]}
+              >
+                {goal.description}
+              </Text>
+            </View>
+          </View>
+          {isSelected && (
+            <View style={styles.checkmark}>
+              <Ionicons name="checkmark" size={20} color={theme.colors.white} />
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+  
+  const renderGoalSection = (title: string, goals: Goal[], sectionKey: string) => {
+    const isExpanded = expandedSections[sectionKey];
+    
+    return (
+      <View style={styles.sectionContainer}>
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={() => toggleSection(sectionKey)}
+        >
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={24}
+            color={theme.colors.primary}
+          />
+        </TouchableOpacity>
+        {isExpanded && (
+          <View style={styles.sectionContent}>
+            {goals.map(renderGoalCard)}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Stepper with Back Button */}
       <OnboardingStepper
-        currentStep={7}
+        currentStep={6}
         totalSteps={8}
-        stepTitle="Season Goals"
+        stepTitle="Set Your Goals"
         showBackButton={true}
         onBackPress={handleBack}
       />
 
       <KeyboardAvoidingView
-        style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        style={styles.keyboardView}
       >
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.content}>
             <Animated.View
               style={[
-                styles.content,
+                styles.scrollView,
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
                 },
               ]}
             >
-              {/* Header Section */}
-              <View style={styles.headerSection}>
-                <Image
-                  source={require('../../../../assets/logos/logoBlack.png')}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.title}>
-                  {position ? `Your ${position} Game Plan` : 'Season Goals'}
-                </Text>
-                <Text style={styles.subtitle}>
-                  Build your personalized game plan. Choose 1-3 goals from each
-                  category that matter most to your development.
-                </Text>
-
-                {/* Enhanced Progress Indicator */}
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <Animated.View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: progressAnim.interpolate({
-                            inputRange: [0, 1, 2, 3],
-                            outputRange: ['0%', '33%', '66%', '100%'],
-                          }),
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.progressText}>
-                    {selectedGoals.length === 0 &&
-                      'Choose goals from any category to get started'}
-                    {selectedGoals.length > 0 &&
-                      selectedGoals.length < 3 &&
-                      `${selectedGoals.length} goal${selectedGoals.length > 1 ? 's' : ''} selected • Season: ${selectionCounts.season} • Recruiting: ${selectionCounts.recruiting} • Personal: ${selectionCounts.personal}`}
-                    {selectedGoals.length >= 3 &&
-                      `${selectedGoals.length} goals selected • Season: ${selectionCounts.season} • Recruiting: ${selectionCounts.recruiting} • Personal: ${selectionCounts.personal}`}
-                  </Text>
-
-                  {/* Clear All Button */}
-                  {selectedGoals.length > 0 && (
-                    <TouchableOpacity
-                      style={styles.clearButton}
-                      onPress={() => setSelectedGoals([])}
-                    >
-                      <Text style={styles.clearButtonText}>Clear All</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              {/* Three-Category Goal Selection */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons
-                    name="trophy"
-                    size={24}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.sectionTitle}>Choose Your Goals</Text>
-                </View>
-                <Text style={styles.sectionSubtitle}>
-                  Choose up to 3 goals from each category. Mix and match to
-                  create your perfect development plan.
-                </Text>
-
-                {/* Season Goals Accordion */}
-                <View style={styles.accordionSection}>
-                  <TouchableOpacity
-                    style={styles.accordionHeader}
-                    onPress={() => toggleSection('season')}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.accordionHeaderContent}>
-                      <View
-                        style={[
-                          styles.accordionIcon,
-                          { backgroundColor: '#EF4444' },
-                        ]}
-                      >
-                        <Ionicons
-                          name="trophy"
-                          size={20}
-                          color={theme.colors.white}
-                        />
-                      </View>
-                      <View style={styles.accordionHeaderText}>
-                        <Text style={styles.accordionTitle}>
-                          Season Goals{' '}
-                          {selectionCounts.season > 0 &&
-                            `(${selectionCounts.season}/3)`}
-                        </Text>
-                        <Text style={styles.accordionSubtitle}>
-                          {position
-                            ? `${position}-specific performance goals`
-                            : 'Performance goals tracked through game stats'}
-                        </Text>
-                      </View>
-                    </View>
-                    <Animated.View
-                      style={[
-                        styles.accordionChevron,
-                        {
-                          transform: [
-                            {
-                              rotate: sectionAnimations.season.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ['0deg', '180deg'],
-                              }),
-                            },
-                          ],
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="chevron-down"
-                        size={20}
-                        color={theme.colors.textSecondary}
-                      />
-                    </Animated.View>
-                  </TouchableOpacity>
-
-                  <Animated.View
-                    style={[
-                      styles.accordionContent,
-                      {
-                        maxHeight: sectionAnimations.season.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 600],
-                        }),
-                        opacity: sectionAnimations.season,
-                      },
-                    ]}
-                  >
-                    <ScrollView
-                      style={styles.accordionScrollView}
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                    >
-                      <View style={styles.goalCardsContainer}>
-                        {seasonGoals.slice(0, 12).map((goal: Goal) => {
-                          const isSelected = isGoalSelected(goal.id);
-                          const isDisabled =
-                            !canSelectMoreInCategory('season') && !isSelected;
-
-                          return (
-                            <Animated.View
-                              key={goal.id}
-                              style={{
-                                transform: [
-                                  {
-                                    scale: goalCardAnims[goal.id] || 1,
-                                  },
-                                ],
-                              }}
-                            >
-                              <TouchableOpacity
-                                style={[
-                                  styles.goalSelectionCard,
-                                  isSelected &&
-                                    styles.goalSelectionCardSelected,
-                                  isDisabled &&
-                                    styles.goalSelectionCardDisabled,
-                                ]}
-                                onPress={() => handleGoalToggle(goal, 'season')}
-                                activeOpacity={isDisabled ? 1 : 0.8}
-                                disabled={isDisabled}
-                              >
-                                <LinearGradient
-                                  colors={
-                                    isSelected
-                                      ? ['#EF4444', '#EF4444DD']
-                                      : [
-                                          theme.colors.white,
-                                          theme.colors.neutral50,
-                                        ]
-                                  }
-                                  style={styles.goalCardGradient}
-                                >
-                                  <View style={styles.goalCardHeader}>
-                                    <View
-                                      style={[
-                                        styles.goalCategoryBadge,
-                                        { backgroundColor: '#EF4444' },
-                                      ]}
-                                    >
-                                      <Text
-                                        style={styles.goalCategoryBadgeText}
-                                      >
-                                        SEASON
-                                      </Text>
-                                    </View>
-                                    {isSelected && (
-                                      <Animated.View
-                                        style={styles.checkmarkContainer}
-                                      >
-                                        <Ionicons
-                                          name="checkmark-circle"
-                                          size={24}
-                                          color={theme.colors.white}
-                                        />
-                                      </Animated.View>
-                                    )}
-                                  </View>
-                                  <Text
-                                    style={[
-                                      styles.goalCardTitle,
-                                      isSelected &&
-                                        styles.goalCardTitleSelected,
-                                    ]}
-                                  >
-                                    {goal.title}
-                                  </Text>
-                                  <Text
-                                    style={[
-                                      styles.goalCardDescription,
-                                      isSelected &&
-                                        styles.goalCardDescriptionSelected,
-                                    ]}
-                                  >
-                                    {goal.description}
-                                  </Text>
-                                </LinearGradient>
-                              </TouchableOpacity>
-                            </Animated.View>
-                          );
-                        })}
-                      </View>
-                    </ScrollView>
-                  </Animated.View>
-                </View>
-
-                {/* Recruiting Goals Accordion */}
-                <View style={styles.accordionSection}>
-                  <TouchableOpacity
-                    style={styles.accordionHeader}
-                    onPress={() => toggleSection('recruiting')}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.accordionHeaderContent}>
-                      <View
-                        style={[
-                          styles.accordionIcon,
-                          { backgroundColor: '#3B82F6' },
-                        ]}
-                      >
-                        <Ionicons
-                          name="school"
-                          size={20}
-                          color={theme.colors.white}
-                        />
-                      </View>
-                      <View style={styles.accordionHeaderText}>
-                        <Text style={styles.accordionTitle}>
-                          Recruiting Goals{' '}
-                          {selectionCounts.recruiting > 0 &&
-                            `(${selectionCounts.recruiting}/3)`}
-                        </Text>
-                        <Text style={styles.accordionSubtitle}>
-                          College preparation and visibility milestones
-                        </Text>
-                      </View>
-                    </View>
-                    <Animated.View
-                      style={[
-                        styles.accordionChevron,
-                        {
-                          transform: [
-                            {
-                              rotate: sectionAnimations.recruiting.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ['0deg', '180deg'],
-                              }),
-                            },
-                          ],
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="chevron-down"
-                        size={20}
-                        color={theme.colors.textSecondary}
-                      />
-                    </Animated.View>
-                  </TouchableOpacity>
-
-                  <Animated.View
-                    style={[
-                      styles.accordionContent,
-                      {
-                        maxHeight: sectionAnimations.recruiting.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 800],
-                        }),
-                        opacity: sectionAnimations.recruiting,
-                      },
-                    ]}
-                  >
-                    <View style={styles.goalCardsContainer}>
-                      {RECRUITING_GOALS.slice(0, 12).map(goal => {
-                        const isSelected = isGoalSelected(goal.id);
-                        const isDisabled =
-                          !canSelectMoreInCategory('recruiting') && !isSelected;
-
-                        return (
-                          <Animated.View
-                            key={goal.id}
-                            style={{
-                              transform: [
-                                {
-                                  scale: goalCardAnims[goal.id] || 1,
-                                },
-                              ],
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={[
-                                styles.goalSelectionCard,
-                                isSelected && styles.goalSelectionCardSelected,
-                                isDisabled && styles.goalSelectionCardDisabled,
-                              ]}
-                              onPress={() =>
-                                handleGoalToggle(goal, 'recruiting')
-                              }
-                              activeOpacity={isDisabled ? 1 : 0.8}
-                              disabled={isDisabled}
-                            >
-                              <LinearGradient
-                                colors={
-                                  isSelected
-                                    ? ['#3B82F6', '#3B82F6DD']
-                                    : [
-                                        theme.colors.white,
-                                        theme.colors.neutral50,
-                                      ]
-                                }
-                                style={styles.goalCardGradient}
-                              >
-                                <View style={styles.goalCardHeader}>
-                                  <View
-                                    style={[
-                                      styles.goalCategoryBadge,
-                                      { backgroundColor: '#3B82F6' },
-                                    ]}
-                                  >
-                                    <Text style={styles.goalCategoryBadgeText}>
-                                      RECRUITING
-                                    </Text>
-                                  </View>
-                                  {isSelected && (
-                                    <Animated.View
-                                      style={styles.checkmarkContainer}
-                                    >
-                                      <Ionicons
-                                        name="checkmark-circle"
-                                        size={24}
-                                        color={theme.colors.white}
-                                      />
-                                    </Animated.View>
-                                  )}
-                                </View>
-                                <Text
-                                  style={[
-                                    styles.goalCardTitle,
-                                    isSelected && styles.goalCardTitleSelected,
-                                  ]}
-                                >
-                                  {goal.title}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.goalCardDescription,
-                                    isSelected &&
-                                      styles.goalCardDescriptionSelected,
-                                  ]}
-                                >
-                                  {goal.description}
-                                </Text>
-                              </LinearGradient>
-                            </TouchableOpacity>
-                          </Animated.View>
-                        );
-                      })}
-                    </View>
-                  </Animated.View>
-                </View>
-
-                {/* Personal Development Goals Accordion */}
-                <View style={styles.accordionSection}>
-                  <TouchableOpacity
-                    style={styles.accordionHeader}
-                    onPress={() => toggleSection('personal')}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.accordionHeaderContent}>
-                      <View
-                        style={[
-                          styles.accordionIcon,
-                          { backgroundColor: '#10B981' },
-                        ]}
-                      >
-                        <Ionicons
-                          name="fitness"
-                          size={20}
-                          color={theme.colors.white}
-                        />
-                      </View>
-                      <View style={styles.accordionHeaderText}>
-                        <Text style={styles.accordionTitle}>
-                          Personal Development{' '}
-                          {selectionCounts.personal > 0 &&
-                            `(${selectionCounts.personal}/3)`}
-                        </Text>
-                        <Text style={styles.accordionSubtitle}>
-                          Skills, training, and improvement goals
-                        </Text>
-                      </View>
-                    </View>
-                    <Animated.View
-                      style={[
-                        styles.accordionChevron,
-                        {
-                          transform: [
-                            {
-                              rotate: sectionAnimations.personal.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ['0deg', '180deg'],
-                              }),
-                            },
-                          ],
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="chevron-down"
-                        size={20}
-                        color={theme.colors.textSecondary}
-                      />
-                    </Animated.View>
-                  </TouchableOpacity>
-
-                  <Animated.View
-                    style={[
-                      styles.accordionContent,
-                      {
-                        maxHeight: sectionAnimations.personal.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 800],
-                        }),
-                        opacity: sectionAnimations.personal,
-                      },
-                    ]}
-                  >
-                    <View style={styles.goalCardsContainer}>
-                      {PERSONAL_GOALS.slice(0, 12).map(goal => {
-                        const isSelected = isGoalSelected(goal.id);
-                        const isDisabled =
-                          !canSelectMoreInCategory('personal') && !isSelected;
-
-                        return (
-                          <Animated.View
-                            key={goal.id}
-                            style={{
-                              transform: [
-                                {
-                                  scale: goalCardAnims[goal.id] || 1,
-                                },
-                              ],
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={[
-                                styles.goalSelectionCard,
-                                isSelected && styles.goalSelectionCardSelected,
-                                isDisabled && styles.goalSelectionCardDisabled,
-                              ]}
-                              onPress={() => handleGoalToggle(goal, 'personal')}
-                              activeOpacity={isDisabled ? 1 : 0.8}
-                              disabled={isDisabled}
-                            >
-                              <LinearGradient
-                                colors={
-                                  isSelected
-                                    ? ['#10B981', '#10B981DD']
-                                    : [
-                                        theme.colors.white,
-                                        theme.colors.neutral50,
-                                      ]
-                                }
-                                style={styles.goalCardGradient}
-                              >
-                                <View style={styles.goalCardHeader}>
-                                  <View
-                                    style={[
-                                      styles.goalCategoryBadge,
-                                      { backgroundColor: '#10B981' },
-                                    ]}
-                                  >
-                                    <Text style={styles.goalCategoryBadgeText}>
-                                      PERSONAL
-                                    </Text>
-                                  </View>
-                                  {isSelected && (
-                                    <Animated.View
-                                      style={styles.checkmarkContainer}
-                                    >
-                                      <Ionicons
-                                        name="checkmark-circle"
-                                        size={24}
-                                        color={theme.colors.white}
-                                      />
-                                    </Animated.View>
-                                  )}
-                                </View>
-                                <Text
-                                  style={[
-                                    styles.goalCardTitle,
-                                    isSelected && styles.goalCardTitleSelected,
-                                  ]}
-                                >
-                                  {goal.title}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.goalCardDescription,
-                                    isSelected &&
-                                      styles.goalCardDescriptionSelected,
-                                  ]}
-                                >
-                                  {goal.description}
-                                </Text>
-                              </LinearGradient>
-                            </TouchableOpacity>
-                          </Animated.View>
-                        );
-                      })}
-                    </View>
-                  </Animated.View>
-                </View>
-              </View>
-
-              {/* Enhanced Continue Button with Confetti */}
-              <View style={styles.buttonContainer}>
-                {/* Enhanced Confetti particles */}
-                {Array.from({ length: 24 }).map((_, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.confettiParticle,
-                      {
-                        left: `${10 + i * 3.5}%`,
-                        backgroundColor:
-                          i % 4 === 0
-                            ? theme.colors.primary
-                            : i % 4 === 1
-                              ? theme.colors.success
-                              : i % 4 === 2
-                                ? theme.colors.warning
-                                : theme.colors.info,
-                        transform: [
-                          {
-                            translateY: confettiAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0, -150 - Math.random() * 100],
-                            }),
-                          },
-                          {
-                            translateX: confettiAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0, (Math.random() - 0.5) * 100],
-                            }),
-                          },
-                          {
-                            rotate: confettiAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [
-                                '0deg',
-                                `${360 + Math.random() * 360}deg`,
-                              ],
-                            }),
-                          },
-                        ],
-                        opacity: confettiAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0, 1, 0],
-                        }),
-                      },
-                    ]}
-                  />
-                ))}
-
-                <Animated.View
-                  style={{
-                    transform: [{ scale: bounceAnim }],
-                  }}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.continueButton,
-                      !isComplete && styles.disabledButton,
-                    ]}
-                    onPress={handleContinue}
-                    activeOpacity={isComplete ? 0.9 : 1}
-                    disabled={!isComplete}
-                  >
-                    <LinearGradient
-                      colors={
-                        isComplete
-                          ? [theme.colors.primary, theme.colors.primary + 'DD']
-                          : [theme.colors.neutral300, theme.colors.neutral400]
-                      }
-                      style={styles.continueButtonGradient}
-                    >
-                      <Text
-                        style={[
-                          styles.continueButtonText,
-                          !isComplete && styles.continueButtonTextDisabled,
-                        ]}
-                      >
-                        {selectedGoals.length === 0 &&
-                          'Choose your goals to continue'}
-                        {selectedGoals.length === 1 && 'Continue with 1 goal'}
-                        {selectedGoals.length >= 2 &&
-                          selectedGoals.length <= 6 &&
-                          `Continue with ${selectedGoals.length} goals`}
-                        {selectedGoals.length > 6 && 'Build My Game Plan'}
-                      </Text>
-                      {isComplete && (
-                        <Ionicons
-                          name="arrow-forward"
-                          size={20}
-                          color={theme.colors.white}
-                        />
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </Animated.View>
-              </View>
-            </Animated.View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-
-      {/* Custom Goal Creation Modal */}
-      <Modal
-        visible={showCustomGoalModal}
-        transparent
-        animationType="none"
-        onRequestClose={handleCloseCustomGoalModal}
-      >
-        <TouchableWithoutFeedback onPress={handleCloseCustomGoalModal}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <Animated.View
-                style={[
-                  styles.modalContainer,
-                  {
-                    opacity: modalAnim,
-                    transform: [
-                      {
-                        scale: modalAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
+              <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
               >
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Create Custom Goal</Text>
-                  <TouchableOpacity
-                    style={styles.modalCloseButton}
-                    onPress={handleCloseCustomGoalModal}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={24}
-                      color={theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
+                {/* Header Section */}
+                <View style={styles.headerSection}>
+                  <Image
+                    source={require('../../../../assets/logos/logoBlack.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.title}>Set Your Goals</Text>
+                  <Text style={styles.subtitle}>
+                    Choose up to 6 goals to focus on this season. Select from season goals based on your position, recruiting goals, and personal development goals.
+                  </Text>
+                  <View style={styles.progressContainer}>
+                    <Text style={styles.progressText}>
+                      {selectedGoals.length} of 6 goals selected
+                    </Text>
+                  </View>
                 </View>
 
-                <ScrollView
-                  style={styles.modalContent}
-                  showsVerticalScrollIndicator={false}
+                {/* Goals Sections */}
+                <View style={styles.goalsContainer}>
+                  {/* Season Goals Section - Based on Position */}
+                  {renderGoalSection(`${userPosition} Season Goals`, seasonGoals, 'season')}
+                  
+                  {/* Recruiting Goals Section */}
+                  {renderGoalSection('Recruiting & College Prep', RECRUITING_GOALS, 'recruiting')}
+                  
+                  {/* Personal Goals Section */}
+                  {renderGoalSection('Personal Development', PERSONAL_GOALS, 'personal')}
+                </View>
+              </ScrollView>
+            </Animated.View>
+
+            {/* Continue Button */}
+            <View style={styles.buttonSection}>
+              <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
+                <TouchableOpacity
+                  style={[
+                    styles.continueButton,
+                    !isValid && styles.disabledButton,
+                  ]}
+                  onPress={handleContinue}
+                  disabled={!isValid}
                 >
-                  <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Goal Title *</Text>
-                    <TextInput
-                      style={styles.modalInput}
-                      value={customGoalTitle}
-                      onChangeText={setCustomGoalTitle}
-                      placeholder="e.g., Score 15+ goals this season"
-                      placeholderTextColor={theme.colors.textTertiary}
-                      maxLength={60}
-                    />
-                  </View>
-
-                  <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Description *</Text>
-                    <TextInput
-                      style={[styles.modalInput, styles.modalTextArea]}
-                      value={customGoalDescription}
-                      onChangeText={setCustomGoalDescription}
-                      placeholder="Describe what success looks like and why this goal matters to you..."
-                      placeholderTextColor={theme.colors.textTertiary}
-                      multiline
-                      numberOfLines={3}
-                      textAlignVertical="top"
-                      maxLength={150}
-                    />
-                  </View>
-
-                  <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Category</Text>
-                    <View style={styles.categorySelector}>
-                      {getCustomGoalCategoryOptions().map(
-                        (option: { value: string; label: string }) => (
-                          <TouchableOpacity
-                            key={option.value}
-                            style={[
-                              styles.categorySelectorButton,
-                              customGoalCategory === option.value &&
-                                styles.categorySelectorButtonActive,
-                            ]}
-                            onPress={() => {
-                              Haptics.impactAsync(
-                                Haptics.ImpactFeedbackStyle.Light,
-                              );
-                              setCustomGoalCategory(option.value);
-                            }}
-                          >
-                            <View
-                              style={[
-                                styles.categorySelectorIcon,
-                                {
-                                  backgroundColor: getCategoryColor(
-                                    option.value,
-                                  ),
-                                },
-                                customGoalCategory === option.value &&
-                                  styles.categorySelectorIconActive,
-                              ]}
-                            >
-                              <Ionicons
-                                name={getCategoryIcon(option.value) as any}
-                                size={16}
-                                color={theme.colors.white}
-                              />
-                            </View>
-                            <Text
-                              style={[
-                                styles.categorySelectorText,
-                                customGoalCategory === option.value &&
-                                  styles.categorySelectorTextActive,
-                              ]}
-                            >
-                              {option.label}
-                            </Text>
-                          </TouchableOpacity>
-                        ),
-                      )}
-                    </View>
-                  </View>
-                </ScrollView>
-
-                <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.modalCancelButton}
-                    onPress={handleCloseCustomGoalModal}
-                  >
-                    <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.modalSaveButton,
-                      (!customGoalTitle.trim() ||
-                        !customGoalDescription.trim()) &&
-                        styles.modalSaveButtonDisabled,
-                    ]}
-                    onPress={handleSaveCustomGoal}
-                    disabled={
-                      !customGoalTitle.trim() || !customGoalDescription.trim()
+                  <LinearGradient
+                    colors={
+                      isValid
+                        ? [theme.colors.primary, theme.colors.primaryDark]
+                        : [theme.colors.neutral200, theme.colors.neutral200]
                     }
+                    start={[0, 0]}
+                    end={[1, 1]}
+                    style={styles.buttonGradient}
                   >
                     <Text
                       style={[
-                        styles.modalSaveButtonText,
-                        (!customGoalTitle.trim() ||
-                          !customGoalDescription.trim()) &&
-                          styles.modalSaveButtonTextDisabled,
+                        styles.buttonText,
+                        !isValid && styles.disabledButtonText,
                       ]}
                     >
-                      Create Goal
+                      Next ({selectedGoals.length} goal{selectedGoals.length !== 1 ? 's' : ''} selected)
                     </Text>
-                  </TouchableOpacity>
-                </View>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={20}
+                      color={
+                        isValid
+                          ? theme.colors.white
+                          : theme.colors.textTertiary
+                      }
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
               </Animated.View>
-            </TouchableWithoutFeedback>
+            </View>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -1178,544 +621,174 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  content: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
+    paddingBottom: 120,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  // Header Section
   headerSection: {
-    marginBottom: 32,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 32,
   },
   logo: {
-    width: 120,
-    height: 40,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+    width: 60,
+    height: 60,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
-    fontFamily: theme.fonts.anton,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
+    lineHeight: 24,
+    marginBottom: 24,
   },
   progressContainer: {
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: theme.colors.neutral200,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.primary,
-    borderRadius: 4,
+    backgroundColor: theme.colors.neutral50,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.neutral200,
   },
   progressText: {
     fontSize: 14,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
-  // Section Styles
+  goalsContainer: {
+    paddingHorizontal: 24,
+    gap: 16,
+  },
   sectionContainer: {
-    marginBottom: 32,
+    backgroundColor: theme.colors.neutral50,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.neutral200,
+    overflow: 'hidden',
   },
   sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    padding: 20,
+    backgroundColor: theme.colors.neutral50,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontFamily: theme.fonts.jakarta.semiBold,
+    fontSize: 18,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginLeft: 8,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  // Goal Cards Container
-  goalCardsContainer: {
+  sectionContent: {
+    padding: 16,
+    paddingTop: 0,
     gap: 12,
-  },
-  goalSelectionCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  goalSelectionCardSelected: {
-    elevation: 4,
-    shadowOpacity: 0.2,
-  },
-  goalSelectionCardDisabled: {
-    opacity: 0.6,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  goalCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: 12,
-    minHeight: 32,
-  },
-  goalCardTitle: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-    lineHeight: 22,
-  },
-  goalCardTitleSelected: {
-    color: theme.colors.white,
-  },
-  goalCardDescription: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-  goalCardDescriptionSelected: {
-    color: theme.colors.white + 'DD',
   },
   goalCard: {
-    borderRadius: 16,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral200,
+    padding: 16,
   },
-  goalCardGradient: {
-    padding: 20,
+  selectedGoalCard: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
-  // Tags Container
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  disabledGoalCard: {
+    opacity: 0.5,
+    backgroundColor: theme.colors.neutral50,
   },
-  tagButton: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tagButtonSelected: {
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.2,
-  },
-  tagGradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  goalCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
   },
-  tagText: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.medium,
+  goalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  goalTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  goalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
+    marginBottom: 4,
   },
-  tagTextSelected: {
+  selectedGoalTitle: {
     color: theme.colors.white,
-    fontFamily: theme.fonts.jakarta.semiBold,
   },
-  // Button Section
+  disabledGoalTitle: {
+    color: theme.colors.textSecondary,
+  },
+  goalDescription: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  selectedGoalDescription: {
+    color: theme.colors.white,
+    opacity: 0.9,
+  },
+  disabledGoalDescription: {
+    color: theme.colors.textTertiary,
+  },
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
   buttonSection: {
-    gap: 12,
-    paddingBottom: 24,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: theme.colors.white,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral200,
   },
   continueButton: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginTop: 32,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
-  continueButtonGradient: {
-    paddingVertical: 18,
-    paddingHorizontal: 32,
+  disabledButton: {
+    opacity: 0.6,
+  },
+  buttonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 8,
   },
-  continueButtonText: {
-    fontSize: 18,
-    fontFamily: theme.fonts.jakarta.semiBold,
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: theme.colors.white,
-    marginRight: 8,
-    textAlign: 'center',
-    flex: 1,
-  },
-  continueButtonTextDisabled: {
-    color: theme.colors.textTertiary,
-    marginRight: 0,
-  },
-  disabledButton: {
-    shadowOpacity: 0,
-    elevation: 0,
   },
   disabledButtonText: {
     color: theme.colors.textTertiary,
   },
-  helperText: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textTertiary,
-    textAlign: 'center',
-  },
-  // Enhanced Progress Styles
-  clearButton: {
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  clearButtonText: {
-    fontSize: 12,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.primary,
-    textDecorationLine: 'underline',
-  },
-  // Category Styles
-  categorySection: {
-    marginBottom: 24,
-    borderLeftWidth: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    paddingLeft: 16,
-    paddingVertical: 8,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  categoryIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-  },
-  // Enhanced Goal Card Styles
-  goalIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkmarkContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    padding: 2,
-  },
-  // Enhanced Button Styles
-  buttonContainer: {
-    position: 'relative',
-    marginTop: 32,
-  },
-  confettiParticle: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    top: 20,
-  },
-  // Add Custom Goal Button Styles
-  addCustomGoalButton: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-    borderStyle: 'dashed',
-    padding: 20,
-    marginTop: 16,
-  },
-  addCustomGoalContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addCustomGoalIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  addCustomGoalText: {
-    flex: 1,
-  },
-  addCustomGoalTitle: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.primary,
-    marginBottom: 4,
-  },
-  addCustomGoalSubtitle: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 20,
-    width: '100%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral200,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontFamily: theme.fonts.jakarta.bold,
-    color: theme.colors.textPrimary,
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  modalInputGroup: {
-    marginBottom: 20,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-  },
-  modalInput: {
-    backgroundColor: theme.colors.neutral100,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textPrimary,
-    borderWidth: 1,
-    borderColor: theme.colors.neutral200,
-  },
-  modalTextArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  categorySelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categorySelectorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.neutral100,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.neutral200,
-  },
-  categorySelectorButtonActive: {
-    backgroundColor: theme.colors.primary + '20',
-    borderColor: theme.colors.primary,
-  },
-  categorySelectorIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  categorySelectorIconActive: {
-    transform: [{ scale: 1.1 }],
-  },
-  categorySelectorText: {
-    fontSize: 12,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textSecondary,
-  },
-  categorySelectorTextActive: {
-    color: theme.colors.primary,
-    fontFamily: theme.fonts.jakarta.semiBold,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.neutral200,
-    gap: 12,
-  },
-  modalCancelButton: {
-    flex: 1,
-    backgroundColor: theme.colors.neutral100,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  modalCancelButtonText: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textSecondary,
-  },
-  modalSaveButton: {
-    flex: 1,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  modalSaveButtonDisabled: {
-    backgroundColor: theme.colors.neutral300,
-  },
-  modalSaveButtonText: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.white,
-  },
-  modalSaveButtonTextDisabled: {
-    color: theme.colors.textTertiary,
-  },
-  // Accordion Styles
-  accordionSection: {
-    marginBottom: 16,
-    backgroundColor: theme.colors.white,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderRadius: 16,
-  },
-  accordionHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  accordionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  accordionHeaderText: {
-    flex: 1,
-  },
-  accordionTitle: {
-    fontSize: 18,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  accordionSubtitle: {
-    fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
-  },
-  accordionChevron: {
-    marginLeft: 12,
-  },
-  accordionContent: {
-    overflow: 'hidden',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  // Goal Category Badge
-  goalCategoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  goalCategoryBadgeText: {
-    fontSize: 10,
-    fontFamily: theme.fonts.jakarta.bold,
-    color: theme.colors.white,
-    letterSpacing: 0.5,
-  },
-  accordionScrollView: {
-    flex: 1,
-  },
 });
+
+export default GoalsScreen;

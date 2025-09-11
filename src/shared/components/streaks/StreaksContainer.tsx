@@ -2,14 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { theme } from '../../../constants/theme';
 import { StreakCard } from './StreakCard';
-import { streakService, type StreakData, StreakType } from '../../services/StreakService';
+import {
+  streakService,
+  type StreakData,
+  StreakType,
+} from '../../services/StreakService';
 
 interface StreaksContainerProps {
   userId: string;
 }
 
-export const StreaksContainer: React.FC<StreaksContainerProps> = ({ userId }) => {
-  const [streaks, setStreaks] = useState<Record<StreakType, StreakData>>({} as any);
+export const StreaksContainer: React.FC<StreaksContainerProps> = ({
+  userId,
+}) => {
+  const [streaks, setStreaks] = useState<Record<StreakType, StreakData>>(
+    {} as any,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,32 +39,31 @@ export const StreaksContainer: React.FC<StreaksContainerProps> = ({ userId }) =>
   const handleLogActivity = async (type: StreakType) => {
     try {
       // Show simple confirmation for now - in production, you'd show a proper modal
-      Alert.alert(
-        'Log Activity',
-        `Log ${getActivityName(type)} for today?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Log Activity',
-            onPress: async () => {
-              try {
-                const updatedStreak = await streakService.logActivity(userId, type);
-                setStreaks(prev => ({
-                  ...prev,
-                  [type]: updatedStreak,
-                }));
-                
-                Alert.alert(
-                  'Activity Logged!',
-                  `${getActivityName(type)} logged successfully. ${updatedStreak.isActive ? `🔥 ${updatedStreak.current} day streak!` : 'Keep it up!'}`
-                );
-              } catch (error) {
-                Alert.alert('Error', 'Failed to log activity. Please try again.');
-              }
-            },
+      Alert.alert('Log Activity', `Log ${getActivityName(type)} for today?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Activity',
+          onPress: async () => {
+            try {
+              const updatedStreak = await streakService.logActivity(
+                userId,
+                type,
+              );
+              setStreaks(prev => ({
+                ...prev,
+                [type]: updatedStreak,
+              }));
+
+              Alert.alert(
+                'Activity Logged!',
+                `${getActivityName(type)} logged successfully. ${updatedStreak.isActive ? `🔥 ${updatedStreak.current} day streak!` : 'Keep it up!'}`,
+              );
+            } catch (error) {
+              Alert.alert('Error', 'Failed to log activity. Please try again.');
+            }
           },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
       console.error('Error logging activity:', error);
     }
@@ -86,7 +93,9 @@ export const StreaksContainer: React.FC<StreaksContainerProps> = ({ userId }) =>
     );
   }
 
-  const activeStreaks = Object.values(streaks).filter(streak => streak.isActive);
+  const activeStreaks = Object.values(streaks).filter(
+    streak => streak.isActive,
+  );
   const totalActiveStreaks = activeStreaks.length;
 
   return (
@@ -95,19 +104,24 @@ export const StreaksContainer: React.FC<StreaksContainerProps> = ({ userId }) =>
         <Text style={styles.title}>Skills & Drills Streaks</Text>
         {totalActiveStreaks > 0 && (
           <View style={styles.activeStreaksBadge}>
-            <Text style={styles.activeStreaksText}>🔥 {totalActiveStreaks}</Text>
+            <Text style={styles.activeStreaksText}>
+              🔥 {totalActiveStreaks}
+            </Text>
           </View>
         )}
       </View>
 
-      <Text style={styles.subtitle}>
-        Build consistency with daily practice
-      </Text>
+      <Text style={styles.subtitle}>Build consistency with daily practice</Text>
 
-      <ScrollView style={styles.streaksContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.streaksContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {Object.values(StreakType).map(type => {
           const streakData = streaks[type];
-          if (!streakData) return null;
+          if (!streakData) {
+            return null;
+          }
 
           return (
             <StreakCard

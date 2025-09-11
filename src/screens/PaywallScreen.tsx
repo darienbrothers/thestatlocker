@@ -11,13 +11,19 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '@/types';
 import { theme, COLORS, FONTS } from '@shared/theme';
 
-type PaywallScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Paywall'>;
+type PaywallScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Paywall'
+>;
+type PaywallScreenRouteProp = RouteProp<RootStackParamList, 'Paywall'>;
 
 interface Props {
   navigation: PaywallScreenNavigationProp;
+  route: PaywallScreenRouteProp;
 }
 
 interface PricingPlan {
@@ -41,8 +47,8 @@ const plans: PricingPlan[] = [
       'Parent read-only access',
       'Cross-sport support',
       'Early feature access',
-      'All Premium features included'
-    ]
+      'All Premium features included',
+    ],
   },
   {
     id: 'premium',
@@ -57,8 +63,8 @@ const plans: PricingPlan[] = [
       'Recruiting Updates',
       'Unlimited Skills & Plans',
       'Priority Support',
-      'All Basic features'
-    ]
+      'All Basic features',
+    ],
   },
   {
     id: 'basic',
@@ -71,31 +77,35 @@ const plans: PricingPlan[] = [
       'Basic charts',
       'PDF/CSV export',
       'Recruiting CRM',
-      'Limited Skills (10 drills)'
-    ]
-  }
+      'Limited Skills (10 drills)',
+    ],
+  },
 ];
 
 const faqData = [
   {
     question: 'How does billing work?',
-    answer: 'You\'ll be charged after your 7-day free trial ends. You can cancel anytime before then with no charge.'
+    answer:
+      "You'll be charged after your 7-day free trial ends. You can cancel anytime before then with no charge.",
   },
   {
     question: 'Can I cancel anytime?',
-    answer: 'Yes! Cancel anytime from your account settings. Your subscription will remain active until the end of your billing period.'
+    answer:
+      'Yes! Cancel anytime from your account settings. Your subscription will remain active until the end of your billing period.',
   },
   {
-    question: 'What\'s your refund policy?',
-    answer: 'We offer a full refund within 30 days of purchase if you\'re not satisfied with StatLocker.'
+    question: "What's your refund policy?",
+    answer:
+      "We offer a full refund within 30 days of purchase if you're not satisfied with StatLocker.",
   },
   {
     question: 'Can I switch plans later?',
-    answer: 'Absolutely! You can upgrade or downgrade your plan anytime from your account settings.'
-  }
+    answer:
+      'Absolutely! You can upgrade or downgrade your plan anytime from your account settings.',
+  },
 ];
 
-export default function PaywallScreen({ navigation }: Props) {
+export default function PaywallScreen({ navigation, route }: Props) {
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('premium');
   const [showFAQ, setShowFAQ] = useState(false);
@@ -104,20 +114,30 @@ export default function PaywallScreen({ navigation }: Props) {
   const handleStartTrial = () => {
     // TODO: Integrate with subscription service
     console.log('Starting trial with plan:', selectedPlan);
-    navigation.navigate('MainTabs');
+    navigation.navigate('MainTabs', {
+      onboardingData: route.params?.onboardingData,
+    });
   };
 
   const handleSwitchToBasic = () => {
     setSelectedPlan('basic');
     // TODO: Integrate with subscription service
     console.log('Switching to Basic plan');
-    navigation.navigate('MainTabs');
+    navigation.navigate('MainTabs', {
+      onboardingData: route.params?.onboardingData,
+    });
   };
 
   const renderPricingCard = (plan: PricingPlan) => {
     const isSelected = selectedPlan === plan.id;
     const monthlyPrice = isAnnual ? plan.yearlyPrice / 12 : plan.monthlyPrice;
-    const savings = isAnnual ? Math.round(((plan.monthlyPrice * 12) - plan.yearlyPrice) / (plan.monthlyPrice * 12) * 100) : 0;
+    const savings = isAnnual
+      ? Math.round(
+          ((plan.monthlyPrice * 12 - plan.yearlyPrice) /
+            (plan.monthlyPrice * 12)) *
+            100,
+        )
+      : 0;
 
     return (
       <TouchableOpacity
@@ -125,7 +145,7 @@ export default function PaywallScreen({ navigation }: Props) {
         style={[
           styles.pricingCard,
           isSelected && styles.pricingCardSelected,
-          plan.isPopular && styles.pricingCardPopular
+          plan.isPopular && styles.pricingCardPopular,
         ]}
         onPress={() => setSelectedPlan(plan.id)}
       >
@@ -134,24 +154,26 @@ export default function PaywallScreen({ navigation }: Props) {
             <Text style={styles.badgeText}>{plan.badge}</Text>
           </View>
         )}
-        
+
         <Text style={styles.planName}>{plan.name}</Text>
-        
+
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>
-            ${monthlyPrice.toFixed(2)}
-          </Text>
+          <Text style={styles.price}>${monthlyPrice.toFixed(2)}</Text>
           <Text style={styles.priceUnit}>/month</Text>
         </View>
-        
+
         {isAnnual && savings > 0 && (
           <Text style={styles.savings}>Save {savings}% annually</Text>
         )}
-        
+
         <View style={styles.featuresContainer}>
           {plan.features.map((feature, index) => (
             <View key={index} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={COLORS.primary}
+              />
               <Text style={styles.featureText}>{feature}</Text>
             </View>
           ))}
@@ -173,13 +195,15 @@ export default function PaywallScreen({ navigation }: Props) {
             <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.faqContent}>
           {faqData.map((faq, index) => (
             <TouchableOpacity
               key={index}
               style={styles.faqItem}
-              onPress={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+              onPress={() =>
+                setExpandedFAQ(expandedFAQ === index ? null : index)
+              }
             >
               <View style={styles.faqQuestion}>
                 <Text style={styles.faqQuestionText}>{faq.question}</Text>
@@ -218,24 +242,33 @@ export default function PaywallScreen({ navigation }: Props) {
 
         {/* Annual Toggle */}
         <View style={styles.toggleContainer}>
-          <Text style={[styles.toggleText, !isAnnual && styles.toggleTextActive]}>
+          <Text
+            style={[styles.toggleText, !isAnnual && styles.toggleTextActive]}
+          >
             Monthly
           </Text>
           <TouchableOpacity
             style={styles.toggle}
             onPress={() => setIsAnnual(!isAnnual)}
           >
-            <View style={[styles.toggleTrack, isAnnual && styles.toggleTrackActive]}>
-              <View style={[styles.toggleThumb, isAnnual && styles.toggleThumbActive]} />
+            <View
+              style={[styles.toggleTrack, isAnnual && styles.toggleTrackActive]}
+            >
+              <View
+                style={[
+                  styles.toggleThumb,
+                  isAnnual && styles.toggleThumbActive,
+                ]}
+              />
             </View>
           </TouchableOpacity>
           <View style={styles.annualContainer}>
-            <Text style={[styles.toggleText, isAnnual && styles.toggleTextActive]}>
+            <Text
+              style={[styles.toggleText, isAnnual && styles.toggleTextActive]}
+            >
               Annual
             </Text>
-            {isAnnual && (
-              <Text style={styles.savingsText}>Save 10%</Text>
-            )}
+            {isAnnual && <Text style={styles.savingsText}>Save 10%</Text>}
           </View>
         </View>
 
@@ -255,7 +288,8 @@ export default function PaywallScreen({ navigation }: Props) {
               style={styles.primaryCTAGradient}
             >
               <Text style={styles.primaryCTAText}>
-                Start 7‑day Free Trial ({plans.find(p => p.id === selectedPlan)?.name})
+                Start 7‑day Free Trial (
+                {plans.find(p => p.id === selectedPlan)?.name})
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -279,9 +313,15 @@ export default function PaywallScreen({ navigation }: Props) {
         {/* Temporary Skip Button */}
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => navigation.navigate('MainTabs')}
+          onPress={() =>
+            navigation.navigate('MainTabs', {
+              onboardingData: route.params?.onboardingData,
+            })
+          }
         >
-          <Text style={styles.skipButtonText}>Skip to Dashboard (Temporary)</Text>
+          <Text style={styles.skipButtonText}>
+            Skip to Dashboard (Temporary)
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 

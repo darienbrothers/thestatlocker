@@ -22,8 +22,12 @@ export default function QuestRow({
   questNumber,
   totalQuests,
 }: QuestRowProps) {
-  const checkmarkScale = useRef(new Animated.Value(isCompleted ? 1 : 0)).current;
-  const xpBadgeScale = useRef(new Animated.Value(isCompleted ? 1 : 0.8)).current;
+  const checkmarkScale = useRef(
+    new Animated.Value(isCompleted ? 1 : 0),
+  ).current;
+  const xpBadgeScale = useRef(
+    new Animated.Value(isCompleted ? 1 : 0.8),
+  ).current;
   const rowOpacity = useRef(new Animated.Value(isCompleted ? 0.7 : 1)).current;
 
   useEffect(() => {
@@ -71,9 +75,7 @@ export default function QuestRow({
             </Animated.View>
           ) : (
             <View style={styles.questNumber}>
-              <Text style={styles.questNumberText}>
-                {questNumber || '•'}
-              </Text>
+              <Text style={styles.questNumberText}>{questNumber || '•'}</Text>
             </View>
           )}
         </View>
@@ -84,7 +86,12 @@ export default function QuestRow({
             {title}
           </Text>
           {description && (
-            <Text style={[styles.description, isCompleted && styles.completedDescription]}>
+            <Text
+              style={[
+                styles.description,
+                isCompleted && styles.completedDescription,
+              ]}
+            >
               {description}
             </Text>
           )}

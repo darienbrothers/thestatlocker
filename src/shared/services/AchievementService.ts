@@ -1,4 +1,16 @@
-import { doc, updateDoc, collection, addDoc, query, where, getDocs, orderBy, limit, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import {
+  doc,
+  updateDoc,
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  serverTimestamp,
+  arrayUnion,
+} from 'firebase/firestore';
 
 import { db } from '../../config/firebase';
 import { xpService, type XPActionType } from './XPService';
@@ -97,7 +109,7 @@ class AchievementService {
       iconName: 'crown',
       requirements: [{ type: RequirementType.GAMES_LOGGED, target: 500 }],
     },
-    
+
     // Streaks Category
     {
       id: 'streak_starter',
@@ -139,11 +151,13 @@ class AchievementService {
       rarity: AchievementRarity.RARE,
       xpReward: 150,
       iconName: 'target',
-      requirements: [{ 
-        type: RequirementType.STAT_VALUE, 
-        target: 90,
-        metadata: { stat: 'fieldGoalPercentage', comparison: 'gte' }
-      }],
+      requirements: [
+        {
+          type: RequirementType.STAT_VALUE,
+          target: 90,
+          metadata: { stat: 'fieldGoalPercentage', comparison: 'gte' },
+        },
+      ],
     },
     {
       id: 'triple_double',
@@ -153,11 +167,13 @@ class AchievementService {
       rarity: AchievementRarity.EPIC,
       xpReward: 250,
       iconName: 'diamond',
-      requirements: [{ 
-        type: RequirementType.STAT_VALUE, 
-        target: 1,
-        metadata: { stat: 'tripleDoubles', comparison: 'gte' }
-      }],
+      requirements: [
+        {
+          type: RequirementType.STAT_VALUE,
+          target: 1,
+          metadata: { stat: 'tripleDoubles', comparison: 'gte' },
+        },
+      ],
     },
 
     // XP/Milestones Category
@@ -204,22 +220,28 @@ class AchievementService {
       xpReward: 750,
       iconName: 'calendar-star',
       isSecret: true,
-      requirements: [{ 
-        type: RequirementType.CONSECUTIVE_GAMES, 
-        target: 30,
-        timeframe: 'monthly'
-      }],
+      requirements: [
+        {
+          type: RequirementType.CONSECUTIVE_GAMES,
+          target: 30,
+          timeframe: 'monthly',
+        },
+      ],
     },
   ];
 
   /**
    * Check and unlock achievements for a user
    */
-  async checkAchievements(userId: string, triggerData?: Record<string, any>): Promise<Achievement[]> {
+  async checkAchievements(
+    userId: string,
+  ): Promise<Achievement[]> {
     try {
       const userAchievements = await this.getUserAchievements(userId);
       const unlockedAchievementIds = new Set(
-        userAchievements.filter(ua => ua.isCompleted).map(ua => ua.achievementId)
+        userAchievements
+          .filter(ua => ua.isCompleted)
+          .map(ua => ua.achievementId),
       );
 
       const newlyUnlocked: Achievement[] = [];
@@ -229,11 +251,20 @@ class AchievementService {
           continue; // Already unlocked
         }
 
-        const progress = await this.calculateAchievementProgress(userId, achievement, triggerData);
+        const progress = await this.calculateAchievementProgress(
+          userId,
+          achievement,
+        );
         const isCompleted = progress.current >= progress.max;
 
         // Update or create user achievement record
-        await this.updateUserAchievementProgress(userId, achievement.id, progress.current, progress.max, isCompleted);
+        await this.updateUserAchievementProgress(
+          userId,
+          achievement.id,
+          progress.current,
+          progress.max,
+          isCompleted,
+        );
 
         if (isCompleted) {
           // Unlock achievement
@@ -249,25 +280,30 @@ class AchievementService {
     }
   }
 
+
   /**
-   * Calculate progress for a specific achievement
+   * Calculate progress for an entire achievement
    */
   private async calculateAchievementProgress(
-    _userId: string,
+    userId: string,
     achievement: Achievement,
-    triggerData?: Record<string, any>
   ): Promise<{ current: number; max: number }> {
     let maxProgress = 0;
     let currentProgress = 0;
 
     for (const requirement of achievement.requirements) {
       maxProgress = Math.max(maxProgress, requirement.target);
-      
-      const reqProgress = await this.calculateRequirementProgress(_userId, requirement, triggerData);
+      const reqProgress = await this.calculateRequirementProgress(
+        userId,
+        requirement,
+      );
       currentProgress = Math.max(currentProgress, reqProgress);
     }
 
-    return { current: Math.min(currentProgress, maxProgress), max: maxProgress };
+    return {
+      current: Math.min(currentProgress, maxProgress),
+      max: maxProgress,
+    };
   }
 
   /**
@@ -276,33 +312,41 @@ class AchievementService {
   private async calculateRequirementProgress(
     _userId: string,
     requirement: AchievementRequirement,
-    triggerData?: Record<string, any>
   ): Promise<number> {
     try {
       switch (requirement.type) {
         case RequirementType.GAMES_LOGGED:
           return await this.getGamesLoggedCount(_userId, requirement.timeframe);
-        
+
         case RequirementType.TOTAL_XP:
           return await this.getTotalXP(_userId);
-        
+
         case RequirementType.STREAK_DAYS:
           return await this.getCurrentStreak(_userId);
-        
+
         case RequirementType.STAT_VALUE:
           return await this.getStatValue(_userId, requirement.metadata);
-        
+
         case RequirementType.SOCIAL_SHARES:
-          return await this.getSocialSharesCount(_userId, requirement.timeframe);
-        
+          return await this.getSocialSharesCount(
+            _userId,
+            requirement.timeframe,
+          );
+
         case RequirementType.CONSECUTIVE_GAMES:
-          return await this.getConsecutiveGamesCount(_userId, requirement.timeframe);
-        
+          return await this.getConsecutiveGamesCount(
+            _userId,
+            requirement.timeframe,
+          );
+
         default:
           return 0;
       }
     } catch (error) {
-      console.error(`Error calculating requirement progress for ${requirement.type}:`, error);
+      console.error(
+        `Error calculating requirement progress for ${requirement.type}:`,
+        error,
+      );
       return 0;
     }
   }
@@ -310,15 +354,22 @@ class AchievementService {
   /**
    * Get games logged count for timeframe
    */
-  private async getGamesLoggedCount(_userId: string, timeframe?: string): Promise<number> {
+  private async getGamesLoggedCount(
+    _userId: string,
+    timeframe?: string,
+  ): Promise<number> {
     try {
       let startDate = new Date(0); // Beginning of time
-      
+
       if (timeframe) {
         const now = new Date();
         switch (timeframe) {
           case 'daily':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            startDate = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+            );
             break;
           case 'weekly':
             startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -333,7 +384,7 @@ class AchievementService {
         collection(db, 'games'),
         where('userId', '==', _userId),
         where('createdAt', '>=', startDate),
-        orderBy('createdAt', 'desc')
+        orderBy('createdAt', 'desc'),
       );
 
       const snapshot = await getDocs(gamesQuery);
@@ -352,12 +403,12 @@ class AchievementService {
       const userQuery = query(
         collection(db, 'users'),
         where('__name__', '==', _userId),
-        limit(1)
+        limit(1),
       );
-      
+
       const snapshot = await getDocs(userQuery);
       if (!snapshot.empty) {
-        return snapshot.docs[0].data().totalXP || 0;
+        return snapshot.docs[0]?.data()?.totalXP || 0;
       }
       return 0;
     } catch (error) {
@@ -378,16 +429,21 @@ class AchievementService {
   /**
    * Get stat value based on metadata
    */
-  private async getStatValue(_userId: string, metadata?: Record<string, any>): Promise<number> {
-    if (!metadata?.stat) return 0;
-    
+  private async getStatValue(
+    _userId: string,
+    metadata?: Record<string, any>,
+  ): Promise<number> {
+    if (!metadata?.stat) {
+      return 0;
+    }
+
     try {
       // Get the user's best performance for the specified stat
       const gamesQuery = query(
         collection(db, 'games'),
         where('userId', '==', _userId),
         orderBy('createdAt', 'desc'),
-        limit(100) // Check recent games
+        limit(100), // Check recent games
       );
 
       const snapshot = await getDocs(gamesQuery);
@@ -396,11 +452,14 @@ class AchievementService {
       snapshot.docs.forEach(doc => {
         const gameData = doc.data();
         const statValue = gameData[metadata.stat];
-        
+
         if (typeof statValue === 'number') {
           if (metadata.comparison === 'gte' && statValue >= bestValue) {
             bestValue = statValue;
-          } else if (metadata.comparison === 'lte' && (bestValue === 0 || statValue <= bestValue)) {
+          } else if (
+            metadata.comparison === 'lte' &&
+            (bestValue === 0 || statValue <= bestValue)
+          ) {
             bestValue = statValue;
           }
         }
@@ -416,7 +475,10 @@ class AchievementService {
   /**
    * Get social shares count
    */
-  private async getSocialSharesCount(_userId: string, _timeframe?: string): Promise<number> {
+  private async getSocialSharesCount(
+    _userId: string,
+    _timeframe?: string,
+  ): Promise<number> {
     // Placeholder - would integrate with actual social sharing tracking
     return 0;
   }
@@ -424,7 +486,10 @@ class AchievementService {
   /**
    * Get consecutive games count
    */
-  private async getConsecutiveGamesCount(_userId: string, _timeframe?: string): Promise<number> {
+  private async getConsecutiveGamesCount(
+    _userId: string,
+    _timeframe?: string,
+  ): Promise<number> {
     // Placeholder - would implement consecutive games logic
     return 0;
   }
@@ -432,7 +497,10 @@ class AchievementService {
   /**
    * Unlock achievement for user
    */
-  private async unlockAchievement(_userId: string, achievement: Achievement): Promise<void> {
+  private async unlockAchievement(
+    _userId: string,
+    achievement: Achievement,
+  ): Promise<void> {
     try {
       // Award XP for achievement
       await xpService.awardXP(_userId, 'achievement_unlocked' as XPActionType, {
@@ -466,7 +534,7 @@ class AchievementService {
     achievementId: string,
     current: number,
     max: number,
-    isCompleted: boolean
+    isCompleted: boolean,
   ): Promise<void> {
     try {
       await addDoc(collection(db, 'user_achievement_progress'), {
@@ -490,7 +558,7 @@ class AchievementService {
       const progressQuery = query(
         collection(db, 'user_achievement_progress'),
         where('userId', '==', _userId),
-        orderBy('lastUpdated', 'desc')
+        orderBy('lastUpdated', 'desc'),
       );
 
       const snapshot = await getDocs(progressQuery);
@@ -508,8 +576,8 @@ class AchievementService {
    * Get all available achievements
    */
   getAvailableAchievements(includeSecret = false): Achievement[] {
-    return this.ACHIEVEMENTS.filter(achievement => 
-      includeSecret || !achievement.isSecret
+    return this.ACHIEVEMENTS.filter(
+      achievement => includeSecret || !achievement.isSecret,
     );
   }
 
@@ -517,7 +585,9 @@ class AchievementService {
    * Get achievements by category
    */
   getAchievementsByCategory(category: AchievementCategory): Achievement[] {
-    return this.ACHIEVEMENTS.filter(achievement => achievement.category === category);
+    return this.ACHIEVEMENTS.filter(
+      achievement => achievement.category === category,
+    );
   }
 
   /**

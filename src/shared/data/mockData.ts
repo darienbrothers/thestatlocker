@@ -1,0 +1,297 @@
+import { GameStats } from '@/types';
+
+// Mock data for demo experiences
+export const DEMO_GAME_DATA = {
+  opponent: 'Ridgewood High',
+  gameDate: new Date('2024-03-15'),
+  seasonType: 'School Season' as const,
+  venue: 'Home Field',
+  teamScore: 12,
+  opponentScore: 8,
+  stats: {
+    goals: 3,
+    assists: 2,
+    shots: 8,
+    shotsOnGoal: 6,
+    turnovers: 1,
+    groundBalls: 4,
+    causedTurnovers: 2,
+    fouls: 1,
+    penalties: 0,
+  } as GameStats,
+  position: 'Attack',
+  notes: 'Great offensive performance, dominated in the fourth quarter',
+  gameStartTime: new Date('2024-03-15T15:00:00'),
+  gameEndTime: new Date('2024-03-15T17:30:00'),
+};
+
+export const DEMO_COLLEGES = [
+  {
+    id: '1',
+    name: 'Duke University',
+    division: 'D1',
+    location: 'Durham, NC',
+    interestLevel: 'High',
+    status: 'Contacted',
+    lastContact: new Date('2024-03-10'),
+    notes: 'Coach Johnson showed strong interest after highlight video',
+  },
+  {
+    id: '2',
+    name: 'University of Virginia',
+    division: 'D1',
+    location: 'Charlottesville, VA',
+    interestLevel: 'Medium',
+    status: 'Applied',
+    lastContact: new Date('2024-03-05'),
+    notes: 'Submitted application, waiting for response',
+  },
+  {
+    id: '3',
+    name: 'Salisbury University',
+    division: 'D3',
+    location: 'Salisbury, MD',
+    interestLevel: 'High',
+    status: 'Offer Received',
+    lastContact: new Date('2024-03-12'),
+    notes: 'Received scholarship offer, visiting campus next week',
+  },
+];
+
+export const DEMO_PROFILE = {
+  basicInfo: {
+    firstName: 'Alex',
+    lastName: 'Johnson',
+    position: 'Attack',
+    jerseyNumber: 23,
+    graduationYear: 2025,
+    school: 'Westfield High School',
+    height: '6\'1"',
+    weight: '175 lbs',
+    dominantHand: 'Right',
+    email: 'alex.johnson@email.com',
+    phone: '(555) 123-4567',
+    location: 'Westfield, NJ',
+    bio: 'Dedicated attack player with a passion for the game. Known for quick decision-making and accurate shooting. Team captain with strong leadership skills and commitment to excellence both on and off the field.',
+  },
+  stats: {
+    gamesPlayed: 18,
+    goals: 45,
+    assists: 28,
+    points: 73,
+    shots: 98,
+    shotsOnGoal: 76,
+    shootingPercentage: 68,
+    groundBalls: 32,
+    turnovers: 14,
+    faceoffWins: 0,
+    faceoffAttempts: 0,
+    faceoffPercentage: 0,
+  },
+  achievements: [
+    {
+      title: 'All-State First Team',
+      year: '2023',
+    },
+    {
+      title: 'Regional Tournament MVP',
+      year: '2023',
+    },
+    {
+      title: 'Team Captain',
+      year: '2024',
+    },
+    {
+      title: '100+ Career Goals',
+      year: '2024',
+    },
+  ],
+  highlights: [
+    {
+      title: 'Season Highlights 2024',
+      date: 'March 2024',
+      views: '1.2K',
+    },
+    {
+      title: 'Championship Game Performance',
+      date: 'May 2023',
+      views: '856',
+    },
+    {
+      title: 'Skills Showcase',
+      date: 'January 2024',
+      views: '643',
+    },
+  ],
+  academics: {
+    gpa: 3.8,
+    satScore: 1340,
+    intendedMajor: 'Business Administration',
+  },
+};
+
+export const DEMO_SKILLS_DATA = {
+  stats: {
+    drillsCompleted: 23,
+    thisWeek: 7,
+    avgRating: 4.2,
+    streak: 12,
+  },
+  categories: [
+    {
+      id: 'fundamentals',
+      name: 'Fundamentals',
+      icon: '🥍',
+      drillCount: 15,
+      color: '#3B82F6',
+    },
+    {
+      id: 'shooting',
+      name: 'Shooting',
+      icon: '🎯',
+      drillCount: 12,
+      color: '#EF4444',
+    },
+    {
+      id: 'passing',
+      name: 'Passing',
+      icon: '⚡',
+      drillCount: 10,
+      color: '#10B981',
+    },
+    {
+      id: 'defense',
+      name: 'Defense',
+      icon: '🛡️',
+      drillCount: 8,
+      color: '#8B5CF6',
+    },
+    {
+      id: 'conditioning',
+      name: 'Conditioning',
+      icon: '💪',
+      drillCount: 6,
+      color: '#F59E0B',
+    },
+    {
+      id: 'agility',
+      name: 'Agility',
+      icon: '⚡',
+      drillCount: 9,
+      color: '#06B6D4',
+    },
+  ],
+  drills: [
+    {
+      id: '1',
+      title: 'Basic Stick Skills',
+      category: 'Fundamentals',
+      difficulty: 'Beginner',
+      duration: 15,
+      rating: 4.5,
+      description: 'Master basic cradling, throwing, and catching techniques',
+      steps: [
+        'Stand 5 feet from wall',
+        'Throw and catch 100 times',
+        'Focus on proper form',
+        'Switch hands every 20 throws',
+      ],
+      completed: false,
+    },
+    {
+      id: '2',
+      title: 'Footwork Fundamentals',
+      category: 'Agility',
+      difficulty: 'Beginner',
+      duration: 20,
+      rating: 4.3,
+      description: 'Improve balance, coordination, and field movement',
+      steps: [
+        'Set up 5 cones in line',
+        'Practice shuffle steps',
+        'Focus on staying low',
+        'Keep head up while moving',
+      ],
+      completed: true,
+    },
+    {
+      id: '3',
+      title: 'Shooting Accuracy',
+      category: 'Shooting',
+      difficulty: 'Intermediate',
+      duration: 25,
+      rating: 4.7,
+      description: 'Improve shot accuracy and power from various angles',
+      steps: [
+        'Set up targets in goal corners',
+        'Shoot from 8 different positions',
+        'Focus on quick release',
+        'Track accuracy percentage',
+      ],
+      completed: false,
+    },
+  ],
+  weeklyPlan: [
+    {
+      day: 'Mon',
+      drills: ['Shooting (20min)', 'Conditioning (15min)'],
+      completed: true,
+    },
+    {
+      day: 'Tue',
+      drills: ['Rest Day'],
+      completed: true,
+    },
+    {
+      day: 'Wed',
+      drills: ['Shooting (20min)', 'Conditioning (15min)'],
+      completed: true,
+    },
+    {
+      day: 'Thu',
+      drills: ['Stick Skills (15min)', 'Conditioning (15min)'],
+      completed: false,
+    },
+    {
+      day: 'Fri',
+      drills: ['Shooting (20min)', 'Conditioning (15min)'],
+      completed: false,
+    },
+    {
+      day: 'Sat',
+      drills: ['Rest Day'],
+      completed: false,
+    },
+    {
+      day: 'Sun',
+      drills: ['Conditioning (30min)'],
+      completed: false,
+    },
+  ],
+  progress: [
+    {
+      skill: 'Shooting Accuracy',
+      current: 78,
+      target: 85,
+      change: '+5%',
+    },
+    {
+      skill: 'Stick Handling',
+      current: 85,
+      target: 90,
+      change: '+8%',
+    },
+    {
+      skill: 'Footwork',
+      current: 72,
+      target: 80,
+      change: '+3%',
+    },
+    {
+      skill: 'Conditioning',
+      current: 88,
+      target: 95,
+      change: '+12%',
+    },
+  ],
+};

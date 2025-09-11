@@ -14,14 +14,13 @@ import {
   NameEntryScreen,
   ProfileImageScreen,
   BasicInfoScreen,
-  HighSchoolScreen,
-  ClubTeamScreen,
+  TeamInformationScreen,
   AcademicScreen,
   GoalsScreen,
-  ReviewScreen
+  ReviewScreen,
 } from './src/features/onboarding';
 import PaywallScreen from './src/screens/PaywallScreen';
-import MainTabNavigator from './src/navigation/MainTabNavigator';
+import MainTabNavigator from './src/app/navigation/MainTabNavigator';
 import { useAuthStore } from './src/shared/stores/authStore';
 import { RootStackParamList } from './src/types';
 
@@ -54,7 +53,7 @@ export default function App() {
     }
 
     prepare();
-    
+
     // Initialize auth listener
     initialize();
   }, [initialize]);
@@ -125,8 +124,10 @@ export default function App() {
             <Stack.Screen name="NameEntry" component={NameEntryScreen} />
             <Stack.Screen name="ProfileImage" component={ProfileImageScreen} />
             <Stack.Screen name="BasicInfo" component={BasicInfoScreen as any} />
-            <Stack.Screen name="HighSchool" component={HighSchoolScreen as any} />
-            <Stack.Screen name="ClubTeam" component={ClubTeamScreen as any} />
+            <Stack.Screen
+              name="TeamInformation"
+              component={TeamInformationScreen as any}
+            />
             <Stack.Screen name="Academic" component={AcademicScreen} />
             <Stack.Screen name="Goals" component={GoalsScreen} />
             <Stack.Screen name="Review" component={ReviewScreen} />

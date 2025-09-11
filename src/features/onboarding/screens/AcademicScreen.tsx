@@ -12,16 +12,21 @@ import {
   Keyboard,
   ScrollView,
   Animated,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { OnboardingStepper } from '@/components/gamification';
 import { theme } from '@/constants/theme';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '@/types';
 
-type AcademicScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Academic'>;
+type AcademicScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Academic'
+>;
 type AcademicScreenRouteProp = RouteProp<RootStackParamList, 'Academic'>;
 
 interface AcademicScreenProps {
@@ -43,29 +48,73 @@ const ACADEMIC_INTERESTS = [
   'Sports Management',
   'Kinesiology',
   'Undecided',
-  'Other'
+  'Other',
 ];
 
-export default function AcademicScreen({ navigation, route }: AcademicScreenProps) {
-  const { 
-    firstName, lastName, profileImage, sport, gender, position, graduationYear, height, 
-    schoolName, city, state, level, jerseyNumber,
-    clubEnabled, clubOrgName, clubTeamName, clubCity, clubState, clubJerseyNumber 
+export default function AcademicScreen({
+  navigation,
+  route,
+}: AcademicScreenProps) {
+  const {
+    firstName,
+    lastName,
+    profileImage,
+    sport,
+    gender,
+    position,
+    graduationYear,
+    height,
+    schoolName,
+    city,
+    state,
+    level,
+    jerseyNumber,
+    clubEnabled,
+    clubOrgName,
+    clubTeamName,
+    clubCity,
+    clubState,
+    clubJerseyNumber,
+    academicData,
+    returnTo,
+    ...otherParams
   } = route.params;
 
-  const [gpa, setGpa] = useState('');
-  const [hasHonorsAP, setHasHonorsAP] = useState<boolean | null>(null);
-  const [satScore, setSatScore] = useState('');
-  const [actScore, setActScore] = useState('');
-  const [academicInterest, setAcademicInterest] = useState('');
-  const [customInterest, setCustomInterest] = useState('');
-  const [academicAwards, setAcademicAwards] = useState('');
-  const [showInterestDropdown, setShowInterestDropdown] = useState(false);
-  
+  // Initialize academic data from route params if available (for persistence)
+  const [gpa, setGpa] = useState(academicData?.gpa || '');
+  const [hasHonorsAP, setHasHonorsAP] = useState<boolean | null>(
+    academicData?.hasHonorsAP ?? null,
+  );
+  const [satScore, setSatScore] = useState(academicData?.satScore || '');
+  const [actScore, setActScore] = useState(academicData?.actScore || '');
+  const [academicInterests, setAcademicInterests] = useState<string[]>(
+    academicData?.academicInterests || [],
+  );
+  const [customInterest, setCustomInterest] = useState(
+    academicData?.customInterest || '',
+  );
+  const [academicAwards, setAcademicAwards] = useState(
+    academicData?.academicAwards || '',
+  );
+
+  // Accordion section states
+  const [expandedSections, setExpandedSections] = useState({
+    performance: true,
+    tests: false,
+    interests: false,
+    awards: false,
+  });
+
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const bounceAnim = useRef(new Animated.Value(1)).current;
+  const sectionAnimations = useRef({
+    performance: new Animated.Value(1),
+    tests: new Animated.Value(0),
+    interests: new Animated.Value(0),
+    awards: new Animated.Value(0),
+  }).current;
 
   useEffect(() => {
     // Entrance animation
@@ -83,7 +132,65 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
     ]).start();
   }, []);
 
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const isExpanded = expandedSections[section];
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !isExpanded,
+    }));
+
+    Animated.timing(sectionAnimations[section], {
+      toValue: isExpanded ? 0 : 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const getGpaFeedback = (gpaValue: string) => {
+    const numGpa = parseFloat(gpaValue);
+    if (isNaN(numGpa)) {
+      return { text: '', color: theme.colors.white };
+    }
+
+    if (numGpa >= 3.7) {
+      return { text: 'Excellent!', color: '#4CAF50' };
+    }
+    if (numGpa >= 3.3) {
+      return { text: 'Great!', color: '#8BC34A' };
+    }
+    if (numGpa >= 3.0) {
+      return { text: 'Good', color: '#FFC107' };
+    }
+    if (numGpa >= 2.5) {
+      return { text: 'Fair', color: '#FF9800' };
+    }
+    return { text: 'Keep improving!', color: '#FF5722' };
+  };
+
+  const handleGpaChange = (value: string) => {
+    // Allow only numbers and one decimal point
+    const cleanValue = value.replace(/[^0-9.]/g, '');
+    const parts = cleanValue.split('.');
+    if (parts.length > 2) {
+      return;
+    }
+    if (parts[1] && parts[1].length > 2) {
+      return;
+    }
+
+    const numValue = parseFloat(cleanValue);
+    if (numValue > 4.0) {
+      return;
+    }
+
+    setGpa(cleanValue);
+  };
+
   const handleContinue = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
     // Button press animation
     Animated.sequence([
       Animated.timing(bounceAnim, {
@@ -97,7 +204,7 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
         useNativeDriver: true,
       }),
     ]).start(() => {
-      navigation.navigate('Goals', {
+      const updatedParams = {
         firstName,
         lastName,
         profileImage,
@@ -117,19 +224,30 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
         clubCity,
         clubState,
         clubJerseyNumber,
-        // Academic data
-        gpa: gpa.trim(),
+        gpa: gpa.trim() || '',
         hasHonorsAP,
-        satScore: satScore.trim(),
-        actScore: actScore.trim(),
-        academicInterest: academicInterest === 'Other' ? customInterest.trim() : academicInterest,
-        academicAwards: academicAwards.trim(),
-      });
+        satScore: satScore.trim() || '',
+        actScore: actScore.trim() || '',
+        academicInterest: academicInterests.length > 0 ? academicInterests.join(', ') : '',
+        academicInterests: academicInterests.includes('Other')
+          ? [...academicInterests.filter(i => i !== 'Other'), customInterest.trim()]
+          : academicInterests,
+        academicAwards: academicAwards.trim() || '',
+        ...otherParams,
+      };
+
+      if (returnTo === 'Review') {
+        navigation.navigate('Review', updatedParams);
+      } else {
+        navigation.navigate('Goals', updatedParams);
+      }
     });
   };
 
   const handleSkip = () => {
-    navigation.navigate('Goals', {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const updatedParams = {
       firstName,
       lastName,
       profileImage,
@@ -154,305 +272,548 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
       satScore: '',
       actScore: '',
       academicInterest: '',
+      academicInterests: [],
       academicAwards: '',
-    });
+      ...otherParams,
+    };
+
+    if (returnTo === 'Review') {
+      navigation.navigate('Review', updatedParams);
+    } else {
+      navigation.navigate('Goals', updatedParams);
+    }
   };
 
   const handleBack = () => {
-    navigation.goBack();
+    // Save current academic data before going back
+    const currentAcademicData = {
+      gpa,
+      hasHonorsAP,
+      satScore,
+      actScore,
+      academicInterests,
+      customInterest,
+      academicAwards,
+    };
+
+    // Navigate back to TeamInformation with all data preserved
+    navigation.navigate('TeamInformation', {
+      firstName,
+      lastName,
+      profileImage,
+      sport,
+      gender,
+      position,
+      graduationYear,
+      height,
+      // Preserve team data
+      teamData: {
+        schoolName,
+        city,
+        state,
+        level,
+        jerseyNumber,
+        clubEnabled,
+        clubOrgName,
+        clubTeamName,
+        clubCity,
+        clubState,
+        clubJerseyNumber,
+      },
+      // Save academic data for future use
+      academicData: currentAcademicData,
+      ...otherParams,
+    } as any);
   };
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
-    setShowInterestDropdown(false);
   };
 
-  const handleInterestSelect = (interest: string) => {
-    setAcademicInterest(interest);
-    setShowInterestDropdown(false);
-    if (interest !== 'Other') {
-      setCustomInterest('');
-    }
-  };
-
-  const validateGPA = (text: string) => {
-    // Allow numbers and decimal point, max 4.0
-    const numericValue = text.replace(/[^0-9.]/g, '');
-    const parts = numericValue.split('.');
-    if (parts.length > 2) return;
-    
-    let validatedValue = numericValue;
-    if (parseFloat(numericValue) > 4.0) {
-      validatedValue = '4.0';
-    }
-    
-    setGpa(validatedValue);
-  };
+  const gpaFeedback = getGpaFeedback(gpa);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Stepper with Back Button */}
-      <OnboardingStepper 
-        currentStep={6}
+      <OnboardingStepper
+        currentStep={5}
         totalSteps={8}
-        stepTitle="Academics"
+        stepTitle="Academic Information"
         showBackButton={true}
         onBackPress={handleBack}
       />
-      
-      <KeyboardAvoidingView 
+
+      <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <ScrollView 
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.content,
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
-                }
+                },
               ]}
             >
-              {/* Header */}
+              {/* Header Section */}
               <View style={styles.headerSection}>
-                <View style={styles.titleContainer}>
-                  <Ionicons name="school" size={32} color={theme.colors.primary} />
-                  <Text style={styles.title}>Game Plan in the Classroom</Text>
-                </View>
+                <Image
+                  source={require('../../../../assets/logos/logoBlack.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.title}>Academic Excellence</Text>
                 <Text style={styles.subtitle}>
-                  Coaches recruit the student, not just the athlete. Let's set up your academic profile to strengthen your recruiting toolkit.
+                  Share your academic achievements and goals to showcase your
+                  full potential
                 </Text>
               </View>
 
-              {/* GPA Section */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Academic Performance</Text>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>GPA (Unweighted) *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={gpa}
-                    onChangeText={validateGPA}
-                    placeholder="e.g., 3.7"
-                    placeholderTextColor={theme.colors.textTertiary}
-                    keyboardType="decimal-pad"
-                    maxLength={4}
-                    returnKeyType="next"
-                  />
-                </View>
-
-                {/* Honors/AP Toggle */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Honors/AP Courses</Text>
-                  <View style={styles.toggleContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.toggleOption,
-                        hasHonorsAP === true && styles.selectedToggleOption
-                      ]}
-                      onPress={() => setHasHonorsAP(true)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.toggleContent}>
-                        <Ionicons 
-                          name="trophy" 
-                          size={18} 
-                          color={hasHonorsAP === true ? theme.colors.white : theme.colors.primary} 
-                        />
-                        <Text style={[
-                          styles.toggleText,
-                          hasHonorsAP === true && styles.selectedToggleText
-                        ]}>
-                          Yes, I take advanced courses
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[
-                        styles.toggleOption,
-                        hasHonorsAP === false && styles.selectedToggleOption
-                      ]}
-                      onPress={() => setHasHonorsAP(false)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.toggleContent}>
-                        <Ionicons 
-                          name="book" 
-                          size={18} 
-                          color={hasHonorsAP === false ? theme.colors.white : theme.colors.textSecondary} 
-                        />
-                        <Text style={[
-                          styles.toggleText,
-                          hasHonorsAP === false && styles.selectedToggleText
-                        ]}>
-                          Standard coursework
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-
-              {/* Test Scores Section */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Test Scores (Optional)</Text>
-                
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-                    <Text style={styles.inputLabel}>SAT Score</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={satScore}
-                      onChangeText={setSatScore}
-                      placeholder="1200"
-                      placeholderTextColor={theme.colors.textTertiary}
-                      keyboardType="numeric"
-                      maxLength={4}
-                      returnKeyType="next"
-                    />
-                  </View>
-                  
-                  <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
-                    <Text style={styles.inputLabel}>ACT Score</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={actScore}
-                      onChangeText={setActScore}
-                      placeholder="28"
-                      placeholderTextColor={theme.colors.textTertiary}
-                      keyboardType="numeric"
-                      maxLength={2}
-                      returnKeyType="next"
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Academic Interest Section */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Academic Interest</Text>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Intended Major/Field of Study</Text>
-                  <TouchableOpacity
-                    style={styles.dropdownButton}
-                    onPress={() => setShowInterestDropdown(!showInterestDropdown)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.dropdownText,
-                      !academicInterest && styles.placeholderText
-                    ]}>
-                      {academicInterest || 'Select your academic interest'}
+              {/* Section 1: Academic Performance */}
+              <View style={styles.accordionSection}>
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => toggleSection('performance')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.accordionHeaderContent}>
+                    <View style={styles.accordionIconContainer}>
+                      <Ionicons
+                        name="school"
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text style={styles.accordionTitle}>
+                      Academic Performance
                     </Text>
-                    <Ionicons 
-                      name={showInterestDropdown ? "chevron-up" : "chevron-down"} 
-                      size={20} 
-                      color={theme.colors.textSecondary} 
+                  </View>
+                  <Animated.View
+                    style={[
+                      styles.accordionChevron,
+                      {
+                        transform: [
+                          {
+                            rotate: sectionAnimations.performance.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '180deg'],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={theme.colors.white}
                     />
-                  </TouchableOpacity>
-                  
-                  {showInterestDropdown && (
-                    <View style={styles.dropdown}>
-                      {ACADEMIC_INTERESTS.map((interest) => (
-                        <TouchableOpacity
-                          key={interest}
-                          style={styles.dropdownItem}
-                          onPress={() => handleInterestSelect(interest)}
-                          activeOpacity={0.7}
+                  </Animated.View>
+                </TouchableOpacity>
+
+                <Animated.View
+                  style={[
+                    styles.accordionContent,
+                    {
+                      maxHeight: sectionAnimations.performance.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 200],
+                      }),
+                      opacity: sectionAnimations.performance,
+                    },
+                  ]}
+                >
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>GPA (Unweighted)</Text>
+                    <View style={styles.gpaInputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        value={gpa}
+                        onChangeText={handleGpaChange}
+                        placeholder="3.75"
+                        placeholderTextColor={theme.colors.textTertiary}
+                        keyboardType="decimal-pad"
+                        maxLength={4}
+                      />
+                      {gpaFeedback.text && (
+                        <Text
+                          style={[
+                            styles.gpaFeedback,
+                            { color: gpaFeedback.color },
+                          ]}
                         >
-                          <Text style={styles.dropdownItemText}>{interest}</Text>
+                          {gpaFeedback.text}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Honors/AP Courses</Text>
+                    <View style={styles.booleanContainer}>
+                      {[
+                        { value: true, label: 'Yes' },
+                        { value: false, label: 'No' },
+                      ].map(option => (
+                        <TouchableOpacity
+                          key={option.label}
+                          style={[
+                            styles.booleanButton,
+                            hasHonorsAP === option.value &&
+                              styles.booleanButtonActive,
+                          ]}
+                          onPress={() => {
+                            Haptics.impactAsync(
+                              Haptics.ImpactFeedbackStyle.Light,
+                            );
+                            setHasHonorsAP(option.value);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.booleanButtonText,
+                              hasHonorsAP === option.value &&
+                                styles.booleanButtonTextActive,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
-                  )}
-                </View>
+                  </View>
+                </Animated.View>
+              </View>
 
-                {academicInterest === 'Other' && (
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Specify Your Interest</Text>
+              {/* Section 2: Standardized Tests */}
+              <View style={styles.accordionSection}>
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => toggleSection('tests')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.accordionHeaderContent}>
+                    <View style={styles.accordionIconContainer}>
+                      <Ionicons
+                        name="document-text"
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text style={styles.accordionTitle}>
+                      Standardized Tests
+                    </Text>
+                    <Text style={styles.accordionSubtitle}>Optional</Text>
+                  </View>
+                  <Animated.View
+                    style={[
+                      styles.accordionChevron,
+                      {
+                        transform: [
+                          {
+                            rotate: sectionAnimations.tests.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '180deg'],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={theme.colors.white}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+
+                <Animated.View
+                  style={[
+                    styles.accordionContent,
+                    {
+                      maxHeight: sectionAnimations.tests.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 150],
+                      }),
+                      opacity: sectionAnimations.tests,
+                    },
+                  ]}
+                >
+                  <View style={styles.inputRow}>
+                    <View
+                      style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}
+                    >
+                      <Text style={styles.label}>SAT Score</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={satScore}
+                        onChangeText={setSatScore}
+                        placeholder="1450"
+                        placeholderTextColor={theme.colors.textTertiary}
+                        keyboardType="numeric"
+                        maxLength={4}
+                      />
+                    </View>
+
+                    <View
+                      style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}
+                    >
+                      <Text style={styles.label}>ACT Score</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={actScore}
+                        onChangeText={setActScore}
+                        placeholder="32"
+                        placeholderTextColor={theme.colors.textTertiary}
+                        keyboardType="numeric"
+                        maxLength={2}
+                      />
+                    </View>
+                  </View>
+                </Animated.View>
+              </View>
+
+              {/* Section 3: Academic Interests */}
+              <View style={styles.accordionSection}>
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => toggleSection('interests')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.accordionHeaderContent}>
+                    <View style={styles.accordionIconContainer}>
+                      <Ionicons
+                        name="library"
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text style={styles.accordionTitle}>
+                      Academic Interests
+                    </Text>
+                    <Text style={styles.accordionSubtitle}>
+                      {academicInterests.length}/3 selected
+                    </Text>
+                  </View>
+                  <Animated.View
+                    style={[
+                      styles.accordionChevron,
+                      {
+                        transform: [
+                          {
+                            rotate: sectionAnimations.interests.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '180deg'],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={theme.colors.white}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+
+                <Animated.View
+                  style={[
+                    styles.accordionContent,
+                    {
+                      maxHeight: sectionAnimations.interests.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 400],
+                      }),
+                      opacity: sectionAnimations.interests,
+                    },
+                  ]}
+                >
+                  <Text style={styles.interestsHelper}>
+                    Choose up to 3 areas of academic interest. Tap to select/deselect.
+                    {academicInterests.includes('Undecided') ? ' Note: Selecting "Undecided" will clear other selections.' : ''}
+                  </Text>
+                  <View style={styles.interestsGrid}>
+                    {ACADEMIC_INTERESTS.map(interest => (
+                      <TouchableOpacity
+                        key={interest}
+                        style={[
+                          styles.interestButton,
+                          academicInterests.includes(interest) &&
+                            styles.interestButtonActive,
+                        ]}
+                        onPress={() => {
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Light,
+                          );
+                          
+                          if (academicInterests.includes(interest)) {
+                            // Remove if already selected
+                            setAcademicInterests(prev => prev.filter(i => i !== interest));
+                          } else {
+                            // Handle Undecided selection logic
+                            if (interest === 'Undecided') {
+                              // If selecting Undecided, clear all other interests
+                              setAcademicInterests(['Undecided']);
+                            } else {
+                              // If selecting any other interest, remove Undecided if present
+                              const filteredInterests = academicInterests.filter(i => i !== 'Undecided');
+                              if (filteredInterests.length < 3) {
+                                setAcademicInterests([...filteredInterests, interest]);
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.interestButtonText,
+                            academicInterests.includes(interest) &&
+                              styles.interestButtonTextActive,
+                          ]}
+                        >
+                          {interest}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {academicInterests.includes('Other') && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Specify Interest</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={customInterest}
+                        onChangeText={setCustomInterest}
+                        placeholder="Enter your academic interest"
+                        placeholderTextColor={theme.colors.textTertiary}
+                      />
+                    </View>
+                  )}
+                </Animated.View>
+              </View>
+
+              {/* Section 4: Awards & Honors */}
+              <View style={styles.accordionSection}>
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => toggleSection('awards')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.accordionHeaderContent}>
+                    <View style={styles.accordionIconContainer}>
+                      <Ionicons
+                        name="trophy"
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text style={styles.accordionTitle}>Awards & Honors</Text>
+                    <Text style={styles.accordionSubtitle}>Optional</Text>
+                  </View>
+                  <Animated.View
+                    style={[
+                      styles.accordionChevron,
+                      {
+                        transform: [
+                          {
+                            rotate: sectionAnimations.awards.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '180deg'],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={theme.colors.white}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+
+                <Animated.View
+                  style={[
+                    styles.accordionContent,
+                    {
+                      maxHeight: sectionAnimations.awards.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 120],
+                      }),
+                      opacity: sectionAnimations.awards,
+                    },
+                  ]}
+                >
+                  <View style={styles.inputGroup}>
+                    <View style={styles.labelWithTooltip}>
+                      <Text style={styles.label}>Academic Awards</Text>
+                      <Text style={styles.tooltip}>
+                        Honor roll, academic scholarships, etc.
+                      </Text>
+                    </View>
                     <TextInput
-                      style={styles.textInput}
-                      value={customInterest}
-                      onChangeText={setCustomInterest}
-                      placeholder="Enter your field of interest"
+                      style={[styles.input, styles.textArea]}
+                      value={academicAwards}
+                      onChangeText={setAcademicAwards}
+                      placeholder="Honor Roll, National Honor Society, Academic Scholarship..."
                       placeholderTextColor={theme.colors.textTertiary}
-                      autoCapitalize="words"
-                      returnKeyType="next"
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
                     />
                   </View>
-                )}
-              </View>
-
-              {/* Academic Awards Section */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Academic Recognition (Optional)</Text>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Awards & Honors</Text>
-                  <TextInput
-                    style={[styles.textInput, styles.multilineInput]}
-                    value={academicAwards}
-                    onChangeText={setAcademicAwards}
-                    placeholder="e.g., Honor Roll, National Honor Society, Dean's List"
-                    placeholderTextColor={theme.colors.textTertiary}
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                    returnKeyType="done"
-                  />
-                </View>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.buttonSection}>
-                <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
-                  <TouchableOpacity
-                    style={styles.continueButton}
-                    onPress={handleContinue}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={[theme.colors.primary, theme.colors.primary + 'DD']}
-                      start={[0, 0]}
-                      end={[1, 1]}
-                      style={styles.buttonGradient}
-                    >
-                      <Text style={styles.buttonText}>
-                        Add to My Profile
-                      </Text>
-                      <Ionicons 
-                        name="arrow-forward" 
-                        size={20} 
-                        color={theme.colors.white} 
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </Animated.View>
+              </View>
 
+              <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={styles.skipButton}
                   onPress={handleSkip}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.skipButtonText}>
-                    Skip for now — add later in profile
-                  </Text>
+                  <Text style={styles.skipButtonText}>Skip for now</Text>
                 </TouchableOpacity>
-                
-                <Text style={styles.helperText}>
-                  📚 Building your complete student-athlete profile for recruiting success
-                </Text>
+
+                <TouchableOpacity
+                  style={styles.continueButton}
+                  onPress={handleContinue}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[
+                      theme.colors.primary,
+                      theme.colors.primaryDark || theme.colors.primary,
+                    ]}
+                    style={styles.buttonGradient}
+                  >
+                    <Animated.View
+                      style={[
+                        { flexDirection: 'row', alignItems: 'center', gap: 8 },
+                        { transform: [{ scale: bounceAnim }] },
+                      ]}
+                    >
+                      <Text style={styles.continueButtonText}>Next</Text>
+                      <Ionicons
+                        name="arrow-forward"
+                        size={20}
+                        color="#FFFFFF"
+                      />
+                    </Animated.View>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
             </Animated.View>
           </ScrollView>
@@ -465,7 +826,7 @@ export default function AcademicScreen({ navigation, route }: AcademicScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
@@ -475,175 +836,213 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 40,
   },
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    justifyContent: 'space-between',
-    minHeight: 700,
   },
-  // Header Section
   headerSection: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 8,
+    marginBottom: 40,
+    paddingTop: 20,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+  logo: {
+    width: 64,
+    height: 64,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,
-    fontFamily: theme.fonts.anton,
+    fontWeight: 'bold',
     color: theme.colors.textPrimary,
     textAlign: 'center',
-    marginLeft: 12,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
-  // Section Container
-  sectionContainer: {
-    marginBottom: 24,
+  accordionSection: {
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  sectionTitle: {
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: theme.colors.primary,
+  },
+  accordionHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  accordionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  accordionTitle: {
     fontSize: 18,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-    marginBottom: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
   },
-  // Input Styles
-  inputContainer: {
-    marginBottom: 16,
+  accordionSubtitle: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.7,
+    marginLeft: 8,
+  },
+  accordionChevron: {
+    marginLeft: 12,
+  },
+  accordionContent: {
+    overflow: 'hidden',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  inputGroup: {
+    marginBottom: 20,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
-  inputLabel: {
+  label: {
     fontSize: 14,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
-  textInput: {
-    backgroundColor: theme.colors.white,
+  labelWithTooltip: {
+    marginBottom: 8,
+  },
+  tooltip: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.neutral200,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
     color: theme.colors.textPrimary,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  multilineInput: {
-    height: 80,
-    paddingTop: 16,
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
-  // Toggle Styles
-  toggleContainer: {
+  gpaInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  gpaFeedback: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  booleanContainer: {
+    flexDirection: 'row',
     gap: 12,
   },
-  toggleOption: {
-    backgroundColor: theme.colors.white,
+  booleanButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.neutral200,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  selectedToggleOption: {
-    borderColor: theme.colors.primary,
+  booleanButtonActive: {
     backgroundColor: theme.colors.primary,
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.25,
+    borderColor: theme.colors.primary,
   },
-  toggleContent: {
+  booleanButtonText: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+  },
+  booleanButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  interestsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  interestButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minWidth: 80,
     alignItems: 'center',
   },
-  toggleText: {
-    fontSize: 15,
+  interestButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  interestButtonText: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+  },
+  interestButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 32,
+  },
+  skipButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    marginRight: 12,
+  },
+  skipButtonText: {
+    fontSize: 16,
     fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textPrimary,
-    marginLeft: 12,
-    flex: 1,
-  },
-  selectedToggleText: {
-    color: theme.colors.white,
-    fontFamily: theme.fonts.jakarta.semiBold,
-  },
-  // Dropdown Styles
-  dropdownButton: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: theme.colors.neutral200,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  dropdownText: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textPrimary,
-    flex: 1,
-  },
-  placeholderText: {
-    color: theme.colors.textTertiary,
-  },
-  dropdown: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 2,
-    borderColor: theme.colors.neutral200,
-    maxHeight: 200,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  dropdownItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral100,
-  },
-  dropdownItemText: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textPrimary,
-  },
-  // Button Section
-  buttonSection: {
-    gap: 16,
-    paddingBottom: 24,
-    paddingTop: 16,
+    color: theme.colors.textSecondary,
   },
   continueButton: {
+    flex: 2,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: theme.colors.primary,
@@ -660,27 +1059,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  buttonText: {
+  continueButtonText: {
     fontSize: 18,
     fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.white,
+    color: '#FFFFFF',
   },
-  skipButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    borderRadius: 12,
-    backgroundColor: theme.colors.neutral100,
-  },
-  skipButtonText: {
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.medium,
-    color: theme.colors.textSecondary,
-  },
-  helperText: {
+  interestsHelper: {
     fontSize: 14,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
     textAlign: 'center',
   },
 });

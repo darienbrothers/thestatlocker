@@ -16,7 +16,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, fontSizes, spacing, borderRadius } from '@shared/theme';
 import { RootStackParamList } from '@/types';
 
-type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
+type WelcomeScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Welcome'
+>;
 
 const { width } = Dimensions.get('window');
 
@@ -32,21 +35,24 @@ const slides = [
     id: 1,
     title: 'Track Every Stat',
     subtitle: 'Own Every Rep',
-    description: 'Log games and practices with position-specific stats that matter to your performance.',
+    description:
+      'Log games and practices with position-specific stats that matter to your performance.',
     image: require('../../assets/images/trackStats.png'),
   },
   {
     id: 2,
     title: 'AI Insights',
     subtitle: 'Level Up Your Game',
-    description: 'Get personalized recommendations and performance analysis powered by advanced AI.',
+    description:
+      'Get personalized recommendations and performance analysis powered by advanced AI.',
     image: require('../../assets/images/aiInsights.png'),
   },
   {
     id: 3,
     title: 'Stay Organized',
     subtitle: 'Build Your Profile',
-    description: 'Recruiting tools to stay organized and maintain a clean athletic profile.',
+    description:
+      'Recruiting tools to stay organized and maintain a clean athletic profile.',
     image: require('../../assets/images/planOrganize.png'),
   },
 ];
@@ -55,7 +61,7 @@ export default function WelcomeScreen() {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   // Animation values for background effects
   const floatingAnim1 = useRef(new Animated.Value(0)).current;
   const floatingAnim2 = useRef(new Animated.Value(0)).current;
@@ -63,7 +69,10 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     // Floating animation for background elements
-    const createFloatingAnimation = (animValue: Animated.Value, duration: number) => {
+    const createFloatingAnimation = (
+      animValue: Animated.Value,
+      duration: number,
+    ) => {
       return Animated.loop(
         Animated.sequence([
           Animated.timing(animValue, {
@@ -76,7 +85,7 @@ export default function WelcomeScreen() {
             duration: duration,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
     };
 
@@ -93,7 +102,7 @@ export default function WelcomeScreen() {
           duration: 2000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
 
     createFloatingAnimation(floatingAnim1, 4000).start();
@@ -115,16 +124,11 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       {/* Premium Background */}
       <LinearGradient
-        colors={[
-          '#FAFAFA',
-          '#F8F9FA',
-          '#F5F6F8',
-          '#F2F4F6',
-        ]}
+        colors={['#FAFAFA', '#F8F9FA', '#F5F6F8', '#F2F4F6']}
         locations={[0, 0.3, 0.7, 1]}
         style={styles.backgroundGradient}
       />
-      
+
       {/* Floating Background Elements */}
       <Animated.View
         style={[
@@ -147,7 +151,7 @@ export default function WelcomeScreen() {
           },
         ]}
       />
-      
+
       <Animated.View
         style={[
           styles.floatingElement2,
@@ -193,12 +197,16 @@ export default function WelcomeScreen() {
           scrollEventThrottle={16}
           style={styles.scrollView}
         >
-          {slides.map((slide) => (
+          {slides.map(slide => (
             <View key={slide.id} style={styles.slide}>
               <View style={styles.imageContainer}>
-                <Image source={slide.image} style={styles.image} resizeMode="contain" />
+                <Image
+                  source={slide.image}
+                  style={styles.image}
+                  resizeMode="contain"
+                />
               </View>
-              
+
               <View style={styles.content}>
                 <Text style={styles.title}>{slide.title}</Text>
                 <Text style={styles.subtitle}>{slide.subtitle}</Text>
@@ -223,7 +231,10 @@ export default function WelcomeScreen() {
                     width: currentSlide === index ? 24 : 6,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: currentSlide === index ? colors.primary : colors.neutral300,
+                    backgroundColor:
+                      currentSlide === index
+                        ? colors.primary
+                        : colors.neutral300,
                   },
                 ]}
               />
@@ -253,7 +264,8 @@ export default function WelcomeScreen() {
             onPress={() => navigation.navigate('Auth')}
           >
             <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.boldText}>Sign In</Text>
+              Already have an account?{' '}
+              <Text style={styles.boldText}>Sign In</Text>
             </Text>
           </TouchableOpacity>
         </View>
