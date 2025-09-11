@@ -291,7 +291,8 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
   const { addXP } = useGamificationStore();
   
   // Initialize with existing selected goals from route params
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(route.params?.selectedGoals || []);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [showAllGoals, setShowAllGoals] = useState(false);
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   
   // Animation values
@@ -346,7 +347,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
   const toggleGoalSelection = (goalId: string) => {
     if (isGoalSelected(goalId)) {
       setSelectedGoals(prev => prev.filter(id => id !== goalId));
-    } else if (selectedGoals.length < 6) {
+    } else if (selectedGoals.length < 3) {
       setSelectedGoals(prev => [...prev, goalId]);
     }
   };
@@ -366,7 +367,16 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
     Keyboard.dismiss();
   };
 
+  const MAX_GOALS = 3;
   const isValid = selectedGoals.length > 0;
+
+  const handleShuffle = () => {
+    const allGoals = [...seasonGoals, ...RECRUITING_GOALS, ...PERSONAL_GOALS];
+    const shuffled = [...allGoals].sort(() => Math.random() - 0.5);
+    const randomThree = shuffled.slice(0, 3).map(goal => goal.id);
+    setSelectedGoals(randomThree);
+    setShowAllGoals(true);
+  };
 
   const handleContinue = async () => {
     if (selectedGoals.length === 0) return;
@@ -420,7 +430,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
 
   const renderGoalCard = (goal: Goal) => {
     const isSelected = isGoalSelected(goal.id);
-    const isDisabled = !isSelected && selectedGoals.length >= 6;
+    const isDisabled = !isSelected && selectedGoals.length >= 3;
 
     return (
       <TouchableOpacity
@@ -539,28 +549,64 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
                     style={styles.logo}
                     resizeMode="contain"
                   />
-                  <Text style={styles.title}>Set Your Goals</Text>
+                  <Text style={styles.title}>Lock In Your Season Targets</Text>
                   <Text style={styles.subtitle}>
-                    Choose up to 6 goals to focus on this season. Select from season goals based on your position, recruiting goals, and personal development goals.
+                    Pick up to 3 goals. Track progress automatically after every game.
                   </Text>
                   <View style={styles.progressContainer}>
                     <Text style={styles.progressText}>
-                      {selectedGoals.length} of 6 goals selected
+                      {selectedGoals.length} of {MAX_GOALS} goals selected
                     </Text>
                   </View>
                 </View>
 
-                {/* Goals Sections */}
-                <View style={styles.goalsContainer}>
-                  {/* Season Goals Section - Based on Position */}
-                  {renderGoalSection(`${userPosition} Season Goals`, seasonGoals, 'season')}
-                  
-                  {/* Recruiting Goals Section */}
-                  {renderGoalSection('Recruiting & College Prep', RECRUITING_GOALS, 'recruiting')}
-                  
-                  {/* Personal Goals Section */}
-                  {renderGoalSection('Personal Development', PERSONAL_GOALS, 'personal')}
-                </View>
+                {selectedGoals.length === 0 && (
+                  <View style={styles.shuffleContainer}>
+                    <TouchableOpacity
+                      style={styles.shuffleButton}
+                      onPress={handleShuffle}
+                    >
+                      <LinearGradient
+                        colors={[theme.colors.primary, theme.colors.primaryDark]}
+                        start={[0, 0]}
+                        end={[1, 1]}
+                        style={styles.shuffleGradient}
+                      >
+                        <Ionicons name="shuffle" size={20} color={theme.colors.white} />
+                        <Text style={styles.shuffleButtonText}>Deal me 3</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.browseButton}
+                      onPress={() => setShowAllGoals(true)}
+                    >
+                      <Text style={styles.browseButtonText}>Browse all goals</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Goals Sections - Only show if shuffle was used or user wants to browse */}
+                {(showAllGoals || selectedGoals.length > 0) && (
+                  <View style={styles.goalsContainer}>
+                    {/* Season Goals Section - Based on Position */}
+                    {renderGoalSection(`${userPosition} Season Goals`, seasonGoals, 'season')}
+                    
+                    {/* Recruiting Goals Section */}
+                    {renderGoalSection('Recruiting & College Prep', RECRUITING_GOALS, 'recruiting')}
+                    
+                    {/* Personal Goals Section */}
+                    {renderGoalSection('Personal Development', PERSONAL_GOALS, 'personal')}
+                  </View>
+                )}
+
+                {/* Footer with reassurance copy */}
+                {selectedGoals.length > 0 && (
+                  <View style={styles.footerSection}>
+                    <Text style={styles.footerText}>
+                      You can change goals anytime—your progress stays saved.
+                    </Text>
+                  </View>
+                )}
               </ScrollView>
             </Animated.View>
 
@@ -591,7 +637,7 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
                         !isValid && styles.disabledButtonText,
                       ]}
                     >
-                      Next ({selectedGoals.length} goal{selectedGoals.length !== 1 ? 's' : ''} selected)
+                      Next ({selectedGoals.length})
                     </Text>
                     <Ionicons
                       name="arrow-forward"
@@ -758,6 +804,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
+  },
+  shuffleContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 12,
+  },
+  shuffleButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  shuffleGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  shuffleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.white,
+  },
+  browseButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  browseButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.primary,
+    textAlign: 'center',
+  },
+  footerSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   buttonSection: {
     paddingHorizontal: 24,
