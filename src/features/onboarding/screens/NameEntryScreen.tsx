@@ -159,7 +159,7 @@ const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <Text style={styles.title}>What's your name, champ?</Text>
                   <Text style={styles.subtitle}>
                     Let's get you set up with a personalized experience in your
-                    stat locker.
+                    StatLocker.
                   </Text>
                 </View>
               </View>

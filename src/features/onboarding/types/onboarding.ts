@@ -9,7 +9,6 @@ export interface OnboardingData {
   sport?: string;
   gender?: 'boys' | 'girls';
   position?: string;
-  height?: string;
   graduationYear?: number;
 
   // High School Info

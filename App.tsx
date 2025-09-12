@@ -129,7 +129,7 @@ export default function App() {
               component={TeamInformationScreen as any}
             />
             <Stack.Screen name="Academic" component={AcademicScreen} />
-            <Stack.Screen name="Goals" component={GoalsScreen} />
+            <Stack.Screen name="Goals" component={GoalsScreen as any} />
             <Stack.Screen name="Review" component={ReviewScreen} />
             <Stack.Screen name="Paywall" component={PaywallScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />

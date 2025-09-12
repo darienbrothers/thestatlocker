@@ -31,7 +31,6 @@ export interface User {
 
   // Onboarding data
   sport?: string | null;
-  height?: string | null;
   gender?: string | null;
   gpa?: string | null;
   level?: string | null;
@@ -384,8 +383,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         photoURL: userData.profileImage,
         position: userData.position,
         graduationYear: userData.graduationYear,
+        height: userData.height || null,
         sport: userData.sport || 'lacrosse',
-        height: userData.height,
         gender: userData.gender,
         gpa: userData.gpa,
         level: userData.level,
@@ -409,7 +408,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               state: userData.clubState || null,
               coach: null,
               coachEmail: null,
-              jerseyNumber: null,
+              jerseyNumber: userData.clubJerseyNumber || null,
             }
           : {
               name: null,
@@ -420,13 +419,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               jerseyNumber: null,
             },
 
+        // Academic Information
+        academic: {
+          gpa: userData.gpa ? parseFloat(userData.gpa) : null,
+          hasHonorsAP: userData.hasHonorsAP || false,
+          satScore: userData.satScore ? parseInt(userData.satScore) : null,
+          actScore: userData.actScore ? parseInt(userData.actScore) : null,
+          academicInterests: userData.academicInterests || userData.academicInterest ? [userData.academicInterest] : [],
+          academicAwards: userData.academicAwards || null,
+        },
+
         // Goals and onboarding completion
         goals: {
           collegeInterest: userData.goals?.collegeInterest || false,
           dreamSchools: userData.goals?.dreamSchools || [],
           currentGPA: userData.gpa ? parseFloat(userData.gpa) : null,
           targetGPA: userData.goals?.targetGPA || null,
-          improvementAreas: userData.goals?.improvementAreas || userData.selectedGoals || [],
+          improvementAreas: userData.goals || userData.selectedGoals || [],
         },
         hasCompletedOnboarding: true,
         onboardingType: 'extended',
@@ -458,7 +467,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Force a refresh of user data to ensure it's properly loaded
       await get().fetchUser(firebaseUser.uid);
 
-      console.log('User created successfully with onboarding data:', newUser);
+      console.log('User created successfully with onboarding data:', {
+        ...newUser,
+        onboardingDataReceived: userData
+      });
     } catch (error: any) {
       console.error('Error creating user with onboarding data:', error);
       set({ error: error.message, loading: false });

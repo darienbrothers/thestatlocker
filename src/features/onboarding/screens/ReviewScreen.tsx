@@ -12,6 +12,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Linking,
 } from 'react-native';
 import { useKeyboardAwareScrolling } from '@/utils/keyboardUtils';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ import { theme } from '@shared/theme';
 import { OnboardingStepper } from '@/components/gamification';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { clearOnboardingData } from '@/utils/onboardingStorage';
+import { SEASON_GOALS } from '@/data/goals/seasonGoals';
 
 interface ReviewScreenProps {
   navigation: any;
@@ -96,6 +98,15 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    checks: {
+      length: false,
+      uppercase: false,
+      lowercase: false,
+      number: false,
+    },
+  });
 
   // Input refs for keyboard handling
   const emailInputRef = useRef<TextInput>(null);
@@ -130,9 +141,60 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
     }, 800);
   }, []);
 
+  // Password strength validation - memoized to prevent infinite updates
+  const validatePasswordStrength = React.useCallback((password: string) => {
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+    };
+    
+    const score = Object.values(checks).filter(Boolean).length;
+    setPasswordStrength(prev => {
+      // Only update if values actually changed
+      if (prev.score !== score || 
+          prev.checks.length !== checks.length ||
+          prev.checks.uppercase !== checks.uppercase ||
+          prev.checks.lowercase !== checks.lowercase ||
+          prev.checks.number !== checks.number) {
+        return { score, checks };
+      }
+      return prev;
+    });
+  }, []);
+
+
+  // Get goal title from SEASON_GOALS data - NEVER show raw IDs
+  const getGoalTitle = (goalId: string): string => {
+    if (!goalId || typeof goalId !== 'string') return 'Goal';
+    
+    // Search through all season goals to find the proper title
+    const allGoals = [
+      ...Object.values(SEASON_GOALS.boys).flat(),
+      ...Object.values(SEASON_GOALS.girls).flat()
+    ];
+    
+    const foundGoal = allGoals.find(goal => goal.id === goalId);
+    if (foundGoal) {
+      return foundGoal.title;
+    }
+    
+    // Fallback: convert ID to readable format instead of showing raw ID
+    return goalId
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace(/\d+/g, match => `${match}+`);
+  };
+
   const handleEnterLocker = async () => {
     if (!email || !password) {
       alert('Please enter email and password');
+      return;
+    }
+    
+    if (passwordStrength.score < 3) {
+      alert('Please create a stronger password with at least 8 characters, including uppercase, lowercase, and a number.');
       return;
     }
 
@@ -388,77 +450,6 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
     },
   };
 
-  // Helper function to get goal title from goal ID
-  const getGoalTitle = (goalId: string): string => {
-    // Map of goal IDs to titles from the new SMART GoalsScreen
-    const goalTitles: { [key: string]: string } = {
-      // Attack Goals
-      'score_15_goals_season': 'Score 15+ Goals This Season',
-      'shooting_accuracy_65': 'Maintain 65%+ Shooting Accuracy',
-      'assists_per_game_1_5': 'Average 1.5+ Assists Per Game',
-      'ground_balls_3_per_game': 'Win 3+ Ground Balls Per Game',
-      'limit_turnovers_1_5': 'Keep Turnovers Under 1.5 Per Game',
-      
-      // Midfield Goals
-      'points_per_game_2': 'Average 2+ Points Per Game',
-      'faceoff_wins_55_percent': 'Win 55%+ of Face-offs',
-      'ground_balls_4_per_game': 'Secure 4+ Ground Balls Per Game',
-      'clear_success_80_percent': 'Clear Ball Successfully 80%+ of Time',
-      'caused_turnovers_1_per_game': 'Force 1+ Turnover Per Game',
-      
-      // Defense Goals
-      'hold_opponent_under_2_goals': 'Hold Matchup to Under 2 Goals Per Game',
-      'ground_balls_5_per_game': 'Win 5+ Ground Balls Per Game',
-      'caused_turnovers_1_5_per_game': 'Force 1.5+ Turnovers Per Game',
-      'clear_success_85_percent': 'Clear Successfully 85%+ of Time',
-      'slides_communication_90': 'Communicate on 90%+ of Slides',
-      
-      // Goalie Goals
-      'save_percentage_60_plus': 'Maintain 60%+ Save Percentage',
-      'goals_against_under_8': 'Allow Under 8 Goals Per Game',
-      'saves_10_plus_5_games': 'Record 10+ Saves in 5+ Games',
-      'clear_assists_15_season': 'Record 15+ Clear Assists This Season',
-      'ground_balls_2_per_game': 'Secure 2+ Ground Balls Per Game',
-      
-      // Recruiting Goals
-      'create_highlight_video': 'Create Professional Highlight Video',
-      'contact_20_college_coaches': 'Contact 20+ College Coaches',
-      'attend_3_college_camps': 'Attend 3+ College Camps/Showcases',
-      'maintain_3_5_gpa': 'Maintain 3.5+ GPA',
-      'complete_sat_act_prep': 'Complete SAT/ACT Prep Course',
-      
-      // Personal Goals
-      'leadership_captain_role': 'Earn Team Leadership Role',
-      'mentor_younger_players': 'Mentor 2+ Younger Players',
-      'perfect_attendance_practice': 'Perfect Practice Attendance',
-      'community_service_20_hours': 'Complete 20+ Hours Community Service',
-      'improve_fitness_benchmarks': 'Improve All Fitness Benchmarks by 10%',
-    };
-
-    // First check our onboarding goals
-    if (goalTitles[goalId]) {
-      return goalTitles[goalId];
-    }
-
-    // Fallback to searching season goals for backwards compatibility
-    for (const genderKey of Object.keys(SEASON_GOALS) as Array<
-      keyof typeof SEASON_GOALS
-    >) {
-      for (const positionKey of Object.keys(SEASON_GOALS[genderKey]) as Array<
-        keyof (typeof SEASON_GOALS)[typeof genderKey]
-      >) {
-        const positionGoals = SEASON_GOALS[genderKey][positionKey] as Array<{
-          id: string;
-          title: string;
-        }>;
-        const goal = positionGoals.find(g => g.id === goalId);
-        if (goal) {
-          return goal.title;
-        }
-      }
-    }
-    return goalId; // Fallback to ID if not found
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -489,8 +480,9 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Header */}
+            {/* Enhanced Header with Progress Breadcrumb */}
             <View style={styles.header}>
+
               {/* Animated Checkmark Stamp */}
               <Animated.View
                 style={[
@@ -521,6 +513,11 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
               <Text style={styles.subtitle}>
                 Review and confirm your profile details below
               </Text>
+              
+              {/* Reassuring Copy */}
+              <Text style={styles.reassuranceText}>
+                You can edit anything later from your profile.
+              </Text>
             </View>
 
             {/* Player Card Hero */}
@@ -529,8 +526,14 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
                 colors={[theme.colors.primary, theme.colors.primaryDark]}
                 style={styles.playerCardGradient}
               >
-                {/* Player Avatar */}
-                <View style={styles.playerAvatar}>
+                {/* Editable Player Avatar */}
+                <TouchableOpacity 
+                  style={styles.playerAvatar}
+                  onPress={() => navigation.navigate('ProfileImage', {
+                    ...route.params,
+                    fromReview: true
+                  })}
+                >
                   {profileImage ? (
                     <Image
                       source={{ uri: profileImage }}
@@ -542,23 +545,46 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
                       {lastName?.charAt(0)}
                     </Text>
                   )}
-                </View>
-
-                {/* Player Info */}
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>
-                    {firstName} {lastName}
-                  </Text>
-                  <Text style={styles.playerPosition}>{position}</Text>
-                  <View style={styles.playerDetails}>
-                    <Text style={styles.playerDetailText}>
-                      {sport
-                        ? sport.charAt(0).toUpperCase() + sport.slice(1)
-                        : 'Lacrosse'}{' '}
-                      • Class of {graduationYear}
-                    </Text>
-                    <Text style={styles.playerSchool}>{schoolName}</Text>
+                  {/* Edit Badge */}
+                  <View style={styles.editBadge}>
+                    <Ionicons name="pencil" size={12} color={theme.colors.white} />
                   </View>
+                </TouchableOpacity>
+
+                {/* Editable Player Info */}
+                <View style={styles.playerInfo}>
+                  <TouchableOpacity 
+                    style={styles.nameRow}
+                    onPress={() => navigation.navigate('NameEntry', {
+                      ...route.params,
+                      fromReview: true
+                    })}
+                  >
+                    <Text style={styles.playerName}>
+                      {firstName} {lastName}
+                    </Text>
+                    <Ionicons name="pencil" size={14} color={theme.colors.white} style={styles.editIcon} />
+                  </TouchableOpacity>
+                  
+                  {/* Compact Player Chips */}
+                  <View style={styles.playerChips}>
+                    <View style={styles.chip}>
+                      <Text style={styles.chipText}>{position}</Text>
+                    </View>
+                    {jerseyNumber && (
+                      <View style={styles.chip}>
+                        <Text style={styles.chipText}>#{jerseyNumber}</Text>
+                      </View>
+                    )}
+                    <View style={styles.chip}>
+                      <Text style={styles.chipText}>Class of {graduationYear}</Text>
+                    </View>
+                    <View style={styles.chip}>
+                      <Text style={styles.chipText}>{gender === 'boys' ? 'Boys' : 'Girls'}</Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={styles.playerSchool}>{schoolName}</Text>
                 </View>
               </LinearGradient>
             </View>
@@ -757,87 +783,193 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
               </View>
             )}
 
-            {/* Final Steps Card */}
-            <View style={styles.finalStepsCard}>
-              <View style={styles.cardHeaderCentered}>
-                <Text style={styles.cardTitleFullCentered}>
-                  Create Your Account
-                </Text>
-              </View>
-
-              <View style={styles.accountDescription}>
-                <Text style={styles.accountDescriptionText}>
-                  You're almost there! Create your account to save your
-                  personalized locker and start tracking your{' '}
-                  {sport || 'lacrosse'} journey.
-                </Text>
-              </View>
-
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <TextInput
-                  ref={emailInputRef}
-                  style={styles.input}
-                  placeholder="Email address"
-                  value={email}
-                  onChangeText={setEmail}
-                  onFocus={() => handleInputFocus(emailInputRef)}
-                  onBlur={handleInputBlur}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordInputRef.current?.focus()}
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Password</Text>
-                <View style={styles.passwordInputContainer}>
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={styles.passwordInput}
-                    value={password}
-                    onChangeText={setPassword}
-                    onFocus={() => handleInputFocus(passwordInputRef)}
-                    onBlur={handleInputBlur}
-                    placeholder="Create a secure password"
-                    placeholderTextColor={theme.colors.neutral400}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    returnKeyType="done"
-                    onSubmitEditing={handleEnterLocker}
+            {/* Optimized Account Creation Card */}
+            <View style={styles.accountCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardIconContainer}>
+                  <Ionicons
+                    name="person-add"
+                    size={24}
+                    color={theme.colors.primary}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off' : 'eye'}
-                      size={20}
-                      color={theme.colors.textSecondary}
+                </View>
+                <Text style={styles.cardTitle}>Create Your Account</Text>
+              </View>
+
+              <View style={styles.accountFormContainer}>
+                {/* Email Input */}
+                <View style={styles.compactInputContainer}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <TextInput
+                    ref={emailInputRef}
+                    style={styles.input}
+                    placeholder="Email address"
+                    value={email}
+                    onChangeText={setEmail}
+                    onFocus={() => handleInputFocus(emailInputRef)}
+                    onBlur={handleInputBlur}
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  />
+                </View>
+                
+                {/* Password Input */}
+                <View style={styles.compactInputContainer}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <View style={styles.passwordInputContainer}>
+                    <TextInput
+                      ref={passwordInputRef}
+                      style={styles.passwordInput}
+                      value={password}
+                      onChangeText={(text) => {
+                        setPassword(text);
+                        validatePasswordStrength(text);
+                      }}
+                      onFocus={() => handleInputFocus(passwordInputRef)}
+                      onBlur={handleInputBlur}
+                      placeholder="Create a secure password"
+                      placeholderTextColor={theme.colors.neutral400}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                      onSubmitEditing={handleEnterLocker}
                     />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.eyeButton}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={18}
+                        color={theme.colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Password Strength Meter */}
+                  {password.length > 0 && (
+                    <View style={styles.passwordStrengthContainer}>
+                      <View style={styles.strengthMeter}>
+                        <View style={[
+                          styles.strengthBar,
+                          {
+                            width: `${(passwordStrength.score / 4) * 100}%`,
+                            backgroundColor: 
+                              passwordStrength.score <= 1 ? '#ef4444' :
+                              passwordStrength.score <= 2 ? '#f59e0b' :
+                              passwordStrength.score <= 3 ? '#eab308' : '#10b981'
+                          }
+                        ]} />
+                      </View>
+                      <Text style={styles.strengthText}>
+                        {passwordStrength.score <= 1 ? 'Weak' :
+                         passwordStrength.score <= 2 ? 'Fair' :
+                         passwordStrength.score <= 3 ? 'Good' : 'Strong'}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Always Visible Password Requirements */}
+                  <View style={styles.passwordChecklist}>
+                    <View style={styles.checklistItem}>
+                      <Ionicons 
+                        name={passwordStrength.checks.length ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={16}
+                        color={passwordStrength.checks.length ? '#10b981' : theme.colors.neutral400}
+                      />
+                      <Text style={[styles.checklistText, passwordStrength.checks.length && styles.checklistTextComplete]}>
+                        At least 8 characters
+                      </Text>
+                    </View>
+                    <View style={styles.checklistItem}>
+                      <Ionicons 
+                        name={passwordStrength.checks.uppercase ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={16}
+                        color={passwordStrength.checks.uppercase ? '#10b981' : theme.colors.neutral400}
+                      />
+                      <Text style={[styles.checklistText, passwordStrength.checks.uppercase && styles.checklistTextComplete]}>
+                        One uppercase letter
+                      </Text>
+                    </View>
+                    <View style={styles.checklistItem}>
+                      <Ionicons 
+                        name={passwordStrength.checks.lowercase ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={16}
+                        color={passwordStrength.checks.lowercase ? '#10b981' : theme.colors.neutral400}
+                      />
+                      <Text style={[styles.checklistText, passwordStrength.checks.lowercase && styles.checklistTextComplete]}>
+                        One lowercase letter
+                      </Text>
+                    </View>
+                    <View style={styles.checklistItem}>
+                      <Ionicons 
+                        name={passwordStrength.checks.number ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={16}
+                        color={passwordStrength.checks.number ? '#10b981' : theme.colors.neutral400}
+                      />
+                      <Text style={[styles.checklistText, passwordStrength.checks.number && styles.checklistTextComplete]}>
+                        One number
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
 
-            {/* Enter Button */}
+            {/* Trust & Compliance Microcopy */}
+            <View style={styles.complianceContainer}>
+              <Text style={styles.complianceText}>
+                By creating an account, you agree to our{' '}
+                <Text 
+                  style={styles.complianceLink}
+                  onPress={() => Linking.openURL('https://thestatlocker.com/terms')}
+                >
+                  Terms of Service
+                </Text>
+                {' '}and{' '}
+                <Text 
+                  style={styles.complianceLink}
+                  onPress={() => Linking.openURL('https://thestatlocker.com/privacy')}
+                >
+                  Privacy Policy
+                </Text>
+                . Your data is encrypted and secure.
+              </Text>
+            </View>
+
+            {/* Enhanced Enter Button */}
             <TouchableOpacity
               style={[
                 styles.enterButton,
-                (!email || !password || isCreatingUser) &&
+                (!email || !password || passwordStrength.score < 3 || isCreatingUser) &&
                   styles.enterButtonDisabled,
               ]}
               onPress={handleEnterLocker}
-              disabled={!email || !password || isCreatingUser}
+              disabled={!email || !password || passwordStrength.score < 3 || isCreatingUser}
             >
-              <Text style={styles.enterButtonText}>Enter the Locker</Text>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color={theme.colors.white}
-              />
+              {isCreatingUser ? (
+                <>
+                  <Text style={styles.enterButtonText}>Creating Your Locker...</Text>
+                  <Ionicons
+                    name="hourglass"
+                    size={20}
+                    color={theme.colors.white}
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.enterButtonText}>Enter the Locker</Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color={theme.colors.white}
+                  />
+                </>
+              )}
             </TouchableOpacity>
 
             <View style={styles.bottomSpacer} />
@@ -1276,6 +1408,176 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: theme.colors.neutral100,
+  },
+  // New UI Enhancement Styles
+  progressBreadcrumb: {
+    alignSelf: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '20',
+  },
+  breadcrumbText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.primary,
+    textAlign: 'center',
+  },
+  reassuranceText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.white,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editIcon: {
+    opacity: 0.8,
+  },
+  playerChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  chip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  chipText: {
+    fontSize: 11,
+    fontFamily: theme.fonts.jakarta.medium,
+    color: theme.colors.white,
+  },
+  // Password Strength Meter Styles
+  passwordStrengthContainer: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  strengthMeter: {
+    height: 4,
+    backgroundColor: theme.colors.neutral200,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  strengthBar: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  strengthText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.jakarta.medium,
+    textAlign: 'right',
+  },
+  passwordChecklist: {
+    marginTop: 8,
+    gap: 4,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checklistText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+  },
+  checklistTextComplete: {
+    color: '#10b981',
+    textDecorationLine: 'line-through',
+  },
+  // Compliance and Trust Styles
+  complianceContainer: {
+    marginVertical: 16,
+    paddingHorizontal: 4,
+  },
+  complianceText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  complianceLink: {
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.jakarta.medium,
+    textDecorationLine: 'underline',
+  },
+  // Optimized Account Card Styles
+  accountCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  accountFormContainer: {
+    marginTop: 16,
+  },
+  compactInputContainer: {
+    marginBottom: 16,
+  },
+  compactPasswordValidation: {
+    marginTop: 8,
+  },
+  strengthMeterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  compactStrengthText: {
+    fontSize: 11,
+    fontFamily: theme.fonts.jakarta.medium,
+    minWidth: 40,
+  },
+  compactChecklistGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  compactChecklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 60,
+  },
+  compactChecklistText: {
+    fontSize: 10,
+    fontFamily: theme.fonts.jakarta.regular,
+    color: theme.colors.textSecondary,
   },
   teamSectionTitle: {
     fontSize: 14,

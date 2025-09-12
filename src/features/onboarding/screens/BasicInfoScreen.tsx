@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -66,14 +65,7 @@ export default function BasicInfoScreen({
   const [gender, setGender] = useState<'boys' | 'girls' | ''>('');
   const [position, setPosition] = useState<string>('');
   const [graduationYear, setGraduationYear] = useState<number | null>(null);
-  const [height, setHeight] = useState<string>('');
 
-  // Numeric validation helper
-  const handleHeightChange = (text: string) => {
-    // Allow only numbers, apostrophe, quote, comma, and spaces for height format (e.g., "5'10", "6 2", "5,10")
-    const numericText = text.replace(/[^0-9'"',\s]/g, '');
-    setHeight(numericText);
-  };
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -149,7 +141,7 @@ export default function BasicInfoScreen({
   };
 
   const handleContinue = () => {
-    if (sport && gender && position && graduationYear && height.trim()) {
+    if (sport && gender && position && graduationYear) {
       // Button press animation
       Animated.sequence([
         Animated.timing(bounceAnim, {
@@ -172,7 +164,6 @@ export default function BasicInfoScreen({
           gender,
           position,
           graduationYear,
-          height,
         });
       });
     }
@@ -193,7 +184,7 @@ export default function BasicInfoScreen({
         ? GIRLS_POSITIONS
         : [];
   const isValid =
-    sport && gender && position && graduationYear && height.trim();
+    sport && gender && position && graduationYear;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -522,41 +513,6 @@ export default function BasicInfoScreen({
                       </View>
                     )}
 
-                    {/* Height Input */}
-                    {position && graduationYear && (
-                      <View style={styles.playerCardSection}>
-                        <View style={styles.playerCardSectionHeader}>
-                          <Ionicons
-                            name="resize"
-                            size={16}
-                            color={theme.colors.primary}
-                            style={styles.playerCardIcon}
-                          />
-                          <Text style={styles.playerCardSectionTitle}>
-                            Height
-                          </Text>
-                        </View>
-                        <View style={styles.heightInputContainer}>
-                          <View style={styles.heightInputWrapper}>
-                            <Ionicons
-                              name="resize-outline"
-                              size={20}
-                              color={theme.colors.primary}
-                              style={styles.heightIcon}
-                            />
-                            <TextInput
-                              style={styles.heightInput}
-                              value={height}
-                              onChangeText={handleHeightChange}
-                              placeholder="5'10"
-                              placeholderTextColor={theme.colors.textSecondary}
-                              keyboardType="numeric"
-                              returnKeyType="done"
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    )}
                   </View>
                 </Animated.View>
               )}
@@ -878,49 +834,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: theme.fonts.jakarta.semiBold,
     color: theme.colors.textPrimary,
-  },
-  heightInputContainer: {
-    marginTop: 4,
-  },
-  // Height Input
-  heightCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: theme.colors.neutral200,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    marginTop: 8,
-  },
-  heightInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  heightIcon: {
-    marginRight: 16,
-    backgroundColor: theme.colors.primary + '15',
-    padding: 8,
-    borderRadius: 8,
-  },
-  heightInput: {
-    flex: 1,
-    fontSize: 18,
-    fontFamily: theme.fonts.jakarta.semiBold,
-    color: theme.colors.textPrimary,
-    paddingVertical: 8,
-  },
-  statIcon: {
-    marginRight: 8,
-  },
-  statInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: theme.fonts.jakarta.regular,
-    color: theme.colors.textPrimary,
+    marginBottom: 24,
   },
   // Logo
   logo: {
