@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Animated,
   Image,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useKeyboardAwareScrolling } from '@/utils/keyboardUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,14 +22,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingStepper } from '@/components/gamification';
 import { colors, fonts, fontSizes } from '@/constants/theme';
 
-const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+const NameEntryScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
+  // Get route params
+  const { fromReview, firstName: initialFirstName, lastName: initialLastName, ...otherParams } = route?.params || {};
+
   // Enhanced keyboard-aware scrolling
   const { scrollViewRef, handleInputFocus, handleInputBlur } =
     useKeyboardAwareScrolling();
 
-  // State
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // State - initialize with existing data if editing from Review
+  const [firstName, setFirstName] = useState(initialFirstName || '');
+  const [lastName, setLastName] = useState(initialLastName || '');
 
   // Animation refs
   const bounceAnim = useRef(new Animated.Value(1)).current;
@@ -113,11 +116,19 @@ const NameEntryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           useNativeDriver: true,
         }),
       ]).start(() => {
-        // Navigate to ProfileImageScreen
-        navigation.navigate('ProfileImage', {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-        });
+        // Navigate based on fromReview parameter
+        if (fromReview) {
+          navigation.navigate('Review', {
+            ...otherParams,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          });
+        } else {
+          navigation.navigate('ProfileImage', {
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          });
+        }
       });
     }
   };

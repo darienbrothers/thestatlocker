@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Animated,
@@ -15,6 +14,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useKeyboardAwareScrolling } from '@/utils/keyboardUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -315,6 +315,7 @@ export default function TeamInformationScreen({
     graduationYear,
     height,
     returnTo,
+    fromReview,
     ...otherParams
   } = route.params || {};
 
@@ -598,8 +599,8 @@ export default function TeamInformationScreen({
       ...otherParams,
     };
 
-    // Navigate based on returnTo parameter
-    if (returnTo === 'Review') {
+    // Navigate based on fromReview or returnTo parameter
+    if (fromReview || returnTo === 'Review') {
       navigation.navigate('Review', updatedParams);
     } else {
       navigation.navigate('Academic', updatedParams);

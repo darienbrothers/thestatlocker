@@ -32,6 +32,7 @@ export interface User {
   // Onboarding data
   sport?: string | null;
   gender?: string | null;
+  height?: string | null;
   gpa?: string | null;
   level?: string | null;
   jerseyNumber?: string | null;
@@ -77,6 +78,16 @@ export interface User {
     improvementAreas?: string[];
   };
 
+  // Academic Information
+  academic?: {
+    gpa?: number | null;
+    hasHonorsAP?: boolean;
+    satScore?: number | null;
+    actScore?: number | null;
+    academicInterests?: string[];
+    academicAwards?: string | null;
+  };
+
   // Extended onboarding data
   trainingDays?: number | null;
   experience?: string | null;
@@ -109,6 +120,7 @@ interface AuthState {
   initializeAuth: () => void;
   initialize: () => void;
   createUserWithOnboardingData: (onboardingData: any) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -437,7 +449,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           targetGPA: userData.goals?.targetGPA || null,
           improvementAreas: userData.goals || userData.selectedGoals || [],
         },
-        hasCompletedOnboarding: true,
+        hasCompletedOnboarding: false,
         onboardingType: 'extended',
 
         // Profile completion tracking
@@ -473,6 +485,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (error: any) {
       console.error('Error creating user with onboarding data:', error);
+      set({ error: error.message, loading: false });
+      throw error;
+    }
+  },
+
+  completeOnboarding: async () => {
+    const { user, firebaseUser } = get();
+    if (!user || !firebaseUser) {
+      throw new Error('No authenticated user found');
+    }
+
+    try {
+      set({ loading: true });
+
+      // Update user document to mark onboarding as completed
+      const updatedUser = {
+        ...user,
+        hasCompletedOnboarding: true,
+        updatedAt: serverTimestamp(),
+      };
+
+      // Save to Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), updatedUser);
+
+      // Update store state
+      set({
+        user: updatedUser,
+        loading: false,
+      });
+
+      console.log('Onboarding completed successfully');
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
       set({ error: error.message, loading: false });
       throw error;
     }

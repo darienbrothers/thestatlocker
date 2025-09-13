@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Animated,
   TextInput,
   Image,
@@ -14,6 +14,7 @@ import {
   Keyboard,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useKeyboardAwareScrolling } from '@/utils/keyboardUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,6 @@ import { theme } from '@shared/theme';
 import { OnboardingStepper } from '@/components/gamification';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { clearOnboardingData } from '@/utils/onboardingStorage';
-import { SEASON_GOALS } from '@/data/goals/seasonGoals';
 
 interface ReviewScreenProps {
   navigation: any;
@@ -63,6 +63,10 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
   const { scrollViewRef, handleInputFocus, handleInputBlur } =
     useKeyboardAwareScrolling();
 
+  // State to track current data (will be updated when returning from edit screens)
+  const [currentData, setCurrentData] = useState(route.params || {});
+
+  // Extract current data from state
   const {
     firstName,
     lastName,
@@ -91,9 +95,18 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
     academicInterest,
     academicInterests,
     academicAwards,
-  } = route.params || {};
+  } = currentData;
 
-  const { createUserWithOnboardingData } = useAuthStore();
+  // Update data when screen comes into focus (after returning from edit screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (route.params) {
+        setCurrentData({ ...route.params });
+      }
+    }, [])
+  );
+
+  const { createUserWithOnboardingData, completeOnboarding } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -180,11 +193,13 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
       return foundGoal.title;
     }
     
-    // Fallback: convert ID to readable format instead of showing raw ID
+    // Fallback: convert ID to readable format without adding + to numbers
     return goalId
       .replace(/_/g, ' ')
       .replace(/\b\w/g, l => l.toUpperCase())
-      .replace(/\d+/g, match => `${match}+`);
+      .replace(/Girls?$/i, '') // Remove trailing "Girls" 
+      .replace(/Boys?$/i, '')  // Remove trailing "Boys"
+      .trim();
   };
 
   const handleEnterLocker = async () => {
@@ -200,6 +215,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
 
     try {
       setIsCreatingUser(true);
+      console.log('Starting account creation process...');
 
       // Create complete onboarding data object
       const onboardingData = {
@@ -234,15 +250,24 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
         academicAwards,
       };
 
+      console.log('Creating user with onboarding data...');
       // Create user in Firebase with all onboarding data
       await createUserWithOnboardingData(onboardingData);
+      console.log('User created successfully, clearing onboarding data...');
 
       // Clear onboarding form data from AsyncStorage
       await clearOnboardingData();
+      console.log('Onboarding data cleared, completing onboarding and navigating to MainTabs...');
 
-      // Navigate to paywall screen with onboarding data
-      navigation.navigate('Paywall', { onboardingData });
+      // TEMPORARY: Skip paywall and go directly to MainTabs
+      // Complete onboarding first
+      await completeOnboarding();
+      
+      // Navigate directly to MainTabs
+      navigation.navigate('MainTabs', { onboardingData });
+      console.log('Navigation to MainTabs initiated');
     } catch (error: any) {
+      console.error('Error in handleEnterLocker:', error);
       alert(`Error creating account: ${error.message}`);
       setIsCreatingUser(false);
     }
@@ -256,7 +281,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
     }
   };
 
-  // Goals data for title lookup
+  // Goals data for title lookup - using local data to avoid unused import
   const SEASON_GOALS = {
     boys: {
       Attack: [
@@ -605,20 +630,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
                   onPress={() =>
                     navigation.navigate('TeamInformation', {
                       ...route.params,
-                      teamData: {
-                        schoolName,
-                        city,
-                        state,
-                        level,
-                        jerseyNumber,
-                        clubEnabled,
-                        clubOrgName,
-                        clubTeamName,
-                        clubCity,
-                        clubState,
-                        clubJerseyNumber,
-                      },
-                      returnTo: 'Review',
+                      fromReview: true,
                     })
                   }
                 >
@@ -689,7 +701,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
                   onPress={() =>
                     navigation.navigate('Goals', {
                       ...route.params,
-                      returnTo: 'Review',
+                      fromReview: true,
                     })
                   }
                 >
@@ -748,7 +760,7 @@ export default function ReviewScreen({ navigation, route }: ReviewScreenProps) {
                     onPress={() =>
                       navigation.navigate('Academic', {
                         ...route.params,
-                        returnTo: 'Review',
+                        fromReview: true,
                       })
                     }
                   >

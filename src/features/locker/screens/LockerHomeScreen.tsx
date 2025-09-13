@@ -1,939 +1,497 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
-  Alert,
-  Modal,
+  StyleSheet,
   Image,
+  Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import { colors, fontSizes, fonts, tokens, borderRadius } from '@shared/theme';
-import { useAuthStore } from '@shared/stores/authStore';
-import { useGameStore } from '@shared/stores/gameStore';
-import { useProgressStore } from '@shared/stores/progressStore';
-import GameTrackingModal from '@shared/components/GameTrackingModal';
-import DrawerMenu from '@shared/components/DrawerMenu';
-import { SmartDemoSystem } from '@/components/demo/SmartDemoSystem';
-import { useSmartDemo } from '@/hooks/useSmartDemo';
-import { DemoCard } from '@/components/demo/DemoCard';
-import { CollegePipelineModal } from '@/components/demo/CollegePipelineModal';
-import { ProfileFeaturesModal } from '@/components/demo/ProfileFeaturesModal';
-import { SkillsDrillsModal } from '@/components/demo/SkillsDrillsModal';
+import { useAuthStore } from '../../../shared/stores/authStore';
+import { useGameStore } from '../../../shared/stores/gameStore';
+import GameTrackingModal from '../../../shared/components/GameTrackingModal';
+import { theme } from '../../../constants/theme';
+import { SEASON_GOALS } from '../../../data/goals/seasonGoals';
 
-interface LockerHomeScreenProps {
-  onboardingData?: any;
-}
+const { width } = Dimensions.get('window');
 
-const LockerHomeScreen: React.FC<LockerHomeScreenProps> = ({
-  onboardingData,
-}) => {
-  const navigation = useNavigation();
+const { colors, fonts, fontSizes, spacing, borderRadius } = theme;
+
+const LockerHomeScreen: React.FC = () => {
   const { user } = useAuthStore();
-  const { games, initializeChecklists, fetchUserGames } = useGameStore();
-  const { progress, initializeProgress, markTaskCompleted, incrementTaskView } =
-    useProgressStore();
+  const { games, fetchUserGames } = useGameStore();
+  const [gameModalVisible, setGameModalVisible] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<'High School' | 'Club'>('High School');
 
-  const [showLogGameModal, setShowLogGameModal] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState<'school' | 'club'>(
-    'school',
-  );
-  const [image, setImage] = useState<string | null>(
-    user?.photoURL || user?.profilePicture || null,
-  );
-  const [showDrawerMenu, setShowDrawerMenu] = useState(false);
-  const [showCollegePipelineModal, setShowCollegePipelineModal] =
-    useState(false);
-  const [showProfileFeaturesModal, setShowProfileFeaturesModal] =
-    useState(false);
-  const [showSkillsDrillsModal, setShowSkillsDrillsModal] = useState(false);
-  const [showTutorialSelection, setShowTutorialSelection] = useState(false);
-
-  // Smart Demo System
-  const { activeDemoType, completeDemoType, closeDemoType } = useSmartDemo();
-
+  // Fetch games when user changes
   useEffect(() => {
-    // Initialize progress tracking
-    initializeProgress(user?.uid);
-
-    console.log('=== LockerHomeScreen Debug ===');
-    console.log('User object exists:', !!user);
-    console.log('User UID:', user?.uid);
-    console.log('User email:', user?.email);
-    console.log('User firstName:', user?.firstName);
-    console.log('User lastName:', user?.lastName);
-    console.log('User position:', user?.position);
-    console.log('User graduationYear:', user?.graduationYear);
-    console.log('User goals:', user?.goals);
-    console.log('User highSchool:', user?.highSchool);
-    console.log('User club:', user?.club);
-    console.log('Onboarding data received:', !!onboardingData);
-    console.log('Full user object:', JSON.stringify(user, null, 2));
-    console.log('=== End Debug ===');
-
     if (user?.uid) {
-      console.log('LockerHomeScreen - User UID:', user.uid);
-      console.log(
-        'LockerHomeScreen - Full User Data:',
-        JSON.stringify(user, null, 2),
-      );
-      initializeChecklists(user.uid);
       fetchUserGames(user.uid);
+    }
+  }, [user?.uid, fetchUserGames]);
+
+  // Get current team context based on selected season
+  const getCurrentTeamContext = () => {
+    if (selectedSeason === 'High School') {
+      return {
+        teamName: user?.highSchool?.name || 'High School Team',
+        jerseyNumber: user?.highSchool?.jerseyNumber || user?.jerseyNumber || '00',
+        city: user?.highSchool?.city,
+        state: user?.highSchool?.state,
+        level: user?.level,
+      };
     } else {
-      console.log('LockerHomeScreen - No user UID found');
+      return {
+        teamName: user?.club?.name || 'Club Team',
+        jerseyNumber: user?.club?.jerseyNumber || '00',
+        city: user?.club?.city,
+        state: user?.club?.state,
+        level: 'Club',
+      };
     }
-  }, [user]);
-
-  useEffect(() => {
-    console.log('LockerHomeScreen - Games data:', games);
-  }, [games]);
-
-  const filteredGames = games.filter((game: any) => game.userId === user?.uid);
-
-  useEffect(() => {
-    console.log('LockerHomeScreen - Filtered games:', filteredGames);
-  }, [filteredGames]);
-
-  const getTotalSaves = () => {
-    return filteredGames.reduce((total, game) => {
-      return total + (game.stats?.saves || 0);
-    }, 0);
   };
 
-  const getShotsFaced = () => {
-    return filteredGames.reduce((total, game) => {
-      return total + (game.stats?.shots || 0);
-    }, 0);
-  };
+  const teamContext = getCurrentTeamContext();
 
-  const getGoalsAgainst = () => {
-    return filteredGames.reduce((total, game) => {
-      return total + (game.stats?.goalsAgainst || 0);
-    }, 0);
-  };
-
-  const getAverageSaves = () => {
-    if (filteredGames.length === 0) {
-      return '0.0';
+  // Get position-specific season goals
+  const getPositionGoals = () => {
+    if (!user?.position || !user?.gender) return [];
+    const gender = user.gender as 'boys' | 'girls';
+    const position = user.position as keyof typeof SEASON_GOALS.boys;
+    
+    if (SEASON_GOALS[gender] && SEASON_GOALS[gender][position]) {
+      return SEASON_GOALS[gender][position].slice(0, 3); // Show top 3 goals
     }
-    const avg = getTotalSaves() / filteredGames.length;
-    return avg.toFixed(1);
+    return [];
   };
 
-  const getAverageShotsFaced = () => {
-    if (filteredGames.length === 0) {
-      return '0.0';
-    }
-    const avg = getShotsFaced() / filteredGames.length;
-    return avg.toFixed(1);
-  };
+  const positionGoals = getPositionGoals();
 
-  const getAverageGoalsAgainst = () => {
-    if (filteredGames.length === 0) {
-      return '0.0';
-    }
-    const avg = getGoalsAgainst() / filteredGames.length;
-    return avg.toFixed(1);
-  };
-
-  const getSavePercentage = () => {
-    const saves = getTotalSaves();
-    const shots = getShotsFaced();
-    return shots > 0 ? Math.round((saves / shots) * 100) : 0;
-  };
-
-  // Get tasks from progress store with completion status
-  const tasks = progress.tasks;
-
-  // Render Season Goals based on user's onboarding goals
-  const renderSeasonGoals = () => {
-    if (!user?.goals || !Array.isArray(user.goals) || user.goals.length === 0) {
-      return (
-        <View style={styles.noGoalsContainer}>
-          <Text style={styles.noGoalsText}>No season goals set yet</Text>
-          <Text style={styles.noGoalsSubtext}>
-            Complete onboarding to set your goals
-          </Text>
-        </View>
-      );
-    }
-
-    return user.goals.map((goal: any, index: number) => {
-      const currentValue = getCurrentStatValue(goal);
-      const targetValue = goal.target || 0;
-      const progress =
-        targetValue > 0 ? Math.min((currentValue / targetValue) * 100, 100) : 0;
-
-      return (
-        <View key={index} style={styles.goalItem}>
-          <View style={styles.goalHeader}>
-            <Text style={styles.goalLabel}>{goal.title}</Text>
-            <Text style={styles.goalProgress}>
-              {formatGoalValue(currentValue, goal)} /{' '}
-              {formatGoalValue(targetValue, goal)}
-            </Text>
-          </View>
-          <View style={styles.goalProgressBar}>
-            <View
-              style={[styles.goalProgressFill, { width: `${progress}%` }]}
-            />
-          </View>
-          <Text style={styles.goalSubtext}>
-            {progress >= 100
-              ? '🎉 Goal achieved!'
-              : `${Math.round(progress)}% complete`}
-          </Text>
-        </View>
-      );
-    });
-  };
-
-  // Get current stat value for a goal
-  const getCurrentStatValue = (goal: any) => {
-    if (!goal.category) {
-      return 0;
-    }
-
+  // Calculate goal progress based on current stats
+  const calculateGoalProgress = (goal: any) => {
+    if (!filteredGames.length) return 0;
+    
+    const totalGames = filteredGames.length;
+    let currentValue = 0;
+    
     switch (goal.category) {
+      case 'scoring':
+        if (goal.unit.includes('goals/game')) {
+          const totalGoals = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.goals || 0), 0);
+          currentValue = totalGames > 0 ? totalGoals / totalGames : 0;
+        } else {
+          currentValue = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.goals || 0), 0);
+        }
+        break;
       case 'saves':
-        return getTotalSaves();
-      case 'goals':
-        return getTotalGoals();
+        if (goal.unit.includes('percentage')) {
+          const totalSaves = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.saves || 0), 0);
+          const totalShots = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.shotsFaced || 0), 0);
+          currentValue = totalShots > 0 ? (totalSaves / totalShots) * 100 : 0;
+        } else {
+          currentValue = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.saves || 0), 0);
+        }
+        break;
       case 'assists':
-        return getTotalAssists();
-      case 'defense':
-      case 'ground_balls':
-        return getTotalGroundBalls();
-      case 'accuracy':
-        return getSavePercentage();
-      default:
-        return 0;
-    }
-  };
-
-  // Format goal values based on category
-  const formatGoalValue = (value: number, goal: any) => {
-    if (goal.category === 'accuracy') {
-      return `${value}%`;
-    }
-    return Math.round(value).toString();
-  };
-
-  // Helper functions for goal calculations
-  const getTotalGoals = () => {
-    return games.reduce((total, game) => {
-      const stats = game.stats;
-      return total + (stats?.goals || 0);
-    }, 0);
-  };
-
-  const getTotalAssists = () => {
-    return games.reduce((total, game) => {
-      const stats = game.stats;
-      return total + (stats?.assists || 0);
-    }, 0);
-  };
-
-  const getTotalGroundBalls = () => {
-    return games.reduce((total, game) => {
-      const stats = game.stats;
-      return total + (stats?.groundBalls || 0);
-    }, 0);
-  };
-
-  const pickImage = async () => {
-    Alert.alert('Select Profile Picture', 'Choose an option', [
-      {
-        text: 'Camera',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== 'granted') {
-            Alert.alert('Sorry, we need camera permissions to take a photo!');
-            return;
-          }
-
-          const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-          });
-
-          if (!result.canceled && result.assets && result.assets[0]) {
-            setImage(result.assets[0].uri);
-            // TODO: Upload to Firebase and update user profile
-          }
-        },
-      },
-      {
-        text: 'Photo Library',
-        onPress: async () => {
-          const { status } =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== 'granted') {
-            Alert.alert(
-              'Sorry, we need photo library permissions to select a photo!',
-            );
-            return;
-          }
-
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-          });
-
-          if (!result.canceled && result.assets && result.assets[0]) {
-            setImage(result.assets[0].uri);
-            // TODO: Upload to Firebase and update user profile
-          }
-        },
-      },
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-    ]);
-  };
-
-  const handleDrawerNavigation = (screen: string) => {
-    switch (screen) {
-      case 'tutorials':
-        setShowTutorialSelection(true);
+        if (goal.unit.includes('assists/game')) {
+          const totalAssists = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.assists || 0), 0);
+          currentValue = totalGames > 0 ? totalAssists / totalGames : 0;
+        } else {
+          currentValue = filteredGames.reduce((sum: number, game: any) => sum + (game.stats?.assists || 0), 0);
+        }
         break;
       default:
-        console.log(`Navigating to: ${screen}`);
-        Alert.alert('Navigation', `${screen} screen coming soon!`);
-        break;
+        currentValue = 0;
     }
+    
+    return Math.min((currentValue / goal.targetValue) * 100, 100);
   };
 
-  const handleSignOut = async () => {
-    try {
-      console.log('LockerHomeScreen - Starting sign out process');
-      const { signOut } = useAuthStore.getState();
-      await signOut();
-      console.log('LockerHomeScreen - Sign out successful');
+  // Filter games for current user and season
+  const filteredGames = useMemo(() => {
+    if (!user?.uid || !games) return [];
+    const seasonMapping = {
+      'High School': 'School Season',
+      'Club': 'Club Season'
+    };
+    return games.filter((game: any) => 
+      game.userId === user.uid && game.seasonType === seasonMapping[selectedSeason]
+    );
+  }, [games, user?.uid, selectedSeason]);
 
-      // Navigate to Welcome screen after successful sign out
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Welcome' as never }],
-      });
-    } catch (error) {
-      console.error('LockerHomeScreen - Sign out error:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
-    }
+  // Stats calculation functions
+  const getCurrentStats = () => {
+    const totalSaves = filteredGames.reduce((total: number, game: any) => total + (game.stats?.saves || 0), 0);
+    const totalShots = filteredGames.reduce((total: number, game: any) => total + (game.stats?.shotsFaced || 0), 0);
+    const goalsAgainst = filteredGames.reduce((total: number, game: any) => total + (game.stats?.goalsAgainst || 0), 0);
+    const savePercentage = totalShots > 0 ? Math.round((totalSaves / totalShots) * 100) : 0;
+    
+    return { totalSaves, totalShots, goalsAgainst, savePercentage };
   };
 
-  const handleTaskAction = async (action: string) => {
-    // Track task view
-    await incrementTaskView(action);
-
-    switch (action) {
-      case 'DEMO_GAME_TRACKING':
-        setShowLogGameModal(true);
-        break;
-      case 'DEMO_RECRUITING':
-        setShowCollegePipelineModal(true);
-        break;
-      case 'DEMO_PROFILE':
-        setShowProfileFeaturesModal(true);
-        break;
-      case 'DEMO_SKILLS':
-        setShowSkillsDrillsModal(true);
-        break;
-      default:
-        break;
-    }
+  const getStatTrend = (statType: string) => {
+    if (filteredGames.length < 2) return { trend: 0, isUp: false };
+    
+    const recentGames = filteredGames.slice(0, 3);
+    const olderGames = filteredGames.slice(3, 6);
+    
+    const recentAvg = recentGames.reduce((sum: number, game: any) => 
+      sum + (game.stats?.[statType] || 0), 0) / recentGames.length;
+    const olderAvg = olderGames.length > 0 ? 
+      olderGames.reduce((sum: number, game: any) => sum + (game.stats?.[statType] || 0), 0) / olderGames.length : 0;
+    
+    const trend = olderAvg > 0 ? Math.round(((recentAvg - olderAvg) / olderAvg) * 100) : 0;
+    return { trend: Math.abs(trend), isUp: trend > 0 };
   };
 
-  const handleGameLogged = async (gameData: any) => {
-    if (!user?.uid) {
-      return;
-    }
-
-    try {
-      // Game logged successfully - could add gamification logic here later
-      console.log('Game logged:', gameData);
+  const handleGameAdded = () => {
+    if (user?.uid) {
       fetchUserGames(user.uid);
-    } catch (error) {
-      console.error('Error processing gamification events:', error);
     }
   };
+
+  const statCards = [
+    {
+      title: 'Save Percentage',
+      value: `${getCurrentStats().savePercentage}%`,
+      trend: getStatTrend('savePercentage'),
+      icon: 'shield-checkmark',
+      color: colors.primary,
+    },
+    {
+      title: 'Total Saves',
+      value: getCurrentStats().totalSaves.toString(),
+      trend: getStatTrend('saves'),
+      icon: 'hand-left',
+      color: colors.success,
+    },
+    {
+      title: 'Goals Against',
+      value: getCurrentStats().goalsAgainst.toString(),
+      trend: getStatTrend('goalsAgainst'),
+      icon: 'warning',
+      color: colors.warning,
+    },
+  ];
+
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topNavBar}>
-        <TouchableOpacity
-          style={styles.hamburgerMenu}
-          onPress={() => setShowDrawerMenu(true)}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Hero Player Card */}
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          style={styles.heroCard}
         >
-          <Ionicons name="menu" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.titleContainer}>
-          <Text style={styles.tabTitle}>Home</Text>
-        </View>
-        <View style={styles.rightIcons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons
-              name="calendar-outline"
-              size={24}
-              color={colors.textPrimary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons
-              name="notifications-outline"
-              size={24}
-              color={colors.textPrimary}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-      <DrawerMenu
-        visible={showDrawerMenu}
-        onClose={() => setShowDrawerMenu(false)}
-        onNavigate={handleDrawerNavigation}
-        onSignOut={handleSignOut}
-        showTutorials={tasks.filter(t => t.completed).length === tasks.length}
-      />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Player Header Card */}
-        <View style={styles.playerCard}>
-          <View style={styles.playerHeader}>
-            <TouchableOpacity
-              style={styles.profilePictureContainer}
-              onPress={pickImage}
-            >
-              {image || user?.photoURL || user?.profilePicture ? (
-                <Image
-                  source={{
-                    uri: (image || user?.photoURL || user?.profilePicture)!,
-                  }}
-                  style={styles.profilePicture}
-                />
-              ) : (
-                <View style={styles.profilePicturePlaceholder}>
-                  <Ionicons
-                    name="person"
-                    size={24}
-                    color={colors.textSecondary}
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-            <View style={styles.playerInfo}>
-              <View style={styles.playerNameRow}>
-                <Text style={styles.playerName}>
-                  {user?.firstName && user?.lastName
-                    ? `${user.firstName} ${user.lastName}`
-                    : user?.firstName
-                      ? user.firstName
-                      : user?.email
-                        ? user.email.split('@')[0]
-                        : 'Player Name'}
+          <View style={styles.heroHeader}>
+            <View style={styles.heroLeft}>
+              <Image
+                source={
+                  user?.photoURL ? { uri: user.photoURL } : require('../../../../assets/images/default-avatar.png')
+                }
+                style={styles.heroProfileImage}
+              />
+              <View style={styles.heroInfo}>
+                <Text style={styles.heroName}>
+                  {user?.firstName} {user?.lastName}
                 </Text>
-                <View style={styles.sportBadge}>
-                  <Text style={styles.sportBadgeText}>
-                    {user?.sport || 'Lacrosse'}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.playerDetails}>
-                {user?.graduationYear
-                  ? `Class of ${user.graduationYear}`
-                  : 'Class of 2027'}{' '}
-                • {user?.position || 'Position'}
-              </Text>
-
-              {/* Stats Row */}
-              <View style={styles.playerStatsRow}>
-                <View style={styles.playerStatItem}>
-                  <Text style={styles.playerStatValue}>
-                    {user?.height || '5\' 11"'}
-                  </Text>
-                  <Text style={styles.playerStatLabel}>HT</Text>
-                </View>
-                <View style={styles.playerStatItem}>
-                  <Text style={styles.playerStatValue}>
-                    {user?.gpa ? `${user.gpa} / 4.00` : 'Not Set'}
-                  </Text>
-                  <Text style={styles.playerStatLabel}>GPA</Text>
-                </View>
-              </View>
-
-              {/* Location Row */}
-              <View style={styles.playerLocationRow}>
-                <View style={styles.playerLocationItem}>
-                  <Text style={styles.playerLocationValue}>
-                    {selectedSeason === 'school'
-                      ? user?.highSchool?.name || 'High School'
-                      : user?.club?.name || 'Club Team'}
-                  </Text>
-                  <Text style={styles.playerLocationLabel}>
-                    {selectedSeason === 'school' ? 'SCHOOL' : 'CLUB'}
-                  </Text>
-                </View>
-                <View style={styles.playerLocationItem}>
-                  <Text style={styles.playerLocationValue}>
-                    {selectedSeason === 'school'
-                      ? `${user?.highSchool?.city || 'City'}, ${user?.highSchool?.state || 'State'}`
-                      : `${user?.club?.city || 'City'}, ${user?.club?.state || 'State'}`}
-                  </Text>
-                  <Text style={styles.playerLocationLabel}>HOMETOWN</Text>
-                </View>
+                <Text style={styles.heroPosition}>
+                  {user?.position || 'Player'} • #{teamContext.jerseyNumber}
+                </Text>
+                <Text style={styles.heroTeam}>
+                  {teamContext.teamName}
+                  {teamContext.city && teamContext.state && ` • ${teamContext.city}, ${teamContext.state}`}
+                </Text>
               </View>
             </View>
+            <TouchableOpacity style={styles.editButton}>
+              <Ionicons name="pencil" size={20} color={colors.white} />
+            </TouchableOpacity>
           </View>
-
+          
           {/* Season Toggle */}
           <View style={styles.seasonToggle}>
             <TouchableOpacity
               style={[
-                styles.seasonButton,
-                selectedSeason === 'school' && styles.seasonButtonActive,
+                styles.toggleButton,
+                selectedSeason === 'High School' && styles.toggleButtonActive
               ]}
-              onPress={() => setSelectedSeason('school')}
+              onPress={() => setSelectedSeason('High School')}
             >
               <Text
                 style={[
-                  styles.seasonButtonText,
-                  selectedSeason === 'school' && styles.seasonButtonTextActive,
+                  styles.toggleText,
+                  selectedSeason === 'High School' && styles.toggleTextActive
                 ]}
               >
-                High School
+                HS
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
-                styles.seasonButton,
-                selectedSeason === 'club' && styles.seasonButtonActive,
+                styles.toggleButton,
+                selectedSeason === 'Club' && styles.toggleButtonActive
               ]}
-              onPress={() => setSelectedSeason('club')}
+              onPress={() => setSelectedSeason('Club')}
             >
               <Text
                 style={[
-                  styles.seasonButtonText,
-                  selectedSeason === 'club' && styles.seasonButtonTextActive,
+                  styles.toggleText,
+                  selectedSeason === 'Club' && styles.toggleTextActive
                 ]}
               >
                 Club
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Enhanced Get Started Section - Show for new users who haven't completed all demos */}
-        {filteredGames.length === 0 &&
-          tasks.filter(t => t.completed).length < tasks.length && (
-            <View style={styles.getStartedSection}>
-              <LinearGradient
-                colors={[colors.primary, colors.primaryDark]}
-                style={styles.getStartedHeader}
-              >
-                <View style={styles.getStartedHeaderContent}>
-                  <Text style={styles.getStartedTitle}>
-                    🚀 Welcome to StatLocker!
-                  </Text>
-                  <Text style={styles.getStartedSubtitle}>
-                    Complete these 4 steps to unlock your full potential
-                  </Text>
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${(tasks.filter(t => t.completed).length / tasks.length) * 100}%`,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.progressText}>
-                      {tasks.filter(t => t.completed).length} of {tasks.length}{' '}
-                      completed
-                    </Text>
-                  </View>
-                </View>
-              </LinearGradient>
-
-              <View style={styles.tasksContainer}>
-                <DemoCard
-                  title="Game Tracking"
-                  subtitle="Learn to track your performance"
-                  icon="stats-chart"
-                  gradientColors={[colors.primary, colors.primaryDark]}
-                  onPress={() => handleTaskAction('DEMO_GAME_TRACKING')}
-                  completed={
-                    tasks.find(t => t.action === 'DEMO_GAME_TRACKING')
-                      ?.completed || false
-                  }
-                />
-                <DemoCard
-                  title="College Pipeline"
-                  subtitle="Connect with college coaches"
-                  icon="school"
-                  gradientColors={[colors.success, '#10B981']}
-                  onPress={() => handleTaskAction('DEMO_RECRUITING')}
-                  completed={
-                    tasks.find(t => t.action === 'DEMO_RECRUITING')
-                      ?.completed || false
-                  }
-                />
-                <DemoCard
-                  title="Profile Features"
-                  subtitle="Showcase your achievements"
-                  icon="person-circle"
-                  gradientColors={[colors.warning, '#F59E0B']}
-                  onPress={() => handleTaskAction('DEMO_PROFILE')}
-                  completed={
-                    tasks.find(t => t.action === 'DEMO_PROFILE')?.completed ||
-                    false
-                  }
-                />
-                <DemoCard
-                  title="Skills & Drills"
-                  subtitle="Improve your game"
-                  icon="fitness"
-                  gradientColors={[colors.error, '#EF4444']}
-                  onPress={() => handleTaskAction('DEMO_SKILLS')}
-                  completed={
-                    tasks.find(t => t.action === 'DEMO_SKILLS')?.completed ||
-                    false
-                  }
-                />
-              </View>
-            </View>
-          )}
-
-        {/* Show stat cards when all demos are completed or user has games */}
-        {(filteredGames.length > 0 ||
-          tasks.filter(t => t.completed).length === tasks.length) && (
+        {/* 2x2 Stats Grid with Trend Indicators */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Performance Stats</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{getTotalSaves()}</Text>
-              <Text style={styles.statLabel}>Total Saves</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{getSavePercentage()}%</Text>
-              <Text style={styles.statLabel}>Save %</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{getShotsFaced()}</Text>
-              <Text style={styles.statLabel}>Shots Faced</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{getGoalsAgainst()}</Text>
-              <Text style={styles.statLabel}>Goals Against</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Per Game Averages */}
-        {(filteredGames.length > 0 ||
-          tasks.filter(t => t.completed).length === tasks.length) && (
-          <View style={styles.averagesSection}>
-            <Text style={styles.sectionTitle}>Per Game Averages</Text>
-            <Text style={styles.sectionSubtitle}>
-              ({filteredGames.length} Games)
-            </Text>
-
-            <View style={styles.averagesGrid}>
-              <View style={styles.averageItem}>
-                <Text style={styles.averageValue}>{getAverageSaves()}</Text>
-                <Text style={styles.averageLabel}>Saves</Text>
-              </View>
-              <View style={styles.averageItem}>
-                <Text style={styles.averageValue}>
-                  {getAverageShotsFaced()}
-                </Text>
-                <Text style={styles.averageLabel}>Shots Faced</Text>
-              </View>
-              <View style={styles.averageItem}>
-                <Text style={styles.averageValue}>
-                  {getAverageGoalsAgainst()}
-                </Text>
-                <Text style={styles.averageLabel}>Goals Against</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Season Goals */}
-        <View style={styles.goalsSection}>
-          <Text style={styles.sectionTitle}>Season Goals</Text>
-          {renderSeasonGoals()}
-        </View>
-
-        {/* AI Insights */}
-        <View style={styles.insightsSection}>
-          <Text style={styles.sectionTitle}>AI Insights</Text>
-
-          <View style={styles.lockedInsight}>
-            <View style={styles.lockIcon}>
-              <Text style={styles.lockEmoji}>🔒</Text>
-            </View>
-            <View style={styles.lockedContent}>
-              <Text style={styles.lockedTitle}>AI Insights Locked</Text>
-              <Text style={styles.lockedSubtext}>
-                Log 3 games to unlock personalized AI insights and performance
-                analysis
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Upcoming Events */}
-        <View style={styles.eventsSection}>
-          <Text style={styles.sectionTitle}>Upcoming Events</Text>
-
-          <View style={styles.noEventsContainer}>
-            <Text style={styles.noEventsEmoji}>📅</Text>
-            <Text style={styles.noEventsTitle}>No Upcoming Events</Text>
-            <Text style={styles.noEventsSubtext}>
-              Upload your schedule or add practice times to see upcoming events
-            </Text>
-          </View>
-        </View>
-
-        {/* Recent Games */}
-        <View style={styles.recentGamesSection}>
-          <Text style={styles.sectionTitle}>Recent Games</Text>
-
-          {filteredGames
-            .slice(-3)
-            .reverse()
-            .map((game: any, index: number) => (
-              <View key={index} style={styles.recentGameItem}>
-                <View style={styles.gameHeader}>
-                  <View style={styles.gameOpponent}>
-                    <Text style={styles.opponentName}>
-                      {game.isHome ? 'vs.' : '@'}{' '}
-                      {game.opponent || 'Unknown Opponent'}
-                    </Text>
-                    <Text style={styles.gameDate}>
-                      {new Date(game.date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.gameResult}>
-                    <Text style={styles.scoreText}>
-                      {game.teamScore || 0} - {game.opponentScore || 0}
-                    </Text>
+            {statCards.slice(0, 4).map((stat, index) => (
+              <View key={index} style={styles.statGridItem}>
+                <View style={styles.statGridHeader}>
+                  <Ionicons name={stat.icon as any} size={24} color={stat.color} />
+                  <View style={styles.trendIndicator}>
+                    <Ionicons
+                      name={stat.trend.isUp ? 'trending-up' : 'trending-down'}
+                      size={14}
+                      color={stat.trend.isUp ? colors.success : colors.error}
+                    />
                     <Text
                       style={[
-                        styles.resultText,
-                        (game.teamScore || 0) > (game.opponentScore || 0)
-                          ? styles.winText
-                          : styles.lossText,
+                        styles.trendPercentage,
+                        { color: stat.trend.isUp ? colors.success : colors.error },
                       ]}
                     >
-                      {(game.teamScore || 0) > (game.opponentScore || 0)
-                        ? 'W'
-                        : 'L'}
+                      {stat.trend.trend}%
                     </Text>
                   </View>
                 </View>
-
-                <View style={styles.gameStats}>
-                  <View style={styles.gameStatItem}>
-                    <Text style={styles.gameStatValue}>
-                      {game.stats?.saves || 0}
-                    </Text>
-                    <Text style={styles.gameStatLabel}>Saves</Text>
-                  </View>
-                  <View style={styles.gameStatItem}>
-                    <Text style={styles.gameStatValue}>
-                      {game.stats?.shots || 0}
-                    </Text>
-                    <Text style={styles.gameStatLabel}>Shots</Text>
-                  </View>
-                  <View style={styles.gameStatItem}>
-                    <Text style={styles.gameStatValue}>
-                      {game.stats?.goalsAgainst || 0}
-                    </Text>
-                    <Text style={styles.gameStatLabel}>GA</Text>
-                  </View>
-                  <View style={styles.gameStatItem}>
-                    <Text style={styles.gameStatValue}>
-                      {game.stats?.shots > 0
-                        ? (
-                            ((game.stats?.saves || 0) / game.stats.shots) *
-                            100
-                          ).toFixed(1) + '%'
-                        : '0.0%'}
-                    </Text>
-                    <Text style={styles.gameStatLabel}>Save %</Text>
-                  </View>
-                </View>
+                <Text style={styles.statGridValue}>{stat.value}</Text>
+                <Text style={styles.statGridLabel}>{stat.title}</Text>
               </View>
             ))}
+          </View>
+        </View>
 
-          {filteredGames.length === 0 && (
-            <View style={styles.noGamesContainer}>
-              <Text style={styles.noGamesText}>No games logged yet</Text>
-              <Text style={styles.noGamesSubtext}>
-                Tap the + button to log your first game
+        {/* Per Game Averages */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Per Game Averages</Text>
+          <View style={styles.averagesContainer}>
+            <Text style={styles.averagesSubtitle}>
+              Based on {filteredGames.length} games this {selectedSeason.toLowerCase()} season
+            </Text>
+            <View style={styles.averagesGrid}>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>
+                  {filteredGames.length > 0 
+                    ? (getCurrentStats().totalSaves / filteredGames.length).toFixed(1)
+                    : '0.0'
+                  }
+                </Text>
+                <Text style={styles.averageLabel}>Saves/Game</Text>
+              </View>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>
+                  {filteredGames.length > 0 
+                    ? (getCurrentStats().goalsAgainst / filteredGames.length).toFixed(1)
+                    : '0.0'
+                  }
+                </Text>
+                <Text style={styles.averageLabel}>Goals Against/Game</Text>
+              </View>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>
+                  {getCurrentStats().savePercentage}%
+                </Text>
+                <Text style={styles.averageLabel}>Save %</Text>
+              </View>
+              <View style={styles.averageItem}>
+                <Text style={styles.averageValue}>
+                  {filteredGames.length > 0 
+                    ? (filteredGames.reduce((sum: number, game: any) => 
+                        sum + (game.stats?.groundBalls || 0), 0) / filteredGames.length).toFixed(1)
+                    : '0.0'
+                  }
+                </Text>
+                <Text style={styles.averageLabel}>Ground Balls/Game</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Position-Specific Season Goals */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Season Goals</Text>
+          <View style={styles.goalHeader}>
+            <Text style={styles.goalSubtitle}>
+              {user?.position || 'Player'}-specific goals for {selectedSeason.toLowerCase()} season
+            </Text>
+          </View>
+          {positionGoals.length > 0 ? (
+            positionGoals.map((goal) => {
+              const progress = calculateGoalProgress(goal);
+              return (
+                <View key={goal.id} style={styles.goalCard}>
+                  <View style={styles.goalHeader}>
+                    <View style={styles.goalTitleContainer}>
+                      <Ionicons name={goal.icon as any} size={20} color={colors.primary} />
+                      <Text style={styles.goalTitle}>{goal.title}</Text>
+                    </View>
+                    <Text style={styles.goalProgress}>
+                      {progress.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { 
+                          width: `${progress}%`,
+                          backgroundColor: progress >= 100 ? colors.success : colors.primary
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.motivationText}>{goal.description}</Text>
+                </View>
+              );
+            })
+          ) : (
+            <View style={styles.emptyGoalsContainer}>
+              <Ionicons name="trophy" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyGoalsText}>
+                No goals available for your position
               </Text>
+              <Text style={styles.emptyGoalsSubtext}>
+                Complete your profile setup to see personalized goals
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* AI Insights Preview */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>AI Insights</Text>
+          <View style={styles.aiInsightCard}>
+            <View style={styles.aiInsightHeader}>
+              <MaterialIcons name="psychology" size={24} color={colors.primary} />
+              <Text style={styles.aiInsightTitle}>Performance Analysis</Text>
+            </View>
+            <View style={styles.blurredContent}>
+              <Text style={styles.blurredText}>
+                Your save percentage has improved by 12% over the last 5 games...
+              </Text>
+              <Text style={styles.blurredText}>
+                Focus on low shots to continue this trend...
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.unlockButton}>
+              <Ionicons name="lock-closed" size={16} color={colors.white} />
+              <Text style={styles.unlockButtonText}>Unlock Premium Insights</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Events & Schedule */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Upcoming Events</Text>
+          <View style={styles.eventsContainer}>
+            <View style={styles.miniCalendar}>
+              <Text style={styles.calendarMonth}>December 2024</Text>
+              <View style={styles.calendarGrid}>
+                {/* Mini calendar implementation would go here */}
+                <Text style={styles.calendarPlaceholder}>📅 Mini Calendar</Text>
+              </View>
+            </View>
+            <View style={styles.eventActions}>
+              <TouchableOpacity
+                style={styles.eventActionButton}
+                onPress={() => setGameModalVisible(true)}
+              >
+                <Ionicons name="add" size={20} color={colors.white} />
+                <Text style={styles.eventActionText}>Add Game</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.eventActionButtonSecondary}>
+                <Ionicons name="download" size={20} color={colors.primary} />
+                <Text style={styles.eventActionTextSecondary}>Import Schedule</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Recent Games Enhanced */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Recent Games</Text>
+          {filteredGames.length > 0 ? (
+            filteredGames.slice(0, 3).map((game: any, index: number) => (
+              <View key={index} style={styles.enhancedGameCard}>
+                <View style={styles.gameCardHeader}>
+                  <View style={styles.gameInfo}>
+                    <Text style={styles.gameOpponent}>vs {game.opponent}</Text>
+                    <Text style={styles.gameDate}>
+                      {new Date(game.date).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <View style={styles.gameBadges}>
+                    <View style={[styles.badge, styles.winBadge]}>
+                      <Text style={styles.badgeText}>W</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.gameStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{game.stats?.saves || 0}</Text>
+                    <Text style={styles.statLabel}>Saves</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{game.stats?.goalsAgainst || 0}</Text>
+                    <Text style={styles.statLabel}>GA</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>
+                      {game.stats?.saves && game.stats?.shotsFaced
+                        ? Math.round((game.stats.saves / game.stats.shotsFaced) * 100)
+                        : 0}%
+                    </Text>
+                    <Text style={styles.statLabel}>Save %</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.expandButton}>
+                  <Text style={styles.expandText}>View Full Stats</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyStateText}>
+                No games logged yet. Start tracking your performance!
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                onPress={() => setGameModalVisible(true)}
+              >
+                <Text style={styles.emptyStateButtonText}>Log Your First Game</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
 
+      {/* Game Tracking Modal */}
       <GameTrackingModal
-        visible={showLogGameModal}
-        onClose={async () => {
-          setShowLogGameModal(false);
-          await markTaskCompleted('DEMO_GAME_TRACKING');
-        }}
-        initialMode="setup"
-        onGameLogged={handleGameLogged}
-        demoMode={true}
-      />
-
-      <CollegePipelineModal
-        visible={showCollegePipelineModal}
-        onClose={async () => {
-          setShowCollegePipelineModal(false);
-          await markTaskCompleted('DEMO_RECRUITING');
-        }}
-      />
-
-      <ProfileFeaturesModal
-        visible={showProfileFeaturesModal}
-        onClose={async () => {
-          setShowProfileFeaturesModal(false);
-          await markTaskCompleted('DEMO_PROFILE');
-        }}
-      />
-
-      <SkillsDrillsModal
-        visible={showSkillsDrillsModal}
-        onClose={async () => {
-          setShowSkillsDrillsModal(false);
-          await markTaskCompleted('DEMO_SKILLS');
-        }}
-      />
-
-      {/* Tutorial Selection Modal */}
-      <Modal
-        visible={showTutorialSelection}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowTutorialSelection(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.tutorialSelectionModal}>
-            <View style={styles.tutorialModalHeader}>
-              <Text style={styles.tutorialModalTitle}>Choose Tutorial</Text>
-              <TouchableOpacity
-                onPress={() => setShowTutorialSelection(false)}
-                style={styles.tutorialCloseButton}
-              >
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.tutorialOptionsContainer}>
-              <TouchableOpacity
-                style={styles.tutorialOption}
-                onPress={() => {
-                  setShowTutorialSelection(false);
-                  setShowLogGameModal(true);
-                }}
-              >
-                <View style={styles.tutorialOptionIcon}>
-                  <Ionicons
-                    name="stats-chart"
-                    size={24}
-                    color={colors.primary}
-                  />
-                </View>
-                <Text style={styles.tutorialOptionTitle}>Game Tracking</Text>
-                <Text style={styles.tutorialOptionSubtitle}>
-                  Learn to track your performance
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.tutorialOption}
-                onPress={() => {
-                  setShowTutorialSelection(false);
-                  setShowCollegePipelineModal(true);
-                }}
-              >
-                <View style={styles.tutorialOptionIcon}>
-                  <Ionicons name="school" size={24} color={colors.primary} />
-                </View>
-                <Text style={styles.tutorialOptionTitle}>College Pipeline</Text>
-                <Text style={styles.tutorialOptionSubtitle}>
-                  Connect with college coaches
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.tutorialOption}
-                onPress={() => {
-                  setShowTutorialSelection(false);
-                  setShowProfileFeaturesModal(true);
-                }}
-              >
-                <View style={styles.tutorialOptionIcon}>
-                  <Ionicons name="person" size={24} color={colors.primary} />
-                </View>
-                <Text style={styles.tutorialOptionTitle}>Profile Features</Text>
-                <Text style={styles.tutorialOptionSubtitle}>
-                  Showcase your achievements
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.tutorialOption}
-                onPress={() => {
-                  setShowTutorialSelection(false);
-                  setShowSkillsDrillsModal(true);
-                }}
-              >
-                <View style={styles.tutorialOptionIcon}>
-                  <Ionicons name="fitness" size={24} color={colors.primary} />
-                </View>
-                <Text style={styles.tutorialOptionTitle}>Skills & Drills</Text>
-                <Text style={styles.tutorialOptionSubtitle}>
-                  Improve your game
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Smart Demo System */}
-      <SmartDemoSystem
-        visible={activeDemoType !== null}
-        demoType={activeDemoType || 'game_tracking'}
-        onClose={closeDemoType}
-        onComplete={async () => {
-          if (activeDemoType) {
-            await completeDemoType(activeDemoType);
-            await markTaskCompleted(
-              `DEMO_${activeDemoType.toUpperCase().replace('_', '_')}`,
-            );
-          }
-        }}
+        visible={gameModalVisible}
+        onClose={() => setGameModalVisible(false)}
+        onGameLogged={handleGameAdded}
       />
     </SafeAreaView>
   );
@@ -944,1100 +502,551 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  topNavBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: tokens.spacing.s,
-    backgroundColor: colors.background,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.neutral200,
-  },
-  hamburgerMenu: {
-    padding: tokens.spacing.s,
-  },
-  titleContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabTitle: {
-    fontSize: tokens.typography.h1.size,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-  },
-  rightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.spacing.m,
-  },
-  iconButton: {
-    padding: tokens.spacing.s,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: tokens.spacing.m,
-  },
-  athleteCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: tokens.spacing.m,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  athleteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.m,
-  },
-  profilePictureContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: tokens.spacing.m,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profilePicture: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  profilePicturePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  athleteInfo: {
-    flex: 1,
-  },
-  athleteName: {
-    fontSize: tokens.typography.h2.size,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    marginBottom: tokens.spacing.xs,
-  },
-  athleteClass: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginBottom: tokens.spacing.s,
-  },
-  playerTags: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.s,
-  },
-  tagText: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-  },
-  tagSeparator: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginHorizontal: tokens.spacing.s,
-  },
-  // New Dashboard Styles
-  playerCard: {
-    backgroundColor: colors.surface,
+  // Hero Player Card Styles
+  heroCard: {
+    margin: spacing.md,
+    padding: spacing.lg,
     borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  playerHeader: {
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  heroLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: tokens.spacing.m,
-  },
-  playerInfo: {
     flex: 1,
-    marginLeft: tokens.spacing.m,
   },
-  playerName: {
+  heroProfileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginRight: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
+  heroInfo: {
+    flex: 1,
+  },
+  heroName: {
     fontSize: fontSizes.xl,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    fontFamily: fonts.jakarta.medium,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
-  playerDetails: {
+  heroPosition: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.white,
+    opacity: 0.9,
+  },
+  heroTeam: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
+    color: colors.white,
+    opacity: 0.8,
+    marginTop: spacing.xs,
   },
-  playerLocation: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  // New Player Card Styles
-  playerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: tokens.spacing.xs,
-  },
-  sportBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: tokens.spacing.s,
-    paddingVertical: tokens.spacing.xs / 2,
+  editButton: {
+    padding: spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: borderRadius.sm,
   },
-  sportBadgeText: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.white,
-    fontWeight: '600',
-  },
-  playerStatsRow: {
-    flexDirection: 'row',
-    marginTop: tokens.spacing.m,
-    marginBottom: tokens.spacing.m,
-    gap: tokens.spacing.xl,
-  },
-  playerStatItem: {
-    alignItems: 'flex-start',
-  },
-  playerStatValue: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    lineHeight: 24,
-  },
-  playerStatLabel: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  playerLocationRow: {
-    flexDirection: 'row',
-    gap: tokens.spacing.xl,
-  },
-  playerLocationItem: {
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  playerLocationValue: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  playerLocationLabel: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    fontWeight: '500',
-    marginTop: 2,
-  },
+  // Season Toggle Styles
   seasonToggle: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: tokens.spacing.m,
-    paddingHorizontal: tokens.spacing.m,
-    gap: tokens.spacing.l,
-  },
-  seasonButton: {
-    backgroundColor: colors.background,
-    paddingHorizontal: tokens.spacing.m,
-    paddingVertical: tokens.spacing.s,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
+    padding: spacing.xs,
   },
-  seasonButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  toggleButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+    alignItems: 'center',
   },
-  seasonButtonText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
+  toggleButtonActive: {
+    backgroundColor: colors.white,
   },
-  seasonButtonTextActive: {
+  toggleText: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
     color: colors.white,
   },
-  gamesPlayedBadge: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: tokens.spacing.m,
-    paddingVertical: tokens.spacing.xs,
-    borderRadius: borderRadius.md,
-  },
-  gamesPlayedText: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
+  toggleTextActive: {
     color: colors.primary,
-    fontWeight: '500',
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: tokens.spacing.m,
+  // Stat Carousel Styles
+  statCarouselContainer: {
+    marginTop: spacing.lg,
+  },
+  statCarouselContent: {
+    paddingHorizontal: spacing.md,
   },
   statCard: {
-    backgroundColor: colors.surface,
+    width: width - 80,
+    marginHorizontal: spacing.sm,
+    padding: spacing.lg,
     borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    width: '48%',
-    minHeight: 80,
-    marginBottom: tokens.spacing.s,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
-  statHeader: {
-    marginBottom: tokens.spacing.s,
+  trendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  statPercentage: {
-    fontSize: fontSizes['3xl'],
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '700',
+  trendText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    marginLeft: spacing.xs,
   },
   statValue: {
-    fontSize: fontSizes.xl,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    marginBottom: tokens.spacing.xs,
-    textAlign: 'center',
+    fontSize: fontSizes['2xl'],
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   statLabel: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.md,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
-    textAlign: 'center',
+    marginBottom: spacing.md,
   },
-  statChange: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  statChangePositive: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.success,
-    marginTop: 2,
-  },
-  secondaryStats: {
+  drillDownButton: {
     flexDirection: 'row',
-    gap: tokens.spacing.m,
-    marginBottom: tokens.spacing.l,
-  },
-  secondaryStatItem: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: tokens.spacing.m,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.sm,
   },
-  secondaryStatIcon: {
-    fontSize: 24,
-    marginBottom: tokens.spacing.xs,
+  drillDownText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
+    marginRight: spacing.xs,
   },
-  secondaryStatLabel: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  secondaryStatValue: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  secondaryStatSubtext: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  averagesSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  // Section Styles
+  sectionContainer: {
+    margin: spacing.md,
+    marginTop: spacing.lg,
   },
   sectionTitle: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    marginBottom: tokens.spacing.xs,
-  },
-  sectionSubtitle: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginBottom: tokens.spacing.m,
-  },
-  averagesGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  averageItem: {
-    alignItems: 'center',
-  },
-  averageValue: {
     fontSize: fontSizes.xl,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
-  averageLabel: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 2,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
-  goalsSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
+  refreshButton: {
+    padding: spacing.sm,
+  },
+  // Season Goals Styles
+  goalCard: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  goalItem: {
-    marginBottom: tokens.spacing.m,
   },
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: tokens.spacing.xs,
+    marginBottom: spacing.md,
   },
-  goalLabel: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '500',
+  goalTitle: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    flex: 1,
   },
   goalProgress: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
   },
-  goalProgressBar: {
+  progressBar: {
     height: 6,
-    backgroundColor: colors.neutral200,
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 3,
-    marginBottom: tokens.spacing.xs,
+    marginBottom: spacing.sm,
   },
-  goalProgressFill: {
+  progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
     borderRadius: 3,
   },
-  goalSubtext: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  insightsSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  insightItem: {
-    flexDirection: 'row',
-    marginBottom: tokens.spacing.m,
-  },
-  insightIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: tokens.spacing.m,
-  },
-  insightEmoji: {
-    fontSize: 16,
-  },
-  insightContent: {
-    flex: 1,
-  },
-  insightText: {
+  motivationText: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    lineHeight: 20,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
-  // Locked Insight Styles
-  lockedInsight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: tokens.spacing.m,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
-  },
-  lockIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.textSecondary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: tokens.spacing.m,
-  },
-  lockEmoji: {
-    fontSize: 20,
-  },
-  lockedContent: {
-    flex: 1,
-  },
-  lockedTitle: {
+  goalSubtitle: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  lockedSubtext: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
-    lineHeight: 16,
+    marginBottom: spacing.md,
   },
-  // Events Section Styles
-  eventsSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  eventItem: {
+  goalTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: tokens.spacing.m,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-  },
-  eventDate: {
-    width: 50,
-    alignItems: 'center',
-    marginRight: tokens.spacing.m,
-  },
-  eventMonth: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  eventDay: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  eventDetails: {
     flex: 1,
   },
-  eventTitle: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  eventSubtitle: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  eventLocation: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  eventType: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: tokens.spacing.s,
-    paddingVertical: tokens.spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  eventTypeText: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  // No Events Styles
-  noEventsContainer: {
+  emptyGoalsContainer: {
     alignItems: 'center',
-    padding: tokens.spacing.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
-  noEventsEmoji: {
-    fontSize: 48,
-    marginBottom: tokens.spacing.m,
+  emptyGoalsText: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
-  noEventsTitle: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    marginBottom: tokens.spacing.s,
-  },
-  noEventsSubtext: {
+  emptyGoalsSubtext: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
   },
-  // Recent Games Section Styles
-  recentGamesSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
+  // Stats Grid Styles
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  statGridItem: {
+    width: '48%',
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  recentGameItem: {
-    paddingVertical: tokens.spacing.m,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-  },
-  gameHeader: {
+  statGridHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: tokens.spacing.s,
+    marginBottom: spacing.sm,
   },
-  gameOpponent: {
-    flex: 1,
+  trendIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  opponentName: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  gameDate: {
+  trendPercentage: {
     fontSize: fontSizes.xs,
+    fontFamily: fonts.jakarta.medium,
+    marginLeft: spacing.xs,
+  },
+  statGridValue: {
+    fontSize: fontSizes.xl,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  statGridLabel: {
+    fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
     color: colors.textSecondary,
-    marginTop: 2,
   },
-  gameResult: {
-    alignItems: 'flex-end',
+  // Per Game Averages Styles
+  averagesContainer: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  scoreText: {
+  averagesSubtitle: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-    fontWeight: '500',
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
   },
-  resultText: {
-    fontSize: fontSizes.xs,
+  averagesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  averageItem: {
+    width: '48%',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+  },
+  averageValue: {
+    fontSize: fontSizes.lg,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  averageLabel: {
+    fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.regular,
-    fontWeight: '600',
-    marginTop: 2,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
-  winText: {
-    color: colors.success,
+  // AI Insights Styles
+  aiInsightCard: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  lossText: {
-    color: colors.error,
+  aiInsightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  aiInsightTitle: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginLeft: spacing.sm,
+  },
+  blurredContent: {
+    opacity: 0.5,
+    marginBottom: spacing.md,
+  },
+  blurredText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  unlockButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  unlockButtonText: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.white,
+    marginLeft: spacing.sm,
+  },
+  // Events & Schedule Styles
+  eventsContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  miniCalendar: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  calendarMonth: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  calendarGrid: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 80,
+  },
+  calendarPlaceholder: {
+    fontSize: fontSizes.lg,
+    color: colors.textSecondary,
+  },
+  eventActions: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  eventActionButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
+  },
+  eventActionText: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.white,
+    marginLeft: spacing.sm,
+  },
+  eventActionButtonSecondary: {
+    backgroundColor: colors.backgroundSecondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  eventActionTextSecondary: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.primary,
+    marginLeft: spacing.sm,
+  },
+  // Enhanced Games Styles
+  enhancedGameCard: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gameCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  gameInfo: {
+    flex: 1,
+  },
+  gameOpponent: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  gameDate: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.jakarta.regular,
+    color: colors.textSecondary,
+  },
+  gameBadges: {
+    flexDirection: 'row',
+  },
+  badge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginLeft: spacing.xs,
+  },
+  winBadge: {
+    backgroundColor: colors.success,
+  },
+  badgeText: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.white,
   },
   gameStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: tokens.spacing.s,
-  },
-  gameStatItem: {
-    alignItems: 'center',
-  },
-  gameStatValue: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  gameStatLabel: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  noGamesContainer: {
-    alignItems: 'center',
-    paddingVertical: tokens.spacing.xl,
-  },
-  noGamesText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    marginBottom: tokens.spacing.xs,
-  },
-  noGamesSubtext: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  schoolInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  schoolText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  toggle: {
-    backgroundColor: colors.background,
-    paddingHorizontal: tokens.spacing.m,
-    paddingVertical: tokens.spacing.s,
-    borderRadius: borderRadius.md,
-    borderColor: colors.neutral200,
-    borderWidth: 1,
-  },
-  selectedToggle: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: tokens.spacing.m,
-    paddingVertical: tokens.spacing.s,
-    borderRadius: borderRadius.md,
-  },
-  toggleText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  selectedToggleText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textPrimary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   statItem: {
     alignItems: 'center',
-    flex: 1,
   },
-  statIcon: {
-    fontSize: 24,
-    marginBottom: tokens.spacing.xs,
-  },
-  getStartedSection: {
-    marginBottom: tokens.spacing.l,
-  },
-  getStartedHeader: {
-    marginBottom: tokens.spacing.m,
-  },
-  getStartedWelcomeTitle: {
-    fontSize: tokens.typography.h2.size,
-    fontFamily: fonts.anton,
-    color: colors.textPrimary,
-    marginBottom: tokens.spacing.xs,
-  },
-  getStartedWelcomeSubtitle: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  taskCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: tokens.spacing.l,
-    marginBottom: tokens.spacing.m,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  taskCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: tokens.spacing.m,
-  },
-  taskEmoji: {
-    fontSize: 24,
-    color: colors.textPrimary,
-  },
-  taskDetails: {
-    flex: 1,
-  },
-  taskTitle: {
+  statNumber: {
     fontSize: fontSizes.lg,
     fontFamily: fonts.jakarta.medium,
-    color: colors.textPrimary,
-    marginBottom: 4,
+    color: colors.primary,
+    marginBottom: spacing.xs,
   },
-  taskDescription: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-  },
-  taskProgress: {
+  expandButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: tokens.spacing.s,
-    gap: tokens.spacing.s,
-  },
-  taskProgressBar: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.background,
-  },
-  taskProgressFill: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-  },
-  taskStatus: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
-    minWidth: 70,
-    textAlign: 'right',
-  },
-  taskChevron: {
-    marginLeft: tokens.spacing.s,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  getStartedHeaderContent: {
-    padding: tokens.spacing.l,
-  },
-  getStartedTitle: {
-    fontSize: fontSizes.xl,
-    fontFamily: fonts.anton,
-    color: colors.surface,
-    marginBottom: tokens.spacing.xs,
-    textAlign: 'center',
-  },
-  getStartedSubtitle: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.surface,
-    textAlign: 'center',
-    opacity: 0.9,
-    marginBottom: tokens.spacing.m,
-  },
-  progressContainer: {
-    alignItems: 'center',
-  },
-  progressTrack: {
-    width: '100%',
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 3,
-    marginBottom: tokens.spacing.s,
-  },
-  progressFill: {
-    height: 6,
-    backgroundColor: colors.surface,
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.surface,
-    opacity: 0.9,
-  },
-  tasksContainer: {
-    padding: tokens.spacing.m,
-  },
-  taskCardHighlighted: {
-    borderWidth: 2,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  taskLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: tokens.spacing.l,
-  },
-  taskNumberText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.bold,
-    color: colors.surface,
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.xs,
-  },
-  taskTime: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.success,
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: tokens.spacing.s,
-    paddingVertical: 2,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.sm,
   },
-  taskFooter: {
-    marginTop: tokens.spacing.s,
-  },
-  taskStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskStatusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.warning,
-    marginRight: tokens.spacing.xs,
-  },
-  motivationCard: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: borderRadius.md,
-    padding: tokens.spacing.m,
-    marginHorizontal: tokens.spacing.m,
-    marginBottom: tokens.spacing.m,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: tokens.spacing.s,
-  },
-  progressTitle: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.textPrimary,
-  },
-  progressPercentage: {
+  expandText: {
     fontSize: fontSizes.sm,
     fontFamily: fonts.jakarta.medium,
     color: colors.primary,
+    marginRight: spacing.xs,
   },
-  progressBarContainer: {
-    marginBottom: tokens.spacing.s,
+  // Empty State Styles
+  emptyState: {
+    backgroundColor: colors.white,
+    padding: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  progressBarBackground: {
-    height: 6,
-    backgroundColor: colors.neutral200,
-    borderRadius: 3,
-    overflow: 'hidden',
+  emptyStateText: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.jakarta.medium,
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    textAlign: 'center',
   },
-  progressBarFill: {
-    height: '100%',
+  emptyStateButton: {
     backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  taskCardCompleted: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.success,
-  },
-  taskNumberCompleted: {
-    backgroundColor: colors.success,
-  },
-  taskTitleCompleted: {
-    color: colors.textSecondary,
-    textDecorationLine: 'line-through',
-  },
-  taskDescriptionCompleted: {
-    color: colors.textTertiary,
-  },
-  taskViewCount: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textTertiary,
-    marginTop: 2,
-  },
-  completedBadge: {
-    backgroundColor: colors.success,
-    paddingHorizontal: tokens.spacing.s,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-  },
-  completedBadgeText: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.surface,
-  },
-  motivationText: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.medium,
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  noGoalsContainer: {
-    backgroundColor: colors.neutral100,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.md,
-    padding: tokens.spacing.l,
-    alignItems: 'center',
-    marginBottom: tokens.spacing.m,
   },
-  noGoalsText: {
-    fontSize: fontSizes.base,
+  emptyStateButtonText: {
+    fontSize: fontSizes.md,
     fontFamily: fonts.jakarta.medium,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  noGoalsSubtext: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textTertiary,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    zIndex: 1,
-  },
-  fabGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tutorialSelectionModal: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    margin: tokens.spacing.l,
-    maxHeight: '80%',
-    width: '90%',
-  },
-  tutorialModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: tokens.spacing.l,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-  },
-  tutorialModalTitle: {
-    fontSize: fontSizes.xl,
-    fontFamily: fonts.jakarta.bold,
-    color: colors.textPrimary,
-  },
-  tutorialCloseButton: {
-    padding: tokens.spacing.xs,
-  },
-  tutorialOptionsContainer: {
-    padding: tokens.spacing.l,
-  },
-  tutorialOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: tokens.spacing.m,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    marginBottom: tokens.spacing.m,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
-  },
-  tutorialOptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: tokens.spacing.m,
-  },
-  tutorialOptionTitle: {
-    fontSize: fontSizes.base,
-    fontFamily: fonts.jakarta.bold,
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  tutorialOptionSubtitle: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.jakarta.regular,
-    color: colors.textSecondary,
+    color: colors.white,
   },
 });
 

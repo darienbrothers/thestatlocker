@@ -5,15 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '@/types';
 import { theme, COLORS, FONTS } from '@shared/theme';
+import { useAuthStore } from '@shared/stores/authStore';
 
 type PaywallScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -110,22 +111,47 @@ export default function PaywallScreen({ navigation, route }: Props) {
   const [selectedPlan, setSelectedPlan] = useState('premium');
   const [showFAQ, setShowFAQ] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const { completeOnboarding } = useAuthStore();
 
-  const handleStartTrial = () => {
-    // TODO: Integrate with subscription service
-    console.log('Starting trial with plan:', selectedPlan);
-    navigation.navigate('MainTabs', {
-      onboardingData: route.params?.onboardingData,
-    });
+  const handleStartTrial = async () => {
+    try {
+      // TODO: Integrate with subscription service
+      console.log('Starting trial with plan:', selectedPlan);
+      
+      // Complete onboarding after paywall interaction
+      await completeOnboarding();
+      
+      navigation.navigate('MainTabs', {
+        onboardingData: route.params?.onboardingData,
+      });
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      // Still navigate even if completion fails
+      navigation.navigate('MainTabs', {
+        onboardingData: route.params?.onboardingData,
+      });
+    }
   };
 
-  const handleSwitchToBasic = () => {
-    setSelectedPlan('basic');
-    // TODO: Integrate with subscription service
-    console.log('Switching to Basic plan');
-    navigation.navigate('MainTabs', {
-      onboardingData: route.params?.onboardingData,
-    });
+  const handleSwitchToBasic = async () => {
+    try {
+      setSelectedPlan('basic');
+      // TODO: Integrate with subscription service
+      console.log('Switching to Basic plan');
+      
+      // Complete onboarding after paywall interaction
+      await completeOnboarding();
+      
+      navigation.navigate('MainTabs', {
+        onboardingData: route.params?.onboardingData,
+      });
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      // Still navigate even if completion fails
+      navigation.navigate('MainTabs', {
+        onboardingData: route.params?.onboardingData,
+      });
+    }
   };
 
   const renderPricingCard = (plan: PricingPlan) => {
@@ -313,11 +339,21 @@ export default function PaywallScreen({ navigation, route }: Props) {
         {/* Temporary Skip Button */}
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() =>
-            navigation.navigate('MainTabs', {
-              onboardingData: route.params?.onboardingData,
-            })
-          }
+          onPress={async () => {
+            try {
+              // Complete onboarding even when skipping
+              await completeOnboarding();
+              navigation.navigate('MainTabs', {
+                onboardingData: route.params?.onboardingData,
+              });
+            } catch (error) {
+              console.error('Error completing onboarding:', error);
+              // Still navigate even if completion fails
+              navigation.navigate('MainTabs', {
+                onboardingData: route.params?.onboardingData,
+              });
+            }
+          }}
         >
           <Text style={styles.skipButtonText}>
             Skip to Dashboard (Temporary)

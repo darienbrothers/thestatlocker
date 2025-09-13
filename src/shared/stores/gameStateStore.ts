@@ -12,10 +12,12 @@ export interface GameState {
 
 interface GameStateStore {
   gameState: GameState;
+  postGameTimeoutId?: NodeJS.Timeout | undefined;
   startGame: (gameId: string) => void;
   endGame: () => void;
   clearPostGameState: () => void;
   checkPostGameStatus: () => void;
+  cleanup: () => void;
 }
 
 const POST_GAME_DURATION = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
@@ -25,6 +27,7 @@ export const useGameStateStore = create<GameStateStore>((set, get) => ({
     isActive: false,
     isPostGame: false,
   },
+  postGameTimeoutId: undefined,
 
   startGame: (gameId: string) => {
     const startTime = new Date();
@@ -47,6 +50,12 @@ export const useGameStateStore = create<GameStateStore>((set, get) => ({
   endGame: () => {
     const endTime = new Date();
     const currentState = get().gameState;
+    const store = get();
+
+    // Clear any existing timeout
+    if (store.postGameTimeoutId) {
+      clearTimeout(store.postGameTimeoutId);
+    }
 
     set({
       gameState: {
@@ -62,9 +71,14 @@ export const useGameStateStore = create<GameStateStore>((set, get) => ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     // Set timer to clear post-game state after 2 hours
-    setTimeout(() => {
-      get().clearPostGameState();
+    const timeoutId = setTimeout(() => {
+      const currentStore = get();
+      if (currentStore.postGameTimeoutId === timeoutId) {
+        currentStore.clearPostGameState();
+      }
     }, POST_GAME_DURATION);
+
+    set({ postGameTimeoutId: timeoutId });
 
     console.log(
       `Game ended at ${endTime.toISOString()}, post-game state active`,
@@ -73,12 +87,19 @@ export const useGameStateStore = create<GameStateStore>((set, get) => ({
 
   clearPostGameState: () => {
     const currentState = get().gameState;
+    const store = get();
+
+    // Clear the timeout if it exists
+    if (store.postGameTimeoutId) {
+      clearTimeout(store.postGameTimeoutId);
+    }
 
     set({
       gameState: {
         ...currentState,
         isPostGame: false,
       },
+      postGameTimeoutId: undefined,
     });
 
     console.log('Post-game state cleared');
@@ -94,6 +115,14 @@ export const useGameStateStore = create<GameStateStore>((set, get) => ({
       if (timeSinceEnd > POST_GAME_DURATION) {
         get().clearPostGameState();
       }
+    }
+  },
+
+  cleanup: () => {
+    const store = get();
+    if (store.postGameTimeoutId) {
+      clearTimeout(store.postGameTimeoutId);
+      set({ postGameTimeoutId: undefined });
     }
   },
 }));

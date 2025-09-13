@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Animated,
@@ -13,6 +12,7 @@ import {
   Keyboard,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
@@ -21,10 +21,16 @@ import { OnboardingStepper } from '@/components/gamification';
 interface BasicInfoScreenProps {
   navigation: any;
   route: {
-    params?: {
+    params: {
       firstName?: string;
       lastName?: string;
       profileImage?: string | null;
+      fromReview?: boolean;
+      sport?: string;
+      gender?: 'boys' | 'girls';
+      position?: string;
+      graduationYear?: number;
+      [key: string]: any;
     };
   };
 }
@@ -60,11 +66,11 @@ export default function BasicInfoScreen({
   navigation,
   route,
 }: BasicInfoScreenProps) {
-  const { firstName, lastName, profileImage } = route.params || {};
-  const [sport, setSport] = useState<string>('');
-  const [gender, setGender] = useState<'boys' | 'girls' | ''>('');
-  const [position, setPosition] = useState<string>('');
-  const [graduationYear, setGraduationYear] = useState<number | null>(null);
+  const { firstName, lastName, profileImage, fromReview, sport: initialSport, gender: initialGender, position: initialPosition, graduationYear: initialGraduationYear, ...otherParams } = route.params || {};
+  const [sport, setSport] = useState<string>(initialSport || '');
+  const [gender, setGender] = useState<'boys' | 'girls' | ''>(initialGender || '');
+  const [position, setPosition] = useState<string>(initialPosition || '');
+  const [graduationYear, setGraduationYear] = useState<number | null>(initialGraduationYear || null);
 
 
   // Animation refs
@@ -155,16 +161,29 @@ export default function BasicInfoScreen({
           useNativeDriver: true,
         }),
       ]).start(() => {
-        // Navigate after animation completes
-        navigation.navigate('TeamInformation', {
-          firstName,
-          lastName,
-          profileImage,
-          sport,
-          gender,
-          position,
-          graduationYear,
-        });
+        // Navigate based on fromReview parameter
+        if (fromReview) {
+          navigation.navigate('Review', {
+            ...otherParams,
+            firstName,
+            lastName,
+            profileImage,
+            sport,
+            gender,
+            position,
+            graduationYear,
+          });
+        } else {
+          navigation.navigate('TeamInformation', {
+            firstName,
+            lastName,
+            profileImage,
+            sport,
+            gender,
+            position,
+            graduationYear,
+          });
+        }
       });
     }
   };

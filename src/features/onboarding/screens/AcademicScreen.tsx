@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
@@ -14,6 +13,7 @@ import {
   Animated,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -77,6 +77,7 @@ export default function AcademicScreen({
     clubJerseyNumber,
     academicData,
     returnTo,
+    fromReview,
     ...otherParams
   } = route.params;
 
@@ -233,6 +234,18 @@ export default function AcademicScreen({
           ? [...academicInterests.filter(i => i !== 'Other'), customInterest.trim()]
           : academicInterests,
         academicAwards: academicAwards.trim() || '',
+        // Preserve academic data for future navigation
+        academicData: {
+          gpa: gpa.trim() || '',
+          hasHonorsAP,
+          satScore: satScore.trim() || '',
+          actScore: actScore.trim() || '',
+          academicInterests: academicInterests.includes('Other')
+            ? [...academicInterests.filter(i => i !== 'Other'), customInterest.trim()]
+            : academicInterests,
+          customInterest: customInterest.trim() || '',
+          academicAwards: academicAwards.trim() || '',
+        },
         ...otherParams,
       };
 
@@ -274,10 +287,20 @@ export default function AcademicScreen({
       academicInterest: '',
       academicInterests: [],
       academicAwards: '',
+      // Preserve empty academic data structure for consistency
+      academicData: {
+        gpa: '',
+        hasHonorsAP: null,
+        satScore: '',
+        actScore: '',
+        academicInterests: [],
+        customInterest: '',
+        academicAwards: '',
+      },
       ...otherParams,
     };
 
-    if (returnTo === 'Review') {
+    if (fromReview || returnTo === 'Review') {
       navigation.navigate('Review', updatedParams);
     } else {
       navigation.navigate('Goals', updatedParams);

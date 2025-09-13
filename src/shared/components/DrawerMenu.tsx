@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
-  SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@shared/theme';
@@ -69,9 +69,11 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({
     description: 'Revisit app tutorials',
   };
 
-  const menuItems = showTutorials
-    ? [tutorialItem, ...baseMenuItems]
-    : baseMenuItems;
+  const menuItems = useMemo(() => {
+    return showTutorials
+      ? [tutorialItem, ...baseMenuItems]
+      : baseMenuItems;
+  }, [showTutorials]);
 
   const handleItemPress = (itemId: string) => {
     onNavigate(itemId);

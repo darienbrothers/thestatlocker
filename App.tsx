@@ -54,9 +54,9 @@ export default function App() {
 
     prepare();
 
-    // Initialize auth listener
+    // Initialize auth listener - only run once
     initialize();
-  }, [initialize]);
+  }, []); // Empty dependency array to run only once
 
   const onLayoutRootView = useCallback(async () => {
     if (appIsReady) {
@@ -83,21 +83,37 @@ export default function App() {
   }
 
   const getInitialRouteName = () => {
+    console.log('🔍 getInitialRouteName called:', {
+      isAuthenticated,
+      hasCompletedOnboarding: user?.hasCompletedOnboarding,
+      hasFirstName: !!user?.firstName,
+      timestamp: new Date().toISOString()
+    });
+    
     // Always start with Welcome screen for unauthenticated users
-    // This ensures we don't get stuck in a loading state
     if (!isAuthenticated) {
+      console.log('➡️ Returning Welcome (not authenticated)');
       return 'Welcome';
     }
-    if (!user?.hasCompletedOnboarding) {
-      return 'NameEntry';
+    
+    // If user has completed onboarding, go to main app
+    if (user?.hasCompletedOnboarding) {
+      console.log('➡️ Returning MainTabs (completed onboarding)');
+      return 'MainTabs';
     }
-    return 'MainTabs';
+    
+    // For authenticated users without completed onboarding, start at Welcome
+    // and let the navigation flow handle where they should go
+    console.log('➡️ Returning Welcome (authenticated but not completed)');
+    return 'Welcome';
   };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer
+          key={isAuthenticated && !user?.hasCompletedOnboarding ? 'onboarding' : 'main'}
+        >
           <Stack.Navigator
             initialRouteName={getInitialRouteName()}
             screenOptions={{

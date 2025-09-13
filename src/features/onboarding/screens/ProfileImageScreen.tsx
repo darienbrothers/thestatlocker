@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Animated,
   Image,
   Alert,
@@ -13,6 +12,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,11 +26,11 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({
   navigation,
   route,
 }) => {
-  // Get name data from previous screen
-  const { firstName, lastName } = route.params || {};
+  // Get route params
+  const { firstName, lastName, fromReview, profileImage: initialProfileImage, ...otherParams } = route.params || {};
 
-  // State
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  // State - initialize with existing data if editing from Review
+  const [profileImage, setProfileImage] = useState<string | null>(initialProfileImage || null);
 
   // Form validation - profile image is required
   const isFormValid = profileImage !== null;
@@ -118,12 +118,21 @@ const ProfileImageScreen: React.FC<{ navigation: any; route: any }> = ({
           useNativeDriver: true,
         }),
       ]).start(() => {
-        // Navigate to next screen (BasicInfo)
-        navigation.navigate('BasicInfo', {
-          firstName: firstName,
-          lastName: lastName,
-          profileImage: profileImage,
-        });
+        // Navigate based on fromReview parameter
+        if (fromReview) {
+          navigation.navigate('Review', {
+            ...otherParams,
+            firstName: firstName,
+            lastName: lastName,
+            profileImage: profileImage,
+          });
+        } else {
+          navigation.navigate('BasicInfo', {
+            firstName: firstName,
+            lastName: lastName,
+            profileImage: profileImage,
+          });
+        }
       });
     }
   };

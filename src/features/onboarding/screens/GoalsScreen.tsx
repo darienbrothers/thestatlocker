@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
-  SafeAreaView,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -59,6 +59,8 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
 
   // Get position from route params
   const { position } = route.params;
+  
+  // Note: GoalsScreen always navigates to Review as it's the final onboarding step
 
   // Initialize with existing selected goals from route params
   const [selectedGoals, setSelectedGoals] = useState<string[]>(
@@ -460,8 +462,8 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
     try {
-      // Save goals to user profile if authenticated
-      if (isAuthenticated && user) {
+      // Save goals to user profile if authenticated AND user document exists
+      if (isAuthenticated && user && user.hasCompletedOnboarding) {
         await updateUser({
           goals: {
             ...user.goals,
@@ -478,6 +480,11 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
       navigation.navigate('Review', {
         ...route.params,
         goals: selectedGoals,
+        // Preserve goals data for future navigation
+        goalsData: {
+          selectedGoals,
+          position: route.params.position,
+        },
       });
     } catch (error) {
       console.error('Error saving goals:', error);
@@ -485,6 +492,11 @@ const GoalsScreen: React.FC<GoalsScreenProps> = ({ navigation, route }) => {
       navigation.navigate('Review', {
         ...route.params,
         goals: selectedGoals,
+        // Preserve goals data for future navigation
+        goalsData: {
+          selectedGoals,
+          position: route.params.position,
+        },
       });
     }
   };
